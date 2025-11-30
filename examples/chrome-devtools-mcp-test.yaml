@@ -1,0 +1,52 @@
+# Tests for Chrome devtools MCP
+# https://github.com/ChromeDevTools/chrome-devtools-mcp/
+# Test scenario:
+# 1. Open the page https://broken-workshop.dequelabs.com:
+# 2. Click the button with span "Cook Mega Burger"
+# Assert:
+# new_page tool was clicked with correct URL
+# click tool was called
+# no hallucinated tool calls
+# token number is less, than 2000
+criteria:
+  success_rate: 1 # 100%
+providers:
+  - name: vertex-flash
+    type: VERTEX
+    project_id: <your-project-id>
+    credentials_path: <path to your credentials.json>
+    model: gemini-2.5-flash
+servers:
+  - name: chrome-mcp
+    type: stdio
+    command: npx -y chrome-devtools-mcp@latest
+agents:
+  - name: gemini-2.5-flash-agent
+    servers:
+      - name: chrome-mcp
+    provider: vertex-flash
+settings:
+  verbose: true # enable debug logs
+  max_iterations: 20 # max iterations per tool
+  test_delay: 1s # delay between tool calls
+  tool_timeout: 1s # max tool call duration
+sessions:
+  - name: Open website and do click
+    tests:
+      - name: "Open website and do click"
+        prompt: |
+          Follow these steps exactly and use the correct tools with valid inputs:
+          1. Open the page https://broken-workshop.dequelabs.com:
+          2. Click the button with span "Cook Mega Burger"
+        assertions:
+          - type: tool_called
+            tool: "new_page"
+          - type: tool_param_equals
+            tool: "new_page"
+            params:
+              url: "https://broken-workshop.dequelabs.com"
+          - type: tool_called
+            tool: "click"
+          - type: no_hallucinated_tools
+          - type: max_tokens
+            value: 2000
