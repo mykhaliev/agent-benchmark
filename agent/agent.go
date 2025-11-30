@@ -233,7 +233,7 @@ func (m *MCPAgent) GenerateContentWithConfig(
 
 	response := ""
 	iteration := 0
-
+	tokens := 0
 	for iteration < maxIterations {
 		iteration++
 
@@ -293,7 +293,7 @@ func (m *MCPAgent) GenerateContentWithConfig(
 		}
 
 		toolCalls := resp.Choices[0].ToolCalls
-
+		tokens += GetTokenCount(resp)
 		if len(toolCalls) == 0 {
 			response += assistantText
 			if config.Verbose {
@@ -376,7 +376,7 @@ func (m *MCPAgent) GenerateContentWithConfig(
 	result.FinalOutput = response
 	result.EndTime = time.Now()
 	result.LatencyMs = time.Since(startTime).Milliseconds()
-	result.TokensUsed = len(response) / ApproxTokenDivisor
+	result.TokensUsed = tokens
 
 	if config.Verbose {
 		logger.Logger.Info("Execution completed",
@@ -423,7 +423,7 @@ func (m *MCPAgent) GenerateContentAsStreaming(
 
 		response := ""
 		iteration := 0
-
+		tokens := 0
 		for iteration < maxIterations {
 			iteration++
 
@@ -497,7 +497,7 @@ func (m *MCPAgent) GenerateContentAsStreaming(
 			}
 
 			toolCalls := resp.Choices[0].ToolCalls
-
+			tokens += GetTokenCount(resp)
 			if len(toolCalls) == 0 {
 				if config.Verbose {
 					logger.Logger.Info("Streaming final answer received", "iteration", iteration)
@@ -584,7 +584,7 @@ func (m *MCPAgent) GenerateContentAsStreaming(
 		result.FinalOutput = response
 		result.EndTime = time.Now()
 		result.LatencyMs = time.Since(startTime).Milliseconds()
-		result.TokensUsed = len(response) / ApproxTokenDivisor
+		result.TokensUsed = tokens
 
 		if config.Verbose {
 			logger.Logger.Info("Streaming execution completed",
@@ -846,4 +846,38 @@ func isToolCallChunk(chunk []byte) bool {
 	}
 
 	return false
+}
+
+// GetTokenCount extracts total token count from a ContentResponse
+// If provider is unknown or token info is unavailable, it estimates using len(response)/4
+func GetTokenCount(response *llms.ContentResponse) int {
+	if len(response.Choices) == 0 {
+		return 0
+	}
+
+	choice := response.Choices[0]
+	genInfo := choice.GenerationInfo
+
+	// Try to parse based on common provider keys
+	if genInfo != nil {
+		// Try OpenAI format
+		if v, ok := genInfo["TotalTokens"].(int); ok {
+			return v
+		}
+
+		// Try Google format
+		if v, ok := genInfo["total_tokens"].(int); ok {
+			return v
+		}
+
+		// Try Anthropic format (sum of input + output)
+		inputTokens, hasInput := genInfo["input_tokens"].(int)
+		outputTokens, hasOutput := genInfo["output_tokens"].(int)
+		if hasInput || hasOutput {
+			return inputTokens + outputTokens
+		}
+	}
+
+	// Fallback: estimate using len(response)/4
+	return len(choice.Content) / ApproxTokenDivisor
 }
