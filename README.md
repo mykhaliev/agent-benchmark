@@ -653,10 +653,10 @@ assertions:
 
 **Token Estimation:**
 
-Token usage is estimated as:
-
+Token usage for OpenAI, Google and Anthropic models is taken from GenerationInfo
+For other models formula is:
 ```
-tokens ≈ output_length / 4
+tokens = output_length / 4
 ```
 
 This approximation:
