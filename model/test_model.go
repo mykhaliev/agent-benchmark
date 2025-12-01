@@ -133,8 +133,9 @@ type Settings struct {
 // ============================================================================
 
 type Session struct {
-	Name  string `yaml:"name"`
-	Tests []Test `yaml:"tests"`
+	Name         string   `yaml:"name"`
+	Tests        []Test   `yaml:"tests"`
+	AllowedTools []string `yaml:"allowedTools,omitempty"`
 }
 
 // ============================================================================
@@ -142,14 +143,15 @@ type Session struct {
 // ============================================================================
 
 type Test struct {
-	Name        string            `yaml:"name"`
-	Description string            `yaml:"description,omitempty"`
-	Agent       string            `yaml:"agent"`
-	Prompt      string            `yaml:"prompt"`
-	StartDelay  string            `yaml:"start_delay"`
-	Assertions  []Assertion       `yaml:"assertions"`
-	Extractors  []DataExtractor   `yaml:"extractors"`
-	Variables   map[string]string `yaml:"variables,omitempty"`
+	Name         string            `yaml:"name"`
+	Description  string            `yaml:"description,omitempty"`
+	Agent        string            `yaml:"agent"`
+	Prompt       string            `yaml:"prompt"`
+	StartDelay   string            `yaml:"start_delay"`
+	Assertions   []Assertion       `yaml:"assertions"`
+	Extractors   []DataExtractor   `yaml:"extractors"`
+	Variables    map[string]string `yaml:"variables,omitempty"`
+	AllowedTools []string          `yaml:"allowedTools,omitempty"`
 }
 
 type Assertion struct {

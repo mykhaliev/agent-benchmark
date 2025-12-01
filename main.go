@@ -703,6 +703,7 @@ func runTests(
 			"agent", agentConfig.Name,
 			"total", len(agents))
 
+		allAgentTools := ag.ExtractToolsFromAgent()
 		// Iterate through sessions
 		for sessionIdx, session := range testConfig.Sessions {
 			logger.Logger.Info("Starting session",
@@ -716,6 +717,17 @@ func runTests(
 
 			// Initialize fresh message history for this session
 			msgs := make([]llms.MessageContent, 0)
+			sessionTools := allAgentTools // Don't mutate original
+			if session.AllowedTools != nil {
+				sessionTools = make([]llms.Tool, 0)
+				for i := range allAgentTools { // Filter from allAgentTools
+					for _, allowedTool := range session.AllowedTools {
+						if allAgentTools[i].Function.Name == allowedTool {
+							sessionTools = append(sessionTools, allAgentTools[i])
+						}
+					}
+				}
+			}
 
 			// Run tests within this session
 			for testIdx, test := range session.Tests {
@@ -732,6 +744,17 @@ func runTests(
 					"agent", agentConfig.Name,
 					"session", session.Name)
 
+				testTools := sessionTools // Start from session tools
+				if test.AllowedTools != nil {
+					testTools = make([]llms.Tool, 0)
+					for i := range sessionTools { // Filter from sessionTools
+						for _, allowedTool := range test.AllowedTools {
+							if sessionTools[i].Function.Name == allowedTool {
+								testTools = append(testTools, sessionTools[i])
+							}
+						}
+					}
+				}
 				// Start delay
 				if test.StartDelay != "" {
 					startDelay := parseDelay(test.StartDelay)
@@ -758,7 +781,7 @@ func runTests(
 					ToolTimeout:          toolTimeout,
 					AddNotFinalResponses: true,
 					Verbose:              testConfig.Settings.Verbose,
-				})
+				}, testTools)
 				executionResult.TestName = test.Name
 				duration := time.Since(startTime)
 
