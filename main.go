@@ -463,6 +463,7 @@ func createProvider(ctx context.Context, p model.Provider) (llms.Model, error) {
 	case model.ProviderVertex:
 		llmModel, err = vertex.New(
 			ctx,
+			googleai.WithDefaultModel(p.Model),
 			googleai.WithCloudProject(p.ProjectID),
 			googleai.WithCloudLocation(p.Location),
 			googleai.WithCredentialsFile(p.CredentialsPath),
