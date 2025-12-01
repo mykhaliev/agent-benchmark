@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -861,23 +862,51 @@ func GetTokenCount(response *llms.ContentResponse) int {
 	// Try to parse based on common provider keys
 	if genInfo != nil {
 		// Try OpenAI format
-		if v, ok := genInfo["TotalTokens"].(int); ok {
+		if v := extractInt(genInfo["TotalTokens"]); v > 0 {
 			return v
 		}
 
 		// Try Google format
-		if v, ok := genInfo["total_tokens"].(int); ok {
+		if v := extractInt(genInfo["total_tokens"]); v > 0 {
 			return v
 		}
 
 		// Try Anthropic format (sum of input + output)
-		inputTokens, hasInput := genInfo["input_tokens"].(int)
-		outputTokens, hasOutput := genInfo["output_tokens"].(int)
-		if hasInput || hasOutput {
+		inputTokens := extractInt(genInfo["input_tokens"])
+		outputTokens := extractInt(genInfo["output_tokens"])
+		if inputTokens > 0 || outputTokens > 0 {
 			return inputTokens + outputTokens
 		}
 	}
 
 	// Fallback: estimate using len(response)/4
 	return len(choice.Content) / ApproxTokenDivisor
+}
+
+// extractInt safely extracts an integer from an any/interface{} value
+// Returns 0 if the value cannot be converted to int
+func extractInt(v any) int {
+	if v == nil {
+		return 0
+	}
+
+	switch val := v.(type) {
+	case int:
+		return val
+	case int32:
+		return int(val)
+	case int64:
+		return int(val)
+	case float64:
+		return int(val)
+	case float32:
+		return int(val)
+	case string:
+		if i, err := strconv.Atoi(val); err == nil {
+			return i
+		}
+		return 0
+	default:
+		return 0
+	}
 }
