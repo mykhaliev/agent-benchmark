@@ -212,6 +212,7 @@ func (m *MCPAgent) GenerateContentWithConfig(
 	ctx context.Context,
 	msgs *[]llms.MessageContent,
 	config AgentConfig,
+	tools []llms.Tool,
 ) model.ExecutionResult {
 	startTime := time.Now()
 	maxIterations := getMaxIterations(config.MaxIterations)
@@ -227,7 +228,6 @@ func (m *MCPAgent) GenerateContentWithConfig(
 	result := initializeExecutionResult(m.Name, m.Provider, startTime)
 	recordUserMessages(msgs, &result, config.Verbose)
 
-	tools := m.ExtractToolsFromAgent()
 	if config.Verbose {
 		logger.Logger.Debug("Tools extracted for LLM", "count", len(tools))
 	}
