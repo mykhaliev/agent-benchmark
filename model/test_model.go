@@ -106,7 +106,7 @@ type Agent struct {
 
 type AgentServer struct {
 	Name         string   `yaml:"name"`
-	AllowedTools []string `yaml:"allowedTools,omitempty"`
+	AllowedTools []string `yaml:"allowed_tools,omitempty"`
 }
 
 // ============================================================================
@@ -135,7 +135,7 @@ type Settings struct {
 type Session struct {
 	Name         string   `yaml:"name"`
 	Tests        []Test   `yaml:"tests"`
-	AllowedTools []string `yaml:"allowedTools,omitempty"`
+	AllowedTools []string `yaml:"allowed_tools,omitempty"`
 }
 
 // ============================================================================
@@ -151,7 +151,7 @@ type Test struct {
 	Assertions   []Assertion       `yaml:"assertions"`
 	Extractors   []DataExtractor   `yaml:"extractors"`
 	Variables    map[string]string `yaml:"variables,omitempty"`
-	AllowedTools []string          `yaml:"allowedTools,omitempty"`
+	AllowedTools []string          `yaml:"allowed_tools,omitempty"`
 }
 
 type Assertion struct {
