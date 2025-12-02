@@ -54,6 +54,7 @@ type Provider struct {
 	Name            string       `yaml:"name"`
 	Type            ProviderType `yaml:"type"`
 	Token           string       `yaml:"token"`
+	Secret          string       `yaml:"secret"`
 	Model           string       `yaml:"model"`
 	BaseURL         string       `yaml:"baseUrl"`          // e.g., gpt-4o-mini
 	Version         string       `yaml:"version"`          // e.g., 2025-01-01-preview
@@ -65,11 +66,12 @@ type Provider struct {
 type ProviderType string
 
 const (
-	ProviderGoogle    ProviderType = "GOOGLE"
-	ProviderVertex    ProviderType = "VERTEX"
-	ProviderAnthropic ProviderType = "ANTHROPIC"
-	ProviderOpenAI    ProviderType = "OPENAI"
-	ProviderAzure     ProviderType = "AZURE"
+	ProviderGoogle          ProviderType = "GOOGLE"
+	ProviderVertex          ProviderType = "VERTEX"
+	ProviderAnthropic       ProviderType = "ANTHROPIC"
+	ProviderAmazonAnthropic ProviderType = "AMAZON-ANTHROPIC"
+	ProviderOpenAI          ProviderType = "OPENAI"
+	ProviderAzure           ProviderType = "AZURE"
 )
 
 // ============================================================================

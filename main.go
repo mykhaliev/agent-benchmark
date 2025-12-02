@@ -4,12 +4,16 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/bedrockruntime"
 	"github.com/mykhaliev/agent-benchmark/agent"
 	"github.com/mykhaliev/agent-benchmark/logger"
 	"github.com/mykhaliev/agent-benchmark/model"
@@ -18,6 +22,7 @@ import (
 	"github.com/mykhaliev/agent-benchmark/version"
 	"github.com/tmc/langchaingo/llms"
 	"github.com/tmc/langchaingo/llms/anthropic"
+	"github.com/tmc/langchaingo/llms/bedrock"
 	"github.com/tmc/langchaingo/llms/googleai"
 	"github.com/tmc/langchaingo/llms/googleai/vertex"
 	"github.com/tmc/langchaingo/llms/openai"
@@ -474,7 +479,23 @@ func createProvider(ctx context.Context, p model.Provider) (llms.Model, error) {
 			anthropic.WithToken(p.Token),
 		}
 		llmModel, err = anthropic.New(opts...)
-
+	case model.ProviderAmazonAnthropic:
+		cfg, err := config.LoadDefaultConfig(context.Background(),
+			config.WithRegion(p.Location),
+			config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(
+				p.Token,
+				p.Secret,
+				"",
+			)),
+		)
+		if err != nil {
+			log.Fatal(err)
+		}
+		brc := bedrockruntime.NewFromConfig(cfg)
+		llmModel, err = bedrock.New(
+			bedrock.WithClient(brc),
+			bedrock.WithModel(p.Model),
+		)
 	case model.ProviderOpenAI:
 		opts := []openai.Option{
 			openai.WithToken(p.Token),
