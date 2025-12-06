@@ -59,6 +59,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: agent-benchmark-${{ steps.vars.outputs.version }}
-          path: agent-benchmark-*
+          name: agent-benchmark-${{ steps.vars.outputs.version }}-${{ matrix.platform.os }}-${{ matrix.platform.arch }}
+          path: agent-benchmark-${{ steps.vars.outputs.version }}-${{ matrix.platform.os }}-${{ matrix.platform.arch }}*
           if-no-files-found: error
+
