@@ -40,6 +40,7 @@ Test agents across different LLM providers in parallel:
 - **Anthropic** (Claude models)
 - **OpenAI** (GPT models)
 - **Azure OpenAI**
+- **Groq**
 
 ### 2. MCP Server Integration
 Connect to MCP servers via:
@@ -201,6 +202,7 @@ criteria:
 - `ANTHROPIC` - Anthropic (Claude)
 - `OPENAI` - OpenAI (GPT)
 - `AZURE` - Azure OpenAI
+- `GROQ` - Groq
 
 Define LLM providers for your agents:
 
@@ -235,6 +237,12 @@ providers:
     location: "us-central1"
     credentials_path: "/path/to/service-account.json"
     model: gemini-2.0-flash
+    
+  - name: gpt-4
+    type: GROQ
+    token: {{GROQ_API_KEY}}
+    model: openai/gpt-oss-120b
+    baseUrl: https://api.groq.com/openai/v1 # Optional
 ```
 ---
 

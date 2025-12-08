@@ -459,6 +459,18 @@ func createProvider(ctx context.Context, p model.Provider) (llms.Model, error) {
 	var err error
 
 	switch p.Type {
+	case model.ProviderGroq:
+		opts := []openai.Option{
+			openai.WithToken(p.Token),
+			openai.WithModel(p.Model),
+		}
+		if p.BaseURL != "" {
+			opts = append(opts, openai.WithBaseURL(p.BaseURL))
+			logger.Logger.Debug("Using custom base URL", "url", p.BaseURL)
+		} else {
+			opts = append(opts, openai.WithBaseURL("https://api.groq.com/openai/v1"))
+		}
+		llmModel, err = openai.New(opts...)
 	case model.ProviderGoogle:
 		llmModel, err = googleai.New(
 			ctx,
