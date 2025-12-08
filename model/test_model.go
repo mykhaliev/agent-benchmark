@@ -66,6 +66,7 @@ type Provider struct {
 type ProviderType string
 
 const (
+	ProviderGroq            ProviderType = "GROQ"
 	ProviderGoogle          ProviderType = "GOOGLE"
 	ProviderVertex          ProviderType = "VERTEX"
 	ProviderAnthropic       ProviderType = "ANTHROPIC"
