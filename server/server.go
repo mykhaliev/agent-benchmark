@@ -117,6 +117,14 @@ func (s *MCPServer) validate() error {
 	)
 
 	switch s.Type {
+	case model.Http:
+		if s.URL == "" {
+			return fmt.Errorf("url is required and cannot be empty for http server type")
+		}
+		logger.Logger.Debug("Stdio server configuration",
+			"server_name", s.Name,
+			"url", s.URL,
+		)
 	case model.Stdio:
 		if s.Command == "" {
 			return fmt.Errorf("command is required and cannot be empty for stdio/local server type")
