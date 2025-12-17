@@ -242,6 +242,8 @@ func (s *MCPServer) createMCPClient(ctx context.Context) (mcpclient.MCPClient, e
 		return s.createStdioClient()
 	} else if s.Type == model.SSE {
 		return s.createSSEClient(ctx)
+	} else if s.Type == model.Http {
+		return s.createStreamableHttpClient()
 	}
 	return nil, fmt.Errorf("unsupported transport type '%s' for server %s", s.Type, s.Name)
 }
@@ -354,6 +356,28 @@ func (s *MCPServer) createSSEClient(ctx context.Context) (mcpclient.MCPClient, e
 
 	logger.Logger.Info("SSE client started successfully", "server_name", s.Name)
 	return sseClient, nil
+}
+
+func (s *MCPServer) createStreamableHttpClient() (mcpclient.MCPClient, error) {
+	logger.Logger.Debug("Creating Streamable HTTP client",
+		"server_name", s.Name,
+		"url", s.URL,
+	)
+	httpClient, err := mcpclient.NewStreamableHttpClient(s.URL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create stdio client: %w", err)
+	}
+	logger.Logger.Debug("Waiting for process startup", "server_name", s.Name)
+	processDelay := ProcessStartupDelay
+	if s.ProcessDelay != "" {
+		processDelay, err = time.ParseDuration(s.ProcessDelay)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse process delay")
+		}
+	}
+	time.Sleep(processDelay)
+	logger.Logger.Debug("Stdio client ready", "server_name", s.Name)
+	return httpClient, nil
 }
 
 func (s *MCPServer) cleanup() {

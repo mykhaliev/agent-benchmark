@@ -94,6 +94,7 @@ type ServerType string
 const (
 	Stdio ServerType = "stdio"
 	SSE   ServerType = "sse"
+	Http  ServerType = "http"
 )
 
 // ============================================================================
