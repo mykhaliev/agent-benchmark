@@ -166,7 +166,7 @@ func (m *MCPAgent) ExecuteTool(ctx context.Context, toolName, argumentsInJSON st
 		return "", fmt.Errorf("tool '%s' not found in any registered server", toolName)
 	}
 
-	arguments, err := validateAndParseArguments(argumentsInJSON)
+	arguments, err := ValidateAndParseArguments(argumentsInJSON)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse arguments for tool '%s': %w", toolName, err)
 	}
@@ -276,7 +276,7 @@ func (m *MCPAgent) GenerateContentWithConfig(
 			if config.Verbose {
 				logger.Logger.Debug("Assistant response",
 					"iteration", iteration,
-					"text_preview", truncateString(assistantText, LongResultLength))
+					"text_preview", TruncateString(assistantText, LongResultLength))
 			}
 
 			result.Messages = append(result.Messages, model.Message{
@@ -324,7 +324,7 @@ func (m *MCPAgent) GenerateContentWithConfig(
 					"tool_index", toolIdx+1,
 					"total_tools", len(toolCalls),
 					"tool_name", suggestedTool.FunctionCall.Name,
-					"arguments", truncateString(suggestedTool.FunctionCall.Arguments, LongResultLength))
+					"arguments", TruncateString(suggestedTool.FunctionCall.Arguments, LongResultLength))
 			}
 
 			if config.AddNotFinalResponses {
@@ -332,7 +332,7 @@ func (m *MCPAgent) GenerateContentWithConfig(
 					toolIdx+1, len(toolCalls), suggestedTool.FunctionCall.Name)
 			}
 
-			toolCall, toolRes, toolErr := m.executeToolWithTimeout(
+			toolCall, toolRes, toolErr := m.ExecuteToolWithTimeout(
 				ctx, suggestedTool, config, iteration, toolIdx+1, len(toolCalls))
 
 			if toolErr != nil {
@@ -360,7 +360,7 @@ func (m *MCPAgent) GenerateContentWithConfig(
 			})
 
 			if config.AddNotFinalResponses {
-				printRes := truncateString(toolRes, LongResultLength)
+				printRes := TruncateString(toolRes, LongResultLength)
 				response += fmt.Sprintf("\n[tool_response] %s\n", printRes)
 			}
 		}
@@ -480,7 +480,7 @@ func (m *MCPAgent) GenerateContentAsStreaming(
 				if config.Verbose {
 					logger.Logger.Debug("Streaming assistant response",
 						"iteration", iteration,
-						"text_preview", truncateString(assistantText, 150))
+						"text_preview", TruncateString(assistantText, 150))
 				}
 
 				result.Messages = append(result.Messages, model.Message{
@@ -534,7 +534,7 @@ func (m *MCPAgent) GenerateContentAsStreaming(
 					response += toolHeader
 				}
 
-				toolCall, toolRes, toolErr := m.executeToolWithTimeout(
+				toolCall, toolRes, toolErr := m.ExecuteToolWithTimeout(
 					ctx, suggestedTool, config, iteration, toolIdx+1, len(toolCalls))
 
 				if toolErr != nil {
@@ -565,7 +565,7 @@ func (m *MCPAgent) GenerateContentAsStreaming(
 				})
 
 				if config.AddNotFinalResponses {
-					printRes := truncateString(toolRes, LongResultLength)
+					printRes := TruncateString(toolRes, LongResultLength)
 					toolResponse := fmt.Sprintf("\n[tool_response] %s\n", printRes)
 					streamingChan <- toolResponse
 					response += toolResponse
@@ -631,7 +631,7 @@ func (m *MCPAgent) ExtractToolsFromAgent() []llms.Tool {
 	return result
 }
 
-func validateAndParseArguments(argumentsInJSON string) (any, error) {
+func ValidateAndParseArguments(argumentsInJSON string) (any, error) {
 	if argumentsInJSON == "" || argumentsInJSON == "{}" {
 		return nil, nil
 	}
@@ -664,7 +664,7 @@ func (m *MCPAgent) isToolAllowed(serverName, toolName string) bool {
 	return false
 }
 
-func (m *MCPAgent) executeToolWithTimeout(
+func (m *MCPAgent) ExecuteToolWithTimeout(
 	ctx context.Context,
 	suggestedTool llms.ToolCall,
 	config AgentConfig,
@@ -756,13 +756,13 @@ func (m *MCPAgent) executeToolWithTimeout(
 		logger.Logger.Debug("Tool execution successful",
 			"iteration", iteration,
 			"tool_index", toolIdx,
-			"result_preview", truncateString(toolRes, ResultPreviewLength))
+			"result_preview", TruncateString(toolRes, ResultPreviewLength))
 	}
 
 	return toolCall, toolRes, nil
 }
 
-func truncateString(s string, maxLen int) string {
+func TruncateString(s string, maxLen int) string {
 	if len(s) <= maxLen {
 		return s
 	}

@@ -469,7 +469,7 @@ func (e *AssertionEvaluator) evalToolParamEquals(a Assertion) AssertionResult {
 				mismatches = append(mismatches, fmt.Sprintf("missing param '%s'", key))
 				continue
 			}
-			if !deepEqual(actualVal, expectedVal) {
+			if !DeepEqual(actualVal, expectedVal) {
 				matches = false
 				mismatches = append(mismatches,
 					fmt.Sprintf("param '%s': expected %v, got %v", key, expectedVal, actualVal))
@@ -531,7 +531,7 @@ func (e *AssertionEvaluator) evalToolResultMatchesJson(a Assertion) AssertionRes
 			continue
 		}
 
-		if deepEqual(res, a.Value) {
+		if DeepEqual(res, a.Value) {
 			// At least one call matches → assertion passed
 			return AssertionResult{
 				Type:    a.Type,
@@ -923,7 +923,7 @@ func (e *AssertionEvaluator) evalFileDeleted(a Assertion) AssertionResult {
 // ============================================================================
 // UTILITY FUNCTIONS
 // ============================================================================
-func deepEqual(a, b interface{}) bool {
+func DeepEqual(a, b interface{}) bool {
 	return normalize(a) == normalize(b)
 }
 
