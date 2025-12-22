@@ -572,7 +572,7 @@ func getNestedValue(m map[string]interface{}, path string) (interface{}, bool) {
 func (e *AssertionEvaluator) evalToolCallCount(a Assertion) AssertionResult {
 	count := 0
 	for _, tc := range e.result.ToolCalls {
-		if tc.Name == a.Tool {
+		if tc.Name == a.Tool || a.Tool == "" {
 			count++
 		}
 	}

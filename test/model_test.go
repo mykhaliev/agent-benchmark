@@ -185,6 +185,11 @@ func TestAssertionEvaluator_ToolCallCount(t *testing.T) {
 		wantPassed bool
 	}{
 		{
+			name:       "Total count",
+			count:      3,
+			wantPassed: true,
+		},
+		{
 			name:       "Correct count",
 			toolName:   "get_weather",
 			count:      2,
