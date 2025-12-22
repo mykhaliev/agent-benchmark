@@ -6,7 +6,22 @@ on:
       - "v*"
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+
+      - name: Run tests
+        run: go test ./test
+
   build:
+    needs: test
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -24,19 +39,19 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      
+
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version: "1.25"
-      
+
       - name: Extract version from tag
         id: vars
         run: |
           echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
           echo "commit=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
           echo "date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> $GITHUB_OUTPUT
-      
+
       - name: Build binary
         env:
           GOOS: ${{ matrix.platform.os }}
@@ -53,7 +68,7 @@ jobs:
             -X 'github.com/mykhaliev/agent-benchmark/version.Commit=$COMMIT' \
             -X 'github.com/mykhaliev/agent-benchmark/version.BuildDate=$BUILD_DATE'" \
             -o "$OUT"
-      
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
@@ -69,18 +84,18 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      
+
       - name: Extract version from tag
         id: vars
         run: echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
-      
+
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
           path: artifacts
           pattern: binary-*
           merge-multiple: true
-      
+
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:

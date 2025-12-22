@@ -183,7 +183,7 @@ func RegisterHelpers() {
 
 		// Apply offset if provided
 		if offsetStr := options.HashStr("offset"); offsetStr != "" {
-			offset, err := parseOffset(offsetStr)
+			offset, err := ParseOffset(offsetStr)
 			if err == nil {
 				now = now.Add(offset)
 			}
@@ -210,7 +210,7 @@ func RegisterHelpers() {
 			return now.Format(time.RFC3339)
 		default:
 			// Custom format - convert Java SimpleDateFormat to Go format
-			goFormat := javaToGoDateFormat(format)
+			goFormat := JavaToGoDateFormat(format)
 			return now.Format(goFormat)
 		}
 	})
@@ -482,8 +482,8 @@ func toFloat(val interface{}) float64 {
 	}
 }
 
-// parseOffset parses offset strings like "3 days", "-24 seconds", "1 years"
-func parseOffset(offset string) (time.Duration, error) {
+// ParseOffset parses offset strings like "3 days", "-24 seconds", "1 years"
+func ParseOffset(offset string) (time.Duration, error) {
 	parts := strings.Fields(strings.TrimSpace(offset))
 	if len(parts) != 2 {
 		return 0, fmt.Errorf("invalid offset format")
@@ -520,8 +520,8 @@ func parseOffset(offset string) (time.Duration, error) {
 	}
 }
 
-// javaToGoDateFormat converts Java SimpleDateFormat to Go time format
-func javaToGoDateFormat(javaFormat string) string {
+// JavaToGoDateFormat converts Java SimpleDateFormat to Go time format
+func JavaToGoDateFormat(javaFormat string) string {
 	// Common Java SimpleDateFormat patterns to Go equivalents
 	replacements := map[string]string{
 		"yyyy": "2006",
