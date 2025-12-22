@@ -3,11 +3,6 @@
 # Test scenario:
 # 1. Open the page https://broken-workshop.dequelabs.com:
 # 2. Click the button with span "Cook Mega Burger"
-# Assert:
-# new_page tool was clicked with correct URL
-# click tool was called
-# no hallucinated tool calls
-# token number is less, than 2000
 criteria:
   success_rate: 1 # 100%
 providers:
@@ -27,8 +22,8 @@ agents:
     provider: vertex-flash
 settings:
   verbose: true # enable debug logs
-  max_iterations: 20 # max iterations per tool
-  test_delay: 1s # delay between tool calls
+  max_iterations: 20 # max llm iterations per prompt
+  test_delay: 1s # delay between tests
   tool_timeout: 1s # max tool call duration
 sessions:
   - name: Open website and do click
@@ -39,14 +34,83 @@ sessions:
           1. Open the page https://broken-workshop.dequelabs.com:
           2. Click the button with span "Cook Mega Burger"
         assertions:
+          # Verify that new_page tool was invoked at least once
           - type: tool_called
             tool: "new_page"
+
+          # Verify the exact URL parameter passed to new_page tool
           - type: tool_param_equals
             tool: "new_page"
             params:
               url: "https://broken-workshop.dequelabs.com"
+
+          # Verify URL parameter matches the expected domain pattern
+          - type: tool_param_matches_regex
+            tool: "new_page"
+            params:
+              url: "^https://broken-workshop\\.dequelabs\\.com"
+
+          # Verify that click tool was invoked at least once
           - type: tool_called
             tool: "click"
+
+          # Verify the click target contains the correct button text
+          - type: tool_param_matches_regex
+            tool: "click"
+            params:
+              selector: "(?i)cook.*mega.*burger"
+
+          # Verify exactly 2 tool calls were made (new_page + click)
+          - type: tool_call_count
+            value: 2
+
+          # Verify tools were called in the correct sequence
+          - type: tool_call_order
+            sequence:
+              - new_page
+              - click
+
+          # Verify new_page was not called more than once (no redundant navigation)
+          - type: tool_not_called_more_than
+            tool: "new_page"
+            value: 1
+
+          # Verify no invalid/hallucinated tools were called
           - type: no_hallucinated_tools
+
+          # Verify the agent didn't generate error messages during execution
+          - type: no_error_messages
+
+          # Verify total token usage is under 2000 (efficiency check)
           - type: max_tokens
             value: 2000
+
+          # Verify total execution time is under 10 seconds (performance check)
+          - type: max_latency_ms
+            value: 10000
+
+          # Verify click tool execution didn't exceed 5 seconds
+          - type: max_latency_ms
+            tool: "click"
+            value: 5000
+
+          # Verify the output contains confirmation of successful page load
+          - type: output_contains
+            tool: "new_page"
+            value: "loaded"
+
+          # Verify the output doesn't contain error indicators
+          - type: output_not_contains
+            tool: "click"
+            value: "failed"
+
+          # Verify the output matches success pattern (case-insensitive)
+          - type: output_regex
+            tool: "click"
+            pattern: "(?i)(success|clicked|complete)"
+
+          # Verify new_page result contains the expected page title in JSON response
+          - type: tool_result_matches_json
+            tool: "new_page"
+            path: "$.title"
+            value: "Broken Workshop"

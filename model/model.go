@@ -388,14 +388,6 @@ func (e *AssertionEvaluator) Evaluate(assertions []Assertion) []AssertionResult 
 			result = e.evalNoErrorMessages(assertion)
 		case "no_hallucinated_tools":
 			result = e.evalNoHallucinatedTools(assertion)
-		case "resource_read":
-			result = e.evalResourceRead(assertion)
-		case "file_created":
-			result = e.evalFileCreated(assertion)
-		case "file_written":
-			result = e.evalFileWritten(assertion)
-		case "file_deleted":
-			result = e.evalFileDeleted(assertion)
 		default:
 			result = AssertionResult{
 				Type:    assertion.Type,
@@ -814,83 +806,6 @@ func (e *AssertionEvaluator) evalNoErrorMessages(a Assertion) AssertionResult {
 		Details: map[string]interface{}{
 			"errors": e.result.Errors,
 		},
-	}
-}
-
-// MCP assertions
-func (e *AssertionEvaluator) evalResourceRead(a Assertion) AssertionResult {
-	resource := a.Path
-	for _, r := range e.result.MCPOperations.ResourcesRead {
-		if r == resource {
-			return AssertionResult{
-				Type:    a.Type,
-				Passed:  true,
-				Message: fmt.Sprintf("Resource '%s' was read", resource),
-			}
-		}
-	}
-
-	return AssertionResult{
-		Type:    a.Type,
-		Passed:  false,
-		Message: fmt.Sprintf("Resource '%s' was not read", resource),
-	}
-}
-
-func (e *AssertionEvaluator) evalFileCreated(a Assertion) AssertionResult {
-	path := a.Path
-	for _, f := range e.result.MCPOperations.FilesCreated {
-		if f == path {
-			return AssertionResult{
-				Type:    a.Type,
-				Passed:  true,
-				Message: fmt.Sprintf("File '%s' was created", path),
-			}
-		}
-	}
-
-	return AssertionResult{
-		Type:    a.Type,
-		Passed:  false,
-		Message: fmt.Sprintf("File '%s' was not created", path),
-	}
-}
-
-func (e *AssertionEvaluator) evalFileWritten(a Assertion) AssertionResult {
-	path := a.Path
-	for _, f := range e.result.MCPOperations.FilesWritten {
-		if f == path {
-			return AssertionResult{
-				Type:    a.Type,
-				Passed:  true,
-				Message: fmt.Sprintf("File '%s' was written", path),
-			}
-		}
-	}
-
-	return AssertionResult{
-		Type:    a.Type,
-		Passed:  false,
-		Message: fmt.Sprintf("File '%s' was not written", path),
-	}
-}
-
-func (e *AssertionEvaluator) evalFileDeleted(a Assertion) AssertionResult {
-	path := a.Path
-	for _, f := range e.result.MCPOperations.FilesDeleted {
-		if f == path {
-			return AssertionResult{
-				Type:    a.Type,
-				Passed:  true,
-				Message: fmt.Sprintf("File '%s' was deleted", path),
-			}
-		}
-	}
-
-	return AssertionResult{
-		Type:    a.Type,
-		Passed:  false,
-		Message: fmt.Sprintf("File '%s' was not deleted", path),
 	}
 }
 
