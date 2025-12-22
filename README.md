@@ -581,9 +581,8 @@ Validate parameters with regex patterns:
 assertions:
   - type: tool_param_matches_regex
     tool: send_email
-    pattern: "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
     params:
-      recipient: ""  # Field to check
+      recipient: "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
 ```
 
 #### tool_result_matches_json
@@ -626,24 +625,6 @@ Validate output with regex pattern:
 assertions:
   - type: output_regex
     pattern: "^User ID: [0-9]{4,}$"
-```
-
-#### output_matches_json
-Validate JSON output using JSONPath:
-
-```yaml
-assertions:
-  - type: output_matches_json
-    path: "$.status"
-    value: "success"
-```
-
-#### output_json_valid
-Verify output is valid JSON:
-
-```yaml
-assertions:
-  - type: output_json_valid
 ```
 
 ---
@@ -692,47 +673,6 @@ Verify execution completed without errors:
 assertions:
   - type: no_error_messages
 ```
-
----
-
-### MCP Operation Assertions
-
-#### resource_read
-Verify a specific resource was read:
-
-```yaml
-assertions:
-  - type: resource_read
-    path: "/data/users.json"
-```
-
-#### file_created
-Check if a file was created:
-
-```yaml
-assertions:
-  - type: file_created
-    path: "/tmp/output.txt"
-```
-
-#### file_written
-Verify a file was written to:
-
-```yaml
-assertions:
-  - type: file_written
-    path: "/tmp/log.txt"
-```
-
-#### file_deleted
-Ensure a file was deleted:
-
-```yaml
-assertions:
-  - type: file_deleted
-    path: "/tmp/temp.txt"
-```
-
 ---
 
 ## Template System
