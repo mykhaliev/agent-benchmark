@@ -518,7 +518,7 @@ assertions:
 ```
 
 #### tool_call_count
-Validate the exact number of tool calls:
+Validate the exact number of tool calls. The tool name is optional; if it is not specified, the number of all tool calls will be verified:
 
 ```yaml
 assertions:

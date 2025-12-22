@@ -60,6 +60,11 @@ sessions:
             params:
               selector: "(?i)cook.*mega.*burger"
 
+          # Verify exactly 1 tool calls for the tool 'click'
+          - type: tool_call_count
+            tool: "click"
+            value: 1
+
           # Verify exactly 2 tool calls were made (new_page + click)
           - type: tool_call_count
             value: 2
@@ -69,11 +74,6 @@ sessions:
             sequence:
               - new_page
               - click
-
-          # Verify new_page was not called more than once (no redundant navigation)
-          - type: tool_not_called_more_than
-            tool: "new_page"
-            value: 1
 
           # Verify no invalid/hallucinated tools were called
           - type: no_hallucinated_tools
@@ -89,24 +89,16 @@ sessions:
           - type: max_latency_ms
             value: 10000
 
-          # Verify click tool execution didn't exceed 5 seconds
-          - type: max_latency_ms
-            tool: "click"
-            value: 5000
-
           # Verify the output contains confirmation of successful page load
           - type: output_contains
-            tool: "new_page"
             value: "loaded"
 
           # Verify the output doesn't contain error indicators
           - type: output_not_contains
-            tool: "click"
             value: "failed"
 
           # Verify the output matches success pattern (case-insensitive)
           - type: output_regex
-            tool: "click"
             pattern: "(?i)(success|clicked|complete)"
 
           # Verify new_page result contains the expected page title in JSON response
