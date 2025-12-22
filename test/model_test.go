@@ -343,18 +343,16 @@ func TestAssertionEvaluator_ToolParamMatchesRegex(t *testing.T) {
 		wantPassed bool
 	}{
 		{
-			name:    "Matching regex",
-			pattern: `^[a-z]+@[a-z]+\.com$`,
+			name: "Matching regex",
 			params: map[string]string{
-				"email": "",
+				"email": `^[a-z]+@[a-z]+\.com$`,
 			},
 			wantPassed: true,
 		},
 		{
-			name:    "Non-matching regex",
-			pattern: `^[0-9]+$`,
+			name: "Non-matching regex",
 			params: map[string]string{
-				"email": "",
+				"email": `^[0-9]+$`,
 			},
 			wantPassed: false,
 		},
@@ -839,44 +837,6 @@ func BenchmarkAssertionEvaluator_OutputRegex(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		evaluator.Evaluate([]model.Assertion{assertion})
-	}
-}
-
-func TestAssertionEvaluator_OutputJSONValid(t *testing.T) {
-	tests := []struct {
-		name       string
-		output     string
-		wantPassed bool
-	}{
-		{
-			name:       "Valid JSON",
-			output:     `{"key": "value"}`,
-			wantPassed: true,
-		},
-		{
-			name:       "Invalid JSON",
-			output:     `{key: value}`,
-			wantPassed: false,
-		},
-		{
-			name:       "Plain text",
-			output:     `This is not JSON`,
-			wantPassed: false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := &model.ExecutionResult{
-				FinalOutput: tt.output,
-			}
-			evaluator := model.NewAssertionEvaluator(result, map[string]string{}, []string{})
-
-			assertion := model.Assertion{Type: "output_json_valid"}
-			results := evaluator.Evaluate([]model.Assertion{assertion})
-			require.Len(t, results, 1)
-			assert.Equal(t, tt.wantPassed, results[0].Passed)
-		})
 	}
 }
 
@@ -1405,160 +1365,6 @@ func TestAssertionEvaluator_OutputNotContains(t *testing.T) {
 
 			assertion := model.Assertion{
 				Type:  "output_not_contains",
-				Value: tt.value,
-			}
-
-			results := evaluator.Evaluate([]model.Assertion{assertion})
-			require.Len(t, results, 1)
-			assert.Equal(t, tt.wantPassed, results[0].Passed,
-				"Expected passed=%v, got passed=%v. Message: %s",
-				tt.wantPassed, results[0].Passed, results[0].Message)
-		})
-	}
-}
-
-func TestAssertionEvaluator_OutputMatchesJson(t *testing.T) {
-	tests := []struct {
-		name       string
-		output     string
-		path       string
-		value      string
-		wantPassed bool
-	}{
-		{
-			name: "Simple property match",
-			output: `{
-				"result": "success"
-			}`,
-			path:       "$.result",
-			value:      "success",
-			wantPassed: true,
-		},
-		{
-			name: "Nested property match",
-			output: `{
-				"data": {
-					"user": {
-						"name": "Alice"
-					}
-				}
-			}`,
-			path:       "$.data.user.name",
-			value:      "Alice",
-			wantPassed: true,
-		},
-		{
-			name: "Array access",
-			output: `{
-				"items": ["first", "second", "third"]
-			}`,
-			path:       "$.items[1]",
-			value:      "second",
-			wantPassed: true,
-		},
-		{
-			name: "Numeric value",
-			output: `{
-				"count": 42
-			}`,
-			path:       "$.count",
-			value:      "42",
-			wantPassed: true,
-		},
-		{
-			name: "Boolean value",
-			output: `{
-				"enabled": false
-			}`,
-			path:       "$.enabled",
-			value:      "false",
-			wantPassed: true,
-		},
-		{
-			name: "Non-matching value",
-			output: `{
-				"status": "active"
-			}`,
-			path:       "$.status",
-			value:      "inactive",
-			wantPassed: false,
-		},
-		{
-			name:       "Invalid JSON output",
-			output:     `{invalid json`,
-			path:       "$.status",
-			value:      "success",
-			wantPassed: false,
-		},
-		{
-			name: "Invalid JSONPath",
-			output: `{
-				"status": "success"
-			}`,
-			path:       "$.nonexistent.deeply.nested.path",
-			value:      "value",
-			wantPassed: false,
-		},
-		{
-			name: "Array of objects",
-			output: `{
-				"users": [
-					{"name": "Alice", "age": 30},
-					{"name": "Bob", "age": 25}
-				]
-			}`,
-			path:       "$.users[0].name",
-			value:      "Alice",
-			wantPassed: true,
-		},
-		{
-			name: "Deep nesting",
-			output: `{
-				"level1": {
-					"level2": {
-						"level3": {
-							"level4": {
-								"value": "deep"
-							}
-						}
-					}
-				}
-			}`,
-			path:       "$.level1.level2.level3.level4.value",
-			value:      "deep",
-			wantPassed: true,
-		},
-		{
-			name: "Null value",
-			output: `{
-				"data": null
-			}`,
-			path:       "$.data",
-			value:      "<nil>",
-			wantPassed: true,
-		},
-		{
-			name: "Empty string value",
-			output: `{
-				"message": ""
-			}`,
-			path:       "$.message",
-			value:      "",
-			wantPassed: true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := &model.ExecutionResult{
-				FinalOutput: tt.output,
-			}
-
-			evaluator := model.NewAssertionEvaluator(result, map[string]string{}, []string{})
-
-			assertion := model.Assertion{
-				Type:  "output_matches_json",
-				Path:  tt.path,
 				Value: tt.value,
 			}
 

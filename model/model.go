@@ -380,10 +380,6 @@ func (e *AssertionEvaluator) Evaluate(assertions []Assertion) []AssertionResult 
 			result = e.evalOutputNotContains(assertion)
 		case "output_regex":
 			result = e.evalOutputRegex(assertion)
-		case "output_matches_json":
-			result = e.evalOutputMatchesJson(assertion)
-		case "output_json_valid":
-			result = e.evalOutputJSONValid(assertion)
 		case "max_tokens":
 			result = e.evalMaxTokens(assertion)
 		case "max_latency_ms":
@@ -638,43 +634,55 @@ func (e *AssertionEvaluator) evalToolCallOrder(a Assertion) AssertionResult {
 }
 
 func (e *AssertionEvaluator) evalToolParamMatchesRegex(a Assertion) AssertionResult {
-	re, err := regexp.Compile(a.Pattern)
-	if err != nil {
-		return AssertionResult{
-			Type:    a.Type,
-			Passed:  false,
-			Message: fmt.Sprintf("Invalid regex pattern: %s", err),
-		}
-	}
+	var mismatchesAll [][]string
 
 	found := false
-	mismatchesAll := []string{}
 
 	for _, tc := range e.result.ToolCalls {
 		if tc.Name != a.Tool {
 			continue
 		}
 		found = true
+		matches := true
+		mismatches := []string{}
 
-		for key := range a.Params {
+		for key, expectedPattern := range a.Params {
 			actualVal, exists := getNestedValue(tc.Parameters, key)
 			if !exists {
-				mismatchesAll = append(mismatchesAll, fmt.Sprintf("Missing parameter '%s'", key))
+				matches = false
+				mismatches = append(mismatches, fmt.Sprintf("missing param '%s'", key))
 				continue
 			}
 
+			// Convert expectedPattern to string and compile regex
+			patternStr := fmt.Sprintf("%v", expectedPattern)
+			re, err := regexp.Compile(patternStr)
+			if err != nil {
+				matches = false
+				mismatches = append(mismatches,
+					fmt.Sprintf("param '%s': invalid regex pattern '%s': %v", key, patternStr, err))
+				continue
+			}
+
+			// Convert actual value to string and match against regex
 			strVal := fmt.Sprintf("%v", actualVal)
-			if re.MatchString(strVal) {
-				// At least one parameter matches → assertion passed
-				return AssertionResult{
-					Type:    a.Type,
-					Passed:  true,
-					Message: fmt.Sprintf("Parameter '%s' matches regex '%s'", key, a.Pattern),
-				}
-			} else {
-				mismatchesAll = append(mismatchesAll, fmt.Sprintf("Parameter '%s'='%s' does not match regex", key, strVal))
+			if !re.MatchString(strVal) {
+				matches = false
+				mismatches = append(mismatches,
+					fmt.Sprintf("param '%s': value '%s' does not match regex '%s'", key, strVal, patternStr))
 			}
 		}
+
+		if matches {
+			// At least one call matches → assertion passed
+			return AssertionResult{
+				Type:    a.Type,
+				Passed:  true,
+				Message: fmt.Sprintf("Tool '%s' called with parameters matching regex patterns", a.Tool),
+			}
+		}
+
+		mismatchesAll = append(mismatchesAll, mismatches)
 	}
 
 	if !found {
@@ -685,11 +693,16 @@ func (e *AssertionEvaluator) evalToolParamMatchesRegex(a Assertion) AssertionRes
 		}
 	}
 
-	// None of the parameters matched
+	// None of the calls matched → collect all mismatches
+	allMismatches := []string{}
+	for _, mm := range mismatchesAll {
+		allMismatches = append(allMismatches, mm...)
+	}
+
 	return AssertionResult{
 		Type:    a.Type,
 		Passed:  false,
-		Message: fmt.Sprintf("No parameter matched regex '%s': %v", a.Pattern, mismatchesAll),
+		Message: fmt.Sprintf("Tool '%s' called with parameters not matching regex: %v", a.Tool, allMismatches),
 	}
 }
 
@@ -716,34 +729,6 @@ func (e *AssertionEvaluator) evalOutputNotContains(a Assertion) AssertionResult 
 	}
 }
 
-func (e *AssertionEvaluator) evalOutputMatchesJson(a Assertion) AssertionResult {
-	var data interface{}
-	if err := json.Unmarshal([]byte(e.result.FinalOutput), &data); err != nil {
-		return AssertionResult{
-			Type:    a.Type,
-			Passed:  false,
-			Message: fmt.Sprintf("Failed to parse output as JSON: %s", err),
-		}
-	}
-	// Example JSONPath: get all book titles
-	res, err := jsonpath.Read(data, a.Path)
-	if err != nil {
-		return AssertionResult{
-			Type:    a.Type,
-			Passed:  false,
-			Message: fmt.Sprintf("Invalid regex pattern: %s", err),
-		}
-	}
-
-	result := fmt.Sprint(res)
-
-	return AssertionResult{
-		Type:    a.Type,
-		Passed:  result == a.Value,
-		Message: fmt.Sprintf("JSONPath Value is '%s', expected: %s", result, a.Value),
-	}
-}
-
 func (e *AssertionEvaluator) evalOutputRegex(a Assertion) AssertionResult {
 	pattern := a.Pattern
 	re, err := regexp.Compile(pattern)
@@ -760,17 +745,6 @@ func (e *AssertionEvaluator) evalOutputRegex(a Assertion) AssertionResult {
 		Type:    a.Type,
 		Passed:  matches,
 		Message: fmt.Sprintf("Output matches regex '%s': %v", pattern, matches),
-	}
-}
-
-func (e *AssertionEvaluator) evalOutputJSONValid(a Assertion) AssertionResult {
-	var js json.RawMessage
-	err := json.Unmarshal([]byte(e.result.FinalOutput), &js)
-
-	return AssertionResult{
-		Type:    a.Type,
-		Passed:  err == nil,
-		Message: fmt.Sprintf("Output is valid JSON: %v", err == nil),
 	}
 }
 
