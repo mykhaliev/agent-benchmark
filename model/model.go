@@ -118,7 +118,7 @@ type AgentServer struct {
 // ============================================================================
 
 type Criteria struct {
-	SuccessRate string `yaml:"success_rate"`
+	SuccessRate string `yaml:"success_rate" json:"successRate"`
 }
 
 // ============================================================================
@@ -203,18 +203,17 @@ func (a Assertion) Clone() Assertion {
 // ============================================================================
 
 type ExecutionResult struct {
-	TestName      string
-	AgentName     string
-	ProviderType  ProviderType
-	StartTime     time.Time
-	EndTime       time.Time
-	Messages      []Message
-	ToolCalls     []ToolCall
-	FinalOutput   string
-	TokensUsed    int
-	LatencyMs     int64
-	Errors        []string
-	MCPOperations MCPOperations
+	TestName     string       `json:"testName"`
+	AgentName    string       `json:"agentName"`
+	ProviderType ProviderType `json:"providerType"`
+	StartTime    time.Time    `json:"startTime"`
+	EndTime      time.Time    `json:"endTime"`
+	Messages     []Message    `json:"messages"`
+	ToolCalls    []ToolCall   `json:"toolCalls"`
+	FinalOutput  string       `json:"finalOutput"`
+	TokensUsed   int          `json:"tokensUsed"`
+	LatencyMs    int64        `json:"latencyMs"`
+	Errors       []string     `json:"errors"`
 }
 
 type Message struct {
@@ -228,14 +227,6 @@ type ToolCall struct {
 	Parameters map[string]interface{} `json:"parameters"`
 	Timestamp  time.Time              `json:"timestamp"`
 	Result     Result                 `json:"result,omitempty"`
-}
-
-type MCPOperations struct {
-	ResourcesRead []string
-	FilesCreated  []string
-	FilesWritten  []string
-	FilesDeleted  []string
-	ToolsList     []string
 }
 
 type Result struct {
@@ -264,10 +255,10 @@ type StructuredEntry struct {
 // ============================================================================
 
 type AssertionResult struct {
-	Type    string
-	Passed  bool
-	Message string
-	Details map[string]interface{}
+	Type    string                 `json:"type"`
+	Passed  bool                   `json:"passed"`
+	Message string                 `json:"message"`
+	Details map[string]interface{} `json:"details"`
 }
 
 // ============================================================================
@@ -889,21 +880,22 @@ func ParseTestSuiteConfigFromString(definition string) (*TestSuiteConfiguration,
 
 // ServerTestResult represents the result of a test on a specific server
 type ServerTestResult struct {
-	ServerName string
-	AgentName  string
-	Provider   ProviderType
-	Passed     bool
-	Duration   time.Duration
-	Errors     []string
+	ServerName  string        `json:"serverName"`
+	AgentName   string        `json:"agentName"`
+	Provider    ProviderType  `json:"provider"`
+	Passed      bool          `json:"passed"`
+	DurationRaw time.Duration `json:"-"`
+	DurationMs  int64         `json:"duration"`
+	Errors      []string      `json:"errors"`
 }
 
 // TestComparison represents a test run across multiple servers
 type TestComparison struct {
-	TestName      string
-	ServerResults map[string]ServerTestResult // key: server or agent name
-	TotalRuns     int
-	PassedRuns    int
-	FailedRuns    int
+	TestName      string                      `json:"testName"`
+	ServerResults map[string]ServerTestResult `json:"serverResults"`
+	TotalRuns     int                         `json:"totalRuns"`
+	PassedRuns    int                         `json:"passedRuns"`
+	FailedRuns    int                         `json:"failedRuns"`
 }
 
 // AgentStats holds aggregated statistics for an agent
@@ -926,10 +918,10 @@ func NewReportGenerator() *ReportGenerator {
 
 // TestRun combines execution result with evaluated assertions
 type TestRun struct {
-	Execution    *ExecutionResult
-	Assertions   []AssertionResult
-	Passed       bool
-	TestCriteria Criteria
+	Execution    *ExecutionResult  `json:"execution"`
+	Assertions   []AssertionResult `json:"assertions"`
+	Passed       bool              `json:"passed"`
+	TestCriteria Criteria          `json:"testCriteria"`
 }
 
 // GenerateComparisonSummary generates a comparison report across servers
@@ -953,12 +945,13 @@ func (rg *ReportGenerator) GenerateComparisonSummary(results []TestRun) map[stri
 		duration := run.Execution.EndTime.Sub(run.Execution.StartTime)
 
 		serverResult := ServerTestResult{
-			ServerName: run.Execution.AgentName,
-			AgentName:  run.Execution.AgentName,
-			Provider:   run.Execution.ProviderType,
-			Passed:     run.Passed,
-			Duration:   duration,
-			Errors:     run.Execution.Errors,
+			ServerName:  run.Execution.AgentName,
+			AgentName:   run.Execution.AgentName,
+			Provider:    run.Execution.ProviderType,
+			Passed:      run.Passed,
+			DurationRaw: duration,
+			DurationMs:  duration.Milliseconds(),
+			Errors:      run.Execution.Errors,
 		}
 
 		comp.ServerResults[run.Execution.AgentName] = serverResult
@@ -1010,7 +1003,7 @@ func (rg *ReportGenerator) printComparisonSummary(results []TestRun) {
 			fmt.Printf("   │ %-25s │ %-19s │ %8.2fs │\n",
 				truncate(serverName, 25),
 				status,
-				result.Duration.Seconds())
+				result.DurationMs)
 
 			// Show provider
 			fmt.Printf("   │   └─ [%s]%-16s │            │          │\n",
@@ -1160,7 +1153,7 @@ func (rg *ReportGenerator) GenerateMarkdownReport(results []TestRun) string {
 				serverName,
 				result.Provider,
 				status,
-				result.Duration.Seconds())
+				result.DurationMs)
 		}
 
 		if comp.FailedRuns > 0 {
@@ -1433,7 +1426,7 @@ func (rg *ReportGenerator) GenerateHTMLReport(results []TestRun) string {
                         <td><strong>` + serverName + `</strong></td>
                         <td><span class="provider-badge">` + string(result.Provider) + `</span></td>
                         <td class="` + statusClass + `">` + statusText + `</td>
-                        <td>` + fmt.Sprintf("%.2fs", result.Duration.Seconds()) + `</td>
+                        <td>` + fmt.Sprintf("%.2fms", result.DurationMs) + `</td>
                     </tr>`
 		}
 
