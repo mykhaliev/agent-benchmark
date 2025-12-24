@@ -79,12 +79,14 @@ func Run(testPath *string, verbose *bool, suitePath *string, outputPath *string,
 			os.Exit(1)
 		}
 
-		mcpServers, err := InitServers(ctx, testConfig.Servers)
+		// Collect required servers from agents
+		requiredServers := getRequiredServers(testConfig.Agents, testConfig.Servers)
+		// Initialize only required servers
+		mcpServers, err := InitServers(ctx, requiredServers)
 		if err != nil {
 			logger.Logger.Error("Failed to initialize servers", "error", err)
 			os.Exit(1)
 		}
-		// Cleanup servers when this test file completes
 		defer CleanupServers(mcpServers)
 
 		agents, err := initAgents(ctx, testConfig.Agents, mcpServers, providers)
@@ -145,12 +147,15 @@ func Run(testPath *string, verbose *bool, suitePath *string, outputPath *string,
 			os.Exit(1)
 		}
 
-		mcpServers, err := InitServers(ctx, testSuiteConfig.Servers)
+		// Collect required servers from agents
+		requiredServers := getRequiredServers(testSuiteConfig.Agents, testSuiteConfig.Servers)
+
+		// Initialize only required servers
+		mcpServers, err := InitServers(ctx, requiredServers)
 		if err != nil {
 			logger.Logger.Error("Failed to initialize servers", "error", err)
 			os.Exit(1)
 		}
-		// Cleanup servers when this test file completes
 		defer CleanupServers(mcpServers)
 
 		agents, err := initAgents(ctx, testSuiteConfig.Agents, mcpServers, providers)
@@ -262,6 +267,38 @@ func Run(testPath *string, verbose *bool, suitePath *string, outputPath *string,
 	}
 	logger.Logger.Info("All tests passed successfully")
 	os.Exit(0)
+}
+
+func getRequiredServers(agents []model.Agent, allServers []model.Server) []model.Server {
+	// Collect unique server names used by agents
+	usedServerNames := make(map[string]bool)
+	for _, agent := range agents {
+		for _, server := range agent.Servers {
+			usedServerNames[server.Name] = true
+		}
+	}
+
+	// Filter servers to only those actually used
+	requiredServers := make([]model.Server, 0)
+	unusedCount := 0
+
+	for _, server := range allServers {
+		if usedServerNames[server.Name] {
+			requiredServers = append(requiredServers, server)
+		} else {
+			logger.Logger.Warn("Server defined but not used by any agent, will not be initialized",
+				"server_name", server.Name,
+				"server_type", server.Type)
+			unusedCount++
+		}
+	}
+
+	logger.Logger.Debug("Filtered servers",
+		"total_defined", len(allServers),
+		"required", len(requiredServers),
+		"unused", unusedCount)
+
+	return requiredServers
 }
 
 func ValidateTestInputFile(path string) error {
