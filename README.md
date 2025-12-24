@@ -104,9 +104,13 @@ Required (one of):
   -s <file>         Path to suite configuration file (YAML)
 
 Optional:
-  -o <file>         Output report path (default: report.html)
+  -o <file>         Output report filename without extension (default: report)
   -l <file>         Log file path (default: stdout)
-  -reportType <type> Report format: html, json, md (default: html)
+  -reportType <types> Report format(s): html, json, md (default: html)
+                      Multiple formats supported as comma-separated values
+                      Examples: -reportType html
+                                -reportType html,json
+                                -reportType html,json,md
   -verbose          Enable verbose logging
   -v                Show version and exit
 ```
@@ -934,57 +938,146 @@ sessions:
 
 ## Reports
 
-agent-benchmark generates comprehensive reports in multiple formats:
+agent-benchmark generates comprehensive reports in multiple formats. You can specify the output filename with -o (extension added automatically) and generate multiple formats simultaneously using -reportType with comma-separated values.Supported Formats:
+
+Console - Real-time colored output during execution (default, always shown)
+HTML - Rich visual dashboard with charts and metrics
+JSON - Structured data for programmatic analysis
+Markdown - Documentation-friendly format
+Examples:
+
+```bash
+# Console output only (default)
+agent-benchmark -f test.yaml
+
+# Generate HTML report
+agent-benchmark -f test.yaml -o my-report -reportType html
+
+# Generate multiple formats
+agent-benchmark -f test.yaml -o my-report -reportType html,json,md
+
+# All formats
+agent-benchmark -f test.yaml -o my-report -reportType html,json,md
+```
 
 ### Console Report
 
-Displayed during execution with color-coded results:
+Real-time colored output displayed during test execution with three main sections:
 
+**Server Comparison Summary**
+- Test-by-test comparison across agents
+- Pass/fail status with checkmarks
+- Duration per agent
+- Provider information
+- Summary statistics (e.g., "2/2 servers passed")
+
+**Detailed Test Results**
+- Individual test results per agent
+- All assertion results with pass/fail indicators
+- Detailed metrics for each assertion (expected vs actual values)
+- Token usage and latency information
+- Error details (if any)
+
+**Execution Summary**
+- Total tests, passed, and failed counts
+- Pass rate percentage
+- Total tool calls
+- Total errors
+- Total and average duration
+- Total tokens used
+
+**Example:**
 ```
 ═══════════════════════════════════════════════════════════════
-                        TEST RESULTS
+                    SERVER COMPARISON SUMMARY
 ═══════════════════════════════════════════════════════════════
 
-📋 Test: Create a file
+📋 Test: Create file [100% passed]
+   Summary: 2/2 servers passed
+
+   ┌─────────────────────────────────────────────────────────────┐
+   │ Server/Agent              │ Status     │ Duration          │
+   ├─────────────────────────────────────────────────────────────┤
+   │ gemini-agent              │ ✓ PASS     │ 2.34s            │
+   │   └─ [GOOGLE]             │            │                  │
+   │ claude-agent              │ ✗ FAIL     │ 3.12s            │
+   │   └─ [ANTHROPIC]          │            │                  │
+   └─────────────────────────────────────────────────────────────┘
+
+
+═══════════════════════════════════════════════════════════════
+                     DETAILED TEST RESULTS
+═══════════════════════════════════════════════════════════════
+
+📋 Test: Create file
   ✓ gemini-agent [GOOGLE] (2.34s)
     ✓ tool_called: Tool 'write_file' was called
-    ✓ tool_param_equals: Tool 'write_file' called with correct parameters
+    ✓ tool_param_equals: Tool called with correct parameters
     ✓ max_latency_ms: Latency: 2340ms (max: 5000ms)
+      • actual: 2340
+      • max: 5000
 
   ✗ claude-agent [ANTHROPIC] (3.12s)
     ✓ tool_called: Tool 'write_file' was called
-    ✗ tool_param_equals: Tool 'write_file' called with incorrect parameters
-    
+    ✗ tool_param_equals: Tool called with incorrect parameters
+      • expected: {"path": "test.txt", "content": "Hello"}
+      • actual: {"path": "test.txt"}
+    ✓ max_latency_ms: Latency: 3120ms (max: 5000ms)
+      • actual: 3120
+      • max: 5000
+
 ═══════════════════════════════════════════════════════════════
 Total: 2 | Passed: 1 | Failed: 1
 ═══════════════════════════════════════════════════════════════
+
+
+================================================================================
+[Summary] Test Execution Summary
+================================================================================
+  Total Tests:      2
+  Passed:           1 (50.0%)
+  Failed:           1 (50.0%)
+  Total Tool Calls: 2
+  Total Errors:     1
+  Total Duration:   5460ms (avg: 2730ms per test)
+  Total Tokens:     350
+================================================================================
 ```
 
 ### HTML Report
 
-Rich visual report with:
-- **Summary Dashboard** - Total/Passed/Failed counts
-- **Agent Performance Comparison** - Statistics by agent
-    - Success rates
-    - Average duration
-    - Token usage
-    - Pass/fail counts
-- **Server Comparison** - Test results across agents
-    - Side-by-side comparison
-    - Per-server success rates
-    - Error details
-- **Detailed Results** - Full test execution details
-- **Assertion Breakdowns** - Individual assertion results
-- **Execution Metrics** - Performance data
+Rich visual report featuring:
 
-Generated to the path specified with `-o` flag (default: `report.html`)
+**Summary Dashboard**
+- Total/Passed/Failed test counts
+- Overall success rate with color-coded statistics
 
-### JSON Export
+**Agent Performance Comparison**
+- Statistics by agent with visual metrics
+- Success rates with percentage indicators
+- Average duration and latency
+- Token usage (total and average per test)
+- Pass/fail counts per agent
 
-Programmatic access to test results:
+**Server Comparison Summary**
+- Side-by-side test results across agents
+- Per-test success rates
+- Execution duration comparison
+- Failed server details with error messages
+
+**Detailed Test Results**
+- Full execution details per agent
+- Individual assertion results with pass/fail status
+- Performance metrics (duration, tokens, latency)
+- Tool call information and parameters
+
+### JSON Report
+
+Structured test results for programmatic analysis and CI/CD integration:
 
 ```json
 {
+  "agent_benchmark_version": "1.0.0",
   "generated_at": "2024-01-15T14:30:00Z",
   "summary": {
     "total": 10,
@@ -993,41 +1086,75 @@ Programmatic access to test results:
   },
   "comparison_summary": {
     "Test Name": {
-      "TestName": "Create file",
-      "ServerResults": {
+      "testName": "Create file",
+      "serverResults": {
         "gemini-agent": {
-          "AgentName": "gemini-agent",
-          "Provider": "GOOGLE",
-          "Passed": true,
-          "Duration": "2.5s"
+          "agentName": "gemini-agent",
+          "provider": "GOOGLE",
+          "passed": true,
+          "duration": 2340,
+          "errors": []
+        },
+        "claude-agent": {
+          "agentName": "claude-agent",
+          "provider": "ANTHROPIC",
+          "passed": false,
+          "duration": 3120,
+          "errors": ["Tool parameter mismatch"]
         }
       },
-      "TotalRuns": 2,
-      "PassedRuns": 1,
-      "FailedRuns": 1
+      "totalRuns": 2,
+      "passedRuns": 1,
+      "failedRuns": 1
     }
   },
-  "detailed_results": [...]
+  "detailed_results": [
+    {
+      "execution": {
+        "testName": "Create file",
+        "agentName": "gemini-agent",
+        "providerType": "GOOGLE",
+        "startTime": "2024-01-15T14:30:00Z",
+        "endTime": "2024-01-15T14:30:02Z",
+        "tokensUsed": 150,
+        "latencyMs": 2340,
+        "errors": []
+      },
+      "assertions": [
+        {
+          "type": "tool_called",
+          "passed": true,
+          "message": "Tool 'write_file' was called"
+        },
+        {
+          "type": "tool_param_equals",
+          "passed": true,
+          "message": "Tool 'write_file' called with correct parameters"
+        }
+      ],
+      "passed": true
+    }
+  ]
 }
 ```
+**Key Fields**
 
-```go
-reporter := model.NewReportGenerator()
-jsonData, err := reporter.GenerateJSONReport(results)
-```
+- summary - Overall test statistics
+- comparison_summary - Cross-agent comparison data
+- detailed_results - Full execution details with assertions
+- agent_benchmark_version - Version of the tool used
+- generated_at - Report generation timestamp
 
 ### Markdown Report
 
-Documentation-friendly format with:
-- Summary tables
-- Server comparison tables
-- Detailed test results
-- Easy to include in documentation
-
-```go
-reporter := model.NewReportGenerator()
-markdown := reporter.GenerateMarkdownReport(results)
-```
+Documentation-friendly format ideal for README files, wikis, and technical documentation.
+**Key Features**
+- Clean, readable format for documentation
+- Summary tables with comparison data
+- Detailed assertion results per agent
+- Easy to include in GitHub README or wiki pages
+- Portable across documentation platforms
+- Quick visual identification of pass/fail status
 
 ---
 

@@ -31,7 +31,7 @@ const (
 	DefaultTestDelay     = 0 * time.Second
 )
 
-func Run(testPath *string, verbose *bool, suitePath *string, outputPath *string, reportType *string) {
+func Run(testPath *string, verbose *bool, suitePath *string, reportFileName *string, reportTypes []string) {
 	// Run tests
 	results := make([]model.TestRun, 0)
 
@@ -224,12 +224,15 @@ func Run(testPath *string, verbose *bool, suitePath *string, outputPath *string,
 
 	// Generate and save reports
 	logger.Logger.Info("Generating reports")
-	if *outputPath == "" {
-		*outputPath = "report." + *reportType
+	if *reportFileName == "" {
+		*reportFileName = "report."
 	}
-	if err := GenerateReports(results, *reportType, *outputPath); err != nil {
-		logger.Logger.Error("Failed to generate reports", "error", err)
-		os.Exit(1)
+	for _, rt := range reportTypes {
+		reportFileNameWithExt := *reportFileName + "." + rt
+		if err := GenerateReports(results, rt, reportFileNameWithExt); err != nil {
+			logger.Logger.Error("Failed to generate reports", "error", err)
+			os.Exit(1)
+		}
 	}
 
 	// Exit with appropriate code
