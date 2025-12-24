@@ -784,13 +784,6 @@ func initializeExecutionResult(agentName, provider string, startTime time.Time) 
 		Messages:     make([]model.Message, 0),
 		ToolCalls:    make([]model.ToolCall, 0),
 		Errors:       make([]string, 0),
-		MCPOperations: model.MCPOperations{
-			ResourcesRead: make([]string, 0),
-			FilesCreated:  make([]string, 0),
-			FilesWritten:  make([]string, 0),
-			FilesDeleted:  make([]string, 0),
-			ToolsList:     make([]string, 0),
-		},
 	}
 }
 
