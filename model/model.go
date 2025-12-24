@@ -13,6 +13,7 @@ import (
 
 	"github.com/aymerick/raymond"
 	"github.com/mykhaliev/agent-benchmark/logger"
+	"github.com/mykhaliev/agent-benchmark/version"
 	"github.com/yalp/jsonpath"
 	"gopkg.in/yaml.v3"
 )
@@ -1110,6 +1111,7 @@ func (rg *ReportGenerator) GenerateMarkdownReport(results []TestRun) string {
 	var md string
 
 	md += "# Test Results\n\n"
+	md += fmt.Sprintf("**Agent Benchmark Version:** %s\n", version.Version)
 	md += fmt.Sprintf("**Generated:** %s\n\n", time.Now().Format(time.RFC3339))
 
 	passed := 0
@@ -1312,6 +1314,7 @@ func (rg *ReportGenerator) GenerateHTMLReport(results []TestRun) string {
 <body>
     <div class="container">
         <h1>🧪 Test Results</h1>
+        <p><strong>Agent Benchmark Version:</strong> ` + version.Version + `</p>
         <p><strong>Generated:</strong> ` + time.Now().Format(time.RFC3339) + `</p>
         
         <div class="summary">
@@ -1526,7 +1529,8 @@ func (rg *ReportGenerator) GenerateJSONReport(results []TestRun) string {
 
 	// Create a structured report with comparison
 	reportData := map[string]interface{}{
-		"generated_at": time.Now().Format(time.RFC3339),
+		"agent_benchmark_version": version.Version,
+		"generated_at":            time.Now().Format(time.RFC3339),
 		"summary": map[string]interface{}{
 			"total":  len(results),
 			"passed": countPassed(results),
