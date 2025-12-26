@@ -1,0 +1,202 @@
+name: Release Binaries
+on:
+  push:
+    tags:
+      - "v*"
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+      - name: Run tests
+        run: go test ./test
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        platform:
+          - os: windows
+            arch: amd64
+          - os: linux
+            arch: amd64
+          - os: linux
+            arch: arm64
+          - os: darwin
+            arch: amd64
+          - os: darwin
+            arch: arm64
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+
+      - name: Extract version from tag
+        id: vars
+        run: |
+          echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          echo "commit=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+          echo "date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> $GITHUB_OUTPUT
+
+      - name: Build binary
+        env:
+          GOOS: ${{ matrix.platform.os }}
+          GOARCH: ${{ matrix.platform.arch }}
+        run: |
+          VERSION=${{ steps.vars.outputs.version }}
+          COMMIT=${{ steps.vars.outputs.commit }}
+          BUILD_DATE=${{ steps.vars.outputs.date }}
+          
+          BINARY_NAME="agent-benchmark"
+          if [ "${{ matrix.platform.os }}" = "windows" ]; then 
+            BINARY_NAME="$BINARY_NAME.exe"
+          fi
+          
+          echo "Building $BINARY_NAME"
+          go build -ldflags "\
+            -s -w \
+            -X 'github.com/mykhaliev/agent-benchmark/version.Version=$VERSION' \
+            -X 'github.com/mykhaliev/agent-benchmark/version.Commit=$COMMIT' \
+            -X 'github.com/mykhaliev/agent-benchmark/version.BuildDate=$BUILD_DATE'" \
+            -o "$BINARY_NAME"
+          
+          echo "Original size:"
+          ls -lh "$BINARY_NAME"
+
+      - name: Create regular tar.gz archive
+        run: |
+          VERSION=${{ steps.vars.outputs.version }}
+          BINARY_NAME="agent-benchmark"
+          if [ "${{ matrix.platform.os }}" = "windows" ]; then 
+            BINARY_NAME="$BINARY_NAME.exe"
+          fi
+          
+          if [ "${{ matrix.platform.os }}" = "windows" ]; then
+            # Create ZIP for Windows
+            ARCHIVE_NAME="agent-benchmark_${VERSION}_${{ matrix.platform.os }}_${{ matrix.platform.arch }}.zip"
+            zip "$ARCHIVE_NAME" "$BINARY_NAME" LICENSE
+            echo "Created regular Windows archive: $ARCHIVE_NAME"
+          else
+            # Create tar.gz for Linux/macOS
+            ARCHIVE_NAME="agent-benchmark_${VERSION}_${{ matrix.platform.os }}_${{ matrix.platform.arch }}.tar.gz"
+            tar -czf "$ARCHIVE_NAME" "$BINARY_NAME" LICENSE
+            echo "Created regular archive: $ARCHIVE_NAME"
+          fi
+          
+          ls -lh "$ARCHIVE_NAME"
+
+      - name: Install UPX
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y upx-ucl
+
+      - name: Create UPX compressed version
+        run: |
+          VERSION=${{ steps.vars.outputs.version }}
+          BINARY_NAME="agent-benchmark"
+          if [ "${{ matrix.platform.os }}" = "windows" ]; then 
+            BINARY_NAME="$BINARY_NAME.exe"
+          fi
+          
+          # Copy binary for UPX compression
+          BINARY_UPX="${BINARY_NAME%.exe}_upx"
+          if [ "${{ matrix.platform.os }}" = "windows" ]; then 
+            BINARY_UPX="$BINARY_UPX.exe"
+          fi
+          cp "$BINARY_NAME" "$BINARY_UPX"
+          
+          # UPX compress with best compression
+          echo "Compressing with UPX..."
+          upx --best --lzma "$BINARY_UPX"
+          
+          echo "Compressed size:"
+          ls -lh "$BINARY_UPX"
+          
+          # Create UPX archive
+          if [ "${{ matrix.platform.os }}" = "windows" ]; then
+            # Create ZIP for Windows
+            ARCHIVE_UPX="agent-benchmark_${VERSION}_${{ matrix.platform.os }}_${{ matrix.platform.arch }}_upx.zip"
+            zip "$ARCHIVE_UPX" "$BINARY_UPX" LICENSE
+            echo "Created UPX Windows archive: $ARCHIVE_UPX"
+          else
+            # Create tar.gz for Linux/macOS
+            ARCHIVE_UPX="agent-benchmark_${VERSION}_${{ matrix.platform.os }}_${{ matrix.platform.arch }}_upx.tar.gz"
+            tar -czf "$ARCHIVE_UPX" "$BINARY_UPX" LICENSE
+            echo "Created UPX archive: $ARCHIVE_UPX"
+          fi
+          
+          ls -lh "$ARCHIVE_UPX"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: binary-${{ matrix.platform.os }}-${{ matrix.platform.arch }}
+          path: |
+            *.tar.gz
+            *.zip
+          if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        id: vars
+        run: echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          pattern: binary-*
+          merge-multiple: true
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            artifacts/*.tar.gz
+            artifacts/*.zip
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          body: |
+            ## Agent Benchmark ${{ steps.vars.outputs.version }}
+            
+            ### Installation
+            
+            **Quick install (Linux/macOS):**
+            ```bash
+            curl -fsSL https://raw.githubusercontent.com/mykhaliev/agent-benchmark/main/install.sh | bash
+            ```
+            
+            **Manual download (Regular):**
+            - **Windows (AMD64)**: `agent-benchmark_${{ steps.vars.outputs.version }}_windows_amd64.zip`
+            - **Linux (AMD64)**: `agent-benchmark_${{ steps.vars.outputs.version }}_linux_amd64.tar.gz`
+            - **Linux (ARM64)**: `agent-benchmark_${{ steps.vars.outputs.version }}_linux_arm64.tar.gz`
+            - **macOS (Intel)**: `agent-benchmark_${{ steps.vars.outputs.version }}_darwin_amd64.tar.gz`
+            - **macOS (Apple Silicon)**: `agent-benchmark_${{ steps.vars.outputs.version }}_darwin_arm64.tar.gz`
+            
+            **UPX Compressed (60-70% smaller, may trigger AV warnings):**
+            - **Windows (AMD64)**: `agent-benchmark_${{ steps.vars.outputs.version }}_windows_amd64_upx.zip`
+            - **Linux (AMD64)**: `agent-benchmark_${{ steps.vars.outputs.version }}_linux_amd64_upx.tar.gz`
+            - **Linux (ARM64)**: `agent-benchmark_${{ steps.vars.outputs.version }}_linux_arm64_upx.tar.gz`
+            - **macOS (Intel)**: `agent-benchmark_${{ steps.vars.outputs.version }}_darwin_amd64_upx.tar.gz`
+            - **macOS (Apple Silicon)**: `agent-benchmark_${{ steps.vars.outputs.version }}_darwin_arm64_upx.tar.gz`
+            
+            Extract with: `tar -xzf agent-benchmark_*.tar.gz`

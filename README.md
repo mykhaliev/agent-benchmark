@@ -81,15 +81,88 @@ Generate reports in multiple formats:
 
 ## Installation
 
+### Quick Install (Recommended)
+
+Install the latest version with a single command:
+```bash
+curl -fsSL https://raw.githubusercontent.com/mykhaliev/agent-benchmark/main/install.sh | bash
+```
+
+### Alternative Installation Methods
+
+<details>
+<summary><b>Minimal Install (60-70% smaller download)</b></summary>
+
+For slower connections or to save bandwidth, use the UPX-compressed version:
+```bash
+curl -fsSL https://raw.githubusercontent.com/mykhaliev/agent-benchmark/main/install-min.sh | bash
+```
+
+**Note:** The minimal version may trigger antivirus warnings on some systems as UPX compression is sometimes flagged by security software.
+
+</details>
+
+<details>
+<summary><b>Manual Installation from Pre-built Binaries</b></summary>
+
+Download the appropriate file for your system from the [releases page](https://github.com/mykhaliev/agent-benchmark/releases):
+
+**Regular versions (recommended):**
+- **Linux (AMD64):** `agent-benchmark_vX.X.X_linux_amd64.tar.gz`
+- **Linux (ARM64):** `agent-benchmark_vX.X.X_linux_arm64.tar.gz`
+- **macOS (Intel):** `agent-benchmark_vX.X.X_darwin_amd64.tar.gz`
+- **macOS (Apple Silicon):** `agent-benchmark_vX.X.X_darwin_arm64.tar.gz`
+- **Windows (AMD64):** `agent-benchmark_vX.X.X_windows_amd64.zip`
+
+**UPX compressed (smaller size):**
+- **Linux (AMD64):** `agent-benchmark_vX.X.X_linux_amd64_upx.tar.gz`
+- **Linux (ARM64):** `agent-benchmark_vX.X.X_linux_arm64_upx.tar.gz`
+- **macOS (Intel):** `agent-benchmark_vX.X.X_darwin_amd64_upx.tar.gz`
+- **macOS (Apple Silicon):** `agent-benchmark_vX.X.X_darwin_arm64_upx.tar.gz`
+- **Windows (AMD64):** `agent-benchmark_vX.X.X_windows_amd64_upx.zip`
+
+Extract and move to your PATH:
+```bash
+# Linux/macOS
+tar -xzf agent-benchmark_*.tar.gz
+sudo mv agent-benchmark /usr/local/bin/
+
+# Windows
+# Extract the ZIP file and add the binary to your PATH
+```
+
+</details>
+
+<details>
+<summary><b>Build from Source</b></summary>
+
+Requirements: Go 1.25 or higher
 ```bash
 # Clone the repository
 git clone https://github.com/mykhaliev/agent-benchmark
+cd agent-benchmark
 
 # Build the binary
 go build -o agent-benchmark
 
-# Run tests
-./agent-benchmark -f tests.yaml -o report.html -verbose
+# (Optional) Move to your PATH
+sudo mv agent-benchmark /usr/local/bin/
+```
+
+</details>
+
+### Verify Installation
+
+After installation, verify it works:
+```bash
+agent-benchmark -v
+```
+
+### Quick Start
+
+Run your first benchmark:
+```bash
+agent-benchmark -f tests.yaml -o report.html -verbose
 ```
 
 ---
