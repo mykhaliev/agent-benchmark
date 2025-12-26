@@ -78,15 +78,33 @@ install_binary() {
     platform=$(detect_platform)
     version=$(get_latest_version)
 
-    # Check if already installed
-    if [ -f "${INSTALL_DIR}/${TOOL_NAME}" ]; then
-        info "Updating ${TOOL_NAME} to ${version} (UPX compressed)..."
-    else
-        info "Installing ${TOOL_NAME} ${version} (UPX compressed)..."
+    # Check if platform is macOS
+    if [[ "$platform" == darwin_* ]]; then
+        warn "UPX compression is not supported on macOS"
+        info "Downloading regular version instead..."
+        USE_UPX=false
     fi
 
-    # Construct download URL for UPX version
-    binary_name="${TOOL_NAME}_${version}_${platform}_upx"
+    # Check if already installed
+    if [ -f "${INSTALL_DIR}/${TOOL_NAME}" ]; then
+        if [ "$USE_UPX" = true ]; then
+            info "Updating ${TOOL_NAME} to ${version} (UPX compressed)..."
+        else
+            info "Updating ${TOOL_NAME} to ${version}..."
+        fi
+    else
+        if [ "$USE_UPX" = true ]; then
+            info "Installing ${TOOL_NAME} ${version} (UPX compressed)..."
+        else
+            info "Installing ${TOOL_NAME} ${version}..."
+        fi
+    fi
+
+    # Construct download URL
+    binary_name="${TOOL_NAME}_${version}_${platform}"
+    if [ "$USE_UPX" = true ]; then
+        binary_name="${binary_name}_upx"
+    fi
     download_url="https://github.com/${GITHUB_REPO}/releases/download/${version}/${binary_name}.tar.gz"
 
     # Create temporary directory
@@ -94,7 +112,12 @@ install_binary() {
     trap "rm -rf $tmp_dir" EXIT
 
     # Download archive
-    info "Downloading UPX compressed version (smaller size)..."
+    if [ "$USE_UPX" = true ]; then
+        info "Downloading UPX compressed version (smaller size)..."
+    else
+        info "Downloading..."
+    fi
+
     if ! curl -fsSL "$download_url" -o "${tmp_dir}/${TOOL_NAME}.tar.gz"; then
         error "Failed to download binary"
     fi
@@ -117,7 +140,11 @@ install_binary() {
     mv "$binary_file" "${INSTALL_DIR}/${TOOL_NAME}"
     chmod +x "${INSTALL_DIR}/${TOOL_NAME}"
 
-    info "Successfully installed ${TOOL_NAME} ${version} (UPX compressed)!"
+    if [ "$USE_UPX" = true ]; then
+        info "Successfully installed ${TOOL_NAME} ${version} (UPX compressed)!"
+    else
+        info "Successfully installed ${TOOL_NAME} ${version}!"
+    fi
 }
 
 # Add to PATH
@@ -169,7 +196,9 @@ main() {
     echo ""
     info "Installation complete!"
     info "Run '${TOOL_NAME} --version' to verify"
-    warn "Note: UPX compressed binaries may trigger antivirus warnings on some systems"
+    if [ "$USE_UPX" = true ]; then
+        warn "Note: UPX compressed binaries may trigger antivirus warnings on some systems"
+    fi
     echo ""
 }
 
