@@ -85,7 +85,7 @@ Generate reports in multiple formats:
 
 Install the latest version with a single command:
 ```bash
-curl -fsSL https://raw.githubusercontent.com/mykhaliev/agent-benchmark/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/mykhaliev/agent-benchmark/master/install.sh | bash
 ```
 
 ### Alternative Installation Methods
@@ -95,7 +95,7 @@ curl -fsSL https://raw.githubusercontent.com/mykhaliev/agent-benchmark/main/inst
 
 For slower connections or to save bandwidth, use the UPX-compressed version:
 ```bash
-curl -fsSL https://raw.githubusercontent.com/mykhaliev/agent-benchmark/main/install-min.sh | bash
+curl -fsSL https://raw.githubusercontent.com/mykhaliev/agent-benchmark/master/install-min.sh | bash
 ```
 
 **Note:** The minimal version may trigger antivirus warnings on some systems as UPX compression is sometimes flagged by security software.
