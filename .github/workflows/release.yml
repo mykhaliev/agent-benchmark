@@ -184,7 +184,7 @@ jobs:
             
             **Quick install (Linux/macOS):**
             ```bash
-            curl -fsSL https://raw.githubusercontent.com/mykhaliev/agent-benchmark/main/install.sh | bash
+            curl -fsSL https://raw.githubusercontent.com/mykhaliev/agent-benchmark/master/install.sh | bash
             ```
             
             **Manual download (Regular):**
