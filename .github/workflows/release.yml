@@ -24,6 +24,8 @@ jobs:
         platform:
           - os: windows
             arch: amd64
+          - os: windows
+            arch: arm64
           - os: linux
             arch: amd64
           - os: linux
@@ -189,6 +191,7 @@ jobs:
             
             **Manual download (Regular):**
             - **Windows (AMD64)**: `agent-benchmark_${{ steps.vars.outputs.version }}_windows_amd64.zip`
+            - **Windows (ARM64)**: `agent-benchmark_${{ steps.vars.outputs.version }}_windows_arm64.zip`
             - **Linux (AMD64)**: `agent-benchmark_${{ steps.vars.outputs.version }}_linux_amd64.tar.gz`
             - **Linux (ARM64)**: `agent-benchmark_${{ steps.vars.outputs.version }}_linux_arm64.tar.gz`
             - **macOS (Intel)**: `agent-benchmark_${{ steps.vars.outputs.version }}_darwin_amd64.tar.gz`
@@ -196,6 +199,7 @@ jobs:
             
             **UPX Compressed (60-70% smaller, Windows/Linux only):**
             - **Windows (AMD64)**: `agent-benchmark_${{ steps.vars.outputs.version }}_windows_amd64_upx.zip`
+            - **Windows (ARM64)**: `agent-benchmark_${{ steps.vars.outputs.version }}_windows_arm64_upx.zip`
             - **Linux (AMD64)**: `agent-benchmark_${{ steps.vars.outputs.version }}_linux_amd64_upx.tar.gz`
             - **Linux (ARM64)**: `agent-benchmark_${{ steps.vars.outputs.version }}_linux_arm64_upx.tar.gz`
             
