@@ -84,8 +84,15 @@ Generate reports in multiple formats:
 ### Quick Install (Recommended)
 
 Install the latest version with a single command:
+
+**Linux/macOS:**
 ```bash
 curl -fsSL https://raw.githubusercontent.com/mykhaliev/agent-benchmark/master/install.sh | bash
+```
+
+**Windows (PowerShell):**
+```powershell
+irm https://raw.githubusercontent.com/mykhaliev/agent-benchmark/master/install.ps1 | iex
 ```
 
 ### Alternative Installation Methods
