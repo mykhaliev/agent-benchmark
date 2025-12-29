@@ -113,13 +113,15 @@ Download the appropriate file for your system from the [releases page](https://g
 - **macOS (Intel):** `agent-benchmark_vX.X.X_darwin_amd64.tar.gz`
 - **macOS (Apple Silicon):** `agent-benchmark_vX.X.X_darwin_arm64.tar.gz`
 - **Windows (AMD64):** `agent-benchmark_vX.X.X_windows_amd64.zip`
+- **Windows (ARM64):** `agent-benchmark_vX.X.X_windows_arm64.zip`
 
 **UPX compressed (smaller size):**
 - **Linux (AMD64):** `agent-benchmark_vX.X.X_linux_amd64_upx.tar.gz`
 - **Linux (ARM64):** `agent-benchmark_vX.X.X_linux_arm64_upx.tar.gz`
-- **macOS (Intel):** `agent-benchmark_vX.X.X_darwin_amd64_upx.tar.gz`
-- **macOS (Apple Silicon):** `agent-benchmark_vX.X.X_darwin_arm64_upx.tar.gz`
 - **Windows (AMD64):** `agent-benchmark_vX.X.X_windows_amd64_upx.zip`
+- **Windows (ARM64):** `agent-benchmark_vX.X.X_windows_arm64_upx.zip`
+
+**Note:** UPX compression is not available for macOS.
 
 Extract and move to your PATH:
 ```bash
@@ -137,6 +139,8 @@ sudo mv agent-benchmark /usr/local/bin/
 <summary><b>Build from Source</b></summary>
 
 Requirements: Go 1.25 or higher
+
+**Linux/macOS:**
 ```bash
 # Clone the repository
 git clone https://github.com/mykhaliev/agent-benchmark
@@ -147,6 +151,18 @@ go build -o agent-benchmark
 
 # (Optional) Move to your PATH
 sudo mv agent-benchmark /usr/local/bin/
+```
+
+**Windows (PowerShell):**
+```powershell
+# Clone the repository
+git clone https://github.com/mykhaliev/agent-benchmark
+cd agent-benchmark
+
+# Build the binary
+.\build.ps1
+# or
+go build -o agent-benchmark.exe
 ```
 
 </details>
