@@ -118,10 +118,10 @@ Download the appropriate file for your system from the [releases page](https://g
 **UPX compressed (smaller size):**
 - **Linux (AMD64):** `agent-benchmark_vX.X.X_linux_amd64_upx.tar.gz`
 - **Linux (ARM64):** `agent-benchmark_vX.X.X_linux_arm64_upx.tar.gz`
+- **macOS (Intel):** `agent-benchmark_vX.X.X_darwin_amd64_upx.tar.gz`
+- **macOS (Apple Silicon):** `agent-benchmark_vX.X.X_darwin_arm64_upx.tar.gz`
 - **Windows (AMD64):** `agent-benchmark_vX.X.X_windows_amd64_upx.zip`
 - **Windows (ARM64):** `agent-benchmark_vX.X.X_windows_arm64_upx.zip`
-
-**Note:** UPX compression is not available for macOS.
 
 Extract and move to your PATH:
 ```bash
