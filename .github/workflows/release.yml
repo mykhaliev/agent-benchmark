@@ -98,13 +98,13 @@ jobs:
           ls -lh "$ARCHIVE_NAME"
 
       - name: Install UPX
-        if: matrix.platform.os != 'darwin'
+        if: matrix.platform.os != 'darwin' && !(matrix.platform.os == 'windows' && matrix.platform.arch == 'arm64')
         run: |
           sudo apt-get update
           sudo apt-get install -y upx-ucl
 
       - name: Create UPX compressed version
-        if: matrix.platform.os != 'darwin'
+        if: matrix.platform.os != 'darwin' && !(matrix.platform.os == 'windows' && matrix.platform.arch == 'arm64')
         run: |
           VERSION=${{ steps.vars.outputs.version }}
           BINARY_NAME="agent-benchmark"
@@ -197,9 +197,8 @@ jobs:
             - **macOS (Intel)**: `agent-benchmark_${{ steps.vars.outputs.version }}_darwin_amd64.tar.gz`
             - **macOS (Apple Silicon)**: `agent-benchmark_${{ steps.vars.outputs.version }}_darwin_arm64.tar.gz`
             
-            **UPX Compressed (60-70% smaller, Windows/Linux only):**
+            **UPX Compressed (60-70% smaller, Windows AMD64/Linux only):**
             - **Windows (AMD64)**: `agent-benchmark_${{ steps.vars.outputs.version }}_windows_amd64_upx.zip`
-            - **Windows (ARM64)**: `agent-benchmark_${{ steps.vars.outputs.version }}_windows_arm64_upx.zip`
             - **Linux (AMD64)**: `agent-benchmark_${{ steps.vars.outputs.version }}_linux_amd64_upx.tar.gz`
             - **Linux (ARM64)**: `agent-benchmark_${{ steps.vars.outputs.version }}_linux_arm64_upx.tar.gz`
             
