@@ -880,31 +880,45 @@ func (e *AssertionEvaluator) evalAnyOf(a Assertion, depth int) AssertionResult {
 	}
 
 	childResults := e.evaluateWithDepth(a.AnyOf, depth+1)
-	passedChildren := []string{}
-	failedChildren := []string{}
 
+	// Check if any child hit the depth limit - propagate that error
 	for _, child := range childResults {
-		if child.Passed {
-			passedChildren = append(passedChildren, child.Message)
-		} else {
-			failedChildren = append(failedChildren, child.Message)
+		if strings.Contains(child.Message, "Maximum combinator nesting depth") {
+			return AssertionResult{
+				Type:    "anyOf",
+				Passed:  false,
+				Message: child.Message,
+				Details: map[string]interface{}{
+					"children": childResults,
+				},
+			}
 		}
 	}
 
-	passed := len(passedChildren) > 0
+	passedCount := 0
+	failedCount := 0
+
+	for _, child := range childResults {
+		if child.Passed {
+			passedCount++
+		} else {
+			failedCount++
+		}
+	}
+
+	passed := passedCount > 0
+	message := fmt.Sprintf("anyOf failed: none of %d assertions passed", len(childResults))
+	if passed {
+		message = fmt.Sprintf("anyOf passed: %d of %d assertions passed", passedCount, len(childResults))
+	}
 
 	return AssertionResult{
-		Type:   "anyOf",
-		Passed: passed,
-		Message: func() string {
-			if passed {
-				return fmt.Sprintf("anyOf passed: %d of %d assertions passed", len(passedChildren), len(childResults))
-			}
-			return fmt.Sprintf("anyOf failed: none of %d assertions passed", len(childResults))
-		}(),
+		Type:    "anyOf",
+		Passed:  passed,
+		Message: message,
 		Details: map[string]interface{}{
-			"passed_count": len(passedChildren),
-			"failed_count": len(failedChildren),
+			"passed_count": passedCount,
+			"failed_count": failedCount,
 			"children":     childResults,
 		},
 	}
@@ -929,31 +943,45 @@ func (e *AssertionEvaluator) evalAllOf(a Assertion, depth int) AssertionResult {
 	}
 
 	childResults := e.evaluateWithDepth(a.AllOf, depth+1)
-	passedChildren := []string{}
-	failedChildren := []string{}
 
+	// Check if any child hit the depth limit - propagate that error
 	for _, child := range childResults {
-		if child.Passed {
-			passedChildren = append(passedChildren, child.Message)
-		} else {
-			failedChildren = append(failedChildren, child.Message)
+		if strings.Contains(child.Message, "Maximum combinator nesting depth") {
+			return AssertionResult{
+				Type:    "allOf",
+				Passed:  false,
+				Message: child.Message,
+				Details: map[string]interface{}{
+					"children": childResults,
+				},
+			}
 		}
 	}
 
-	passed := len(failedChildren) == 0
+	passedCount := 0
+	failedCount := 0
+
+	for _, child := range childResults {
+		if child.Passed {
+			passedCount++
+		} else {
+			failedCount++
+		}
+	}
+
+	passed := failedCount == 0
+	message := fmt.Sprintf("allOf failed: %d of %d assertions failed", failedCount, len(childResults))
+	if passed {
+		message = fmt.Sprintf("allOf passed: all %d assertions passed", len(childResults))
+	}
 
 	return AssertionResult{
-		Type:   "allOf",
-		Passed: passed,
-		Message: func() string {
-			if passed {
-				return fmt.Sprintf("allOf passed: all %d assertions passed", len(childResults))
-			}
-			return fmt.Sprintf("allOf failed: %d of %d assertions failed", len(failedChildren), len(childResults))
-		}(),
+		Type:    "allOf",
+		Passed:  passed,
+		Message: message,
 		Details: map[string]interface{}{
-			"passed_count": len(passedChildren),
-			"failed_count": len(failedChildren),
+			"passed_count": passedCount,
+			"failed_count": failedCount,
 			"children":     childResults,
 		},
 	}
@@ -980,18 +1008,29 @@ func (e *AssertionEvaluator) evalNot(a Assertion, depth int) AssertionResult {
 	childResults := e.evaluateWithDepth([]Assertion{*a.Not}, depth+1)
 	childResult := childResults[0]
 
+	// Check if child hit the depth limit - propagate that error
+	if strings.Contains(childResult.Message, "Maximum combinator nesting depth") {
+		return AssertionResult{
+			Type:    "not",
+			Passed:  false,
+			Message: childResult.Message,
+			Details: map[string]interface{}{
+				"child": childResult,
+			},
+		}
+	}
+
 	// Invert the result
 	passed := !childResult.Passed
+	message := fmt.Sprintf("not failed: child assertion passed unexpectedly (%s)", childResult.Message)
+	if passed {
+		message = fmt.Sprintf("not passed: child assertion failed as expected (%s)", childResult.Message)
+	}
 
 	return AssertionResult{
-		Type:   "not",
-		Passed: passed,
-		Message: func() string {
-			if passed {
-				return fmt.Sprintf("not passed: child assertion failed as expected (%s)", childResult.Message)
-			}
-			return fmt.Sprintf("not failed: child assertion passed unexpectedly (%s)", childResult.Message)
-		}(),
+		Type:    "not",
+		Passed:  passed,
+		Message: message,
 		Details: map[string]interface{}{
 			"child": childResult,
 		},
