@@ -58,7 +58,7 @@ Validate agent behavior with 20+ assertion types covering:
 - Tool usage patterns
 - Output validation
 - Performance metrics
-- MCP operations
+- Boolean combinators (anyOf, allOf, not) for complex logic
 
 ### 6. Template Engine
 Dynamic test generation with Handlebars-style templates supporting:
@@ -84,8 +84,15 @@ Generate reports in multiple formats:
 ### Quick Install (Recommended)
 
 Install the latest version with a single command:
+
+**Linux/macOS:**
 ```bash
 curl -fsSL https://raw.githubusercontent.com/mykhaliev/agent-benchmark/master/install.sh | bash
+```
+
+**Windows (PowerShell):**
+```powershell
+irm https://raw.githubusercontent.com/mykhaliev/agent-benchmark/master/install.ps1 | iex
 ```
 
 ### Alternative Installation Methods
@@ -113,8 +120,9 @@ Download the appropriate file for your system from the [releases page](https://g
 - **macOS (Intel):** `agent-benchmark_vX.X.X_darwin_amd64.tar.gz`
 - **macOS (Apple Silicon):** `agent-benchmark_vX.X.X_darwin_arm64.tar.gz`
 - **Windows (AMD64):** `agent-benchmark_vX.X.X_windows_amd64.zip`
+- **Windows (ARM64):** `agent-benchmark_vX.X.X_windows_arm64.zip`
 
-**UPX compressed (smaller size):**
+**UPX compressed (smaller size, not available for Windows ARM64):**
 - **Linux (AMD64):** `agent-benchmark_vX.X.X_linux_amd64_upx.tar.gz`
 - **Linux (ARM64):** `agent-benchmark_vX.X.X_linux_arm64_upx.tar.gz`
 - **macOS (Intel):** `agent-benchmark_vX.X.X_darwin_amd64_upx.tar.gz`
@@ -137,6 +145,8 @@ sudo mv agent-benchmark /usr/local/bin/
 <summary><b>Build from Source</b></summary>
 
 Requirements: Go 1.25 or higher
+
+**Linux/macOS:**
 ```bash
 # Clone the repository
 git clone https://github.com/mykhaliev/agent-benchmark
@@ -147,6 +157,18 @@ go build -o agent-benchmark
 
 # (Optional) Move to your PATH
 sudo mv agent-benchmark /usr/local/bin/
+```
+
+**Windows (PowerShell):**
+```powershell
+# Clone the repository
+git clone https://github.com/mykhaliev/agent-benchmark
+cd agent-benchmark
+
+# Build the binary
+.\build.ps1
+# or
+go build -o agent-benchmark.exe
 ```
 
 </details>
@@ -750,6 +772,79 @@ Verify execution completed without errors:
 assertions:
   - type: no_error_messages
 ```
+
+---
+
+### Boolean Combinators
+
+Boolean combinators allow you to create complex assertion logic using JSON Schema-style operators. These are useful when LLMs may achieve the same outcome through different approaches.
+
+#### anyOf
+Pass if **ANY** child assertion passes (OR logic):
+
+```yaml
+assertions:
+  # Pass if the LLM used keyboard_control OR ui_automation
+  - anyOf:
+      - type: tool_called
+        tool: keyboard_control
+      - type: tool_called
+        tool: ui_automation
+```
+
+#### allOf
+Pass if **ALL** child assertions pass (AND logic):
+
+```yaml
+assertions:
+  # Pass if both conditions are met
+  - allOf:
+      - type: tool_called
+        tool: create_file
+      - type: output_contains
+        value: "File created successfully"
+```
+
+#### not
+Pass if the child assertion **FAILS** (negation):
+
+```yaml
+assertions:
+  # Pass if output does NOT contain "error" (equivalent to output_not_contains)
+  - not:
+      type: output_contains
+      value: "error"
+```
+
+#### Nested Combinators
+Combinators can be nested for complex logic:
+
+```yaml
+assertions:
+  # Pass if: (keyboard OR ui_automation) AND no errors
+  - allOf:
+      - anyOf:
+          - type: tool_called
+            tool: keyboard_control
+          - type: tool_called
+            tool: ui_automation
+      - type: no_error_messages
+  
+  # Pass if NOT (error in output AND failed tool)
+  - not:
+      allOf:
+        - type: output_contains
+          value: "error"
+        - type: tool_not_called
+          tool: success_handler
+```
+
+**Use Cases:**
+- Testing LLMs that may use different tools to achieve the same goal
+- Validating that at least one of several acceptable outcomes occurred
+- Creating exclusion rules (must NOT match a pattern)
+- Complex conditional validation logic
+
 ---
 
 ## Template System
