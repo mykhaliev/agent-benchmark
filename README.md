@@ -58,7 +58,7 @@ Validate agent behavior with 20+ assertion types covering:
 - Tool usage patterns
 - Output validation
 - Performance metrics
-- MCP operations
+- Boolean combinators (anyOf, allOf, not) for complex logic
 
 ### 6. Template Engine
 Dynamic test generation with Handlebars-style templates supporting:
@@ -772,6 +772,79 @@ Verify execution completed without errors:
 assertions:
   - type: no_error_messages
 ```
+
+---
+
+### Boolean Combinators
+
+Boolean combinators allow you to create complex assertion logic using JSON Schema-style operators. These are useful when LLMs may achieve the same outcome through different approaches.
+
+#### anyOf
+Pass if **ANY** child assertion passes (OR logic):
+
+```yaml
+assertions:
+  # Pass if the LLM used keyboard_control OR ui_automation
+  - anyOf:
+      - type: tool_called
+        tool: keyboard_control
+      - type: tool_called
+        tool: ui_automation
+```
+
+#### allOf
+Pass if **ALL** child assertions pass (AND logic):
+
+```yaml
+assertions:
+  # Pass if both conditions are met
+  - allOf:
+      - type: tool_called
+        tool: create_file
+      - type: output_contains
+        value: "File created successfully"
+```
+
+#### not
+Pass if the child assertion **FAILS** (negation):
+
+```yaml
+assertions:
+  # Pass if output does NOT contain "error" (equivalent to output_not_contains)
+  - not:
+      type: output_contains
+      value: "error"
+```
+
+#### Nested Combinators
+Combinators can be nested for complex logic:
+
+```yaml
+assertions:
+  # Pass if: (keyboard OR ui_automation) AND no errors
+  - allOf:
+      - anyOf:
+          - type: tool_called
+            tool: keyboard_control
+          - type: tool_called
+            tool: ui_automation
+      - type: no_error_messages
+  
+  # Pass if NOT (error in output AND failed tool)
+  - not:
+      allOf:
+        - type: output_contains
+          value: "error"
+        - type: tool_not_called
+          tool: success_handler
+```
+
+**Use Cases:**
+- Testing LLMs that may use different tools to achieve the same goal
+- Validating that at least one of several acceptable outcomes occurred
+- Creating exclusion rules (must NOT match a pattern)
+- Complex conditional validation logic
+
 ---
 
 ## Template System

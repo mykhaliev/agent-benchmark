@@ -57,7 +57,7 @@ agents:
 settings:
   verbose: true
   max_iterations: 10      # launch + type + close + dialog + verify + buffer
-  test_delay: 10s         # Longer delay to avoid rate limits between agents
+  test_delay: 60s         # Longer delay to avoid rate limits between agents
 
 sessions:
   - name: Notepad Workflow
@@ -107,6 +107,38 @@ sessions:
             tool: window_management
             path: "$.ok"
             value: true
+
+          # FLEXIBLE: Text input can use different tools depending on the LLM
+          # GPT-4.1 often uses keyboard_control, GPT-4o may use ui_automation
+          - anyOf:
+              - type: tool_called
+                tool: keyboard_control
+              - type: tool_called
+                tool: ui_automation
+
+          # VERIFY: Window was closed (find returned empty or no matches)
+          - anyOf:
+              # Either the output confirms closure
+              - type: output_regex
+                pattern: "(?i)(no.*windows?.*found|0.*windows?|empty.*list|windows.*\\[\\])"
+
+          # VERIFY: "Hello World" was typed using one of these methods
+          - anyOf:
+              # Via keyboard_control with the text
+              - type: tool_param_matches_regex
+                tool: keyboard_control
+                params:
+                  text: "(?i)hello.*world"
+              # Via ui_automation Type action
+              - type: tool_param_equals
+                tool: ui_automation
+                params:
+                  action: "Type"
+              # Via ui_automation setValue action
+              - type: tool_param_equals
+                tool: ui_automation
+                params:
+                  action: "setValue"
 
           # PERFORMANCE: Complete within 60 seconds
           - type: max_latency_ms
