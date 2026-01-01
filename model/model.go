@@ -168,6 +168,11 @@ type Assertion struct {
 	Pattern  string            `yaml:"pattern,omitempty"`
 	Count    int               `yaml:"count,omitempty"`
 	Path     string            `yaml:"path,omitempty"`
+
+	// Boolean combinators (JSON Schema style)
+	AnyOf []Assertion `yaml:"anyOf,omitempty"` // OR - pass if ANY child passes
+	AllOf []Assertion `yaml:"allOf,omitempty"` // AND - pass if ALL children pass
+	Not   *Assertion  `yaml:"not,omitempty"`   // NOT - pass if child FAILS
 }
 
 func (a Assertion) Clone() Assertion {
@@ -187,6 +192,31 @@ func (a Assertion) Clone() Assertion {
 		copy(sequence, a.Sequence)
 	}
 
+	// Copy anyOf slice
+	var anyOf []Assertion
+	if a.AnyOf != nil {
+		anyOf = make([]Assertion, len(a.AnyOf))
+		for i, child := range a.AnyOf {
+			anyOf[i] = child.Clone()
+		}
+	}
+
+	// Copy allOf slice
+	var allOf []Assertion
+	if a.AllOf != nil {
+		allOf = make([]Assertion, len(a.AllOf))
+		for i, child := range a.AllOf {
+			allOf[i] = child.Clone()
+		}
+	}
+
+	// Copy not pointer
+	var notAssertion *Assertion
+	if a.Not != nil {
+		cloned := a.Not.Clone()
+		notAssertion = &cloned
+	}
+
 	return Assertion{
 		Type:     a.Type,
 		Tool:     a.Tool,
@@ -196,6 +226,9 @@ func (a Assertion) Clone() Assertion {
 		Pattern:  a.Pattern,
 		Count:    a.Count,
 		Path:     a.Path,
+		AnyOf:    anyOf,
+		AllOf:    allOf,
+		Not:      notAssertion,
 	}
 }
 
@@ -317,6 +350,12 @@ func NewAssertionEvaluator(result *ExecutionResult, templateContext map[string]s
 }
 
 func (e *AssertionEvaluator) Evaluate(assertions []Assertion) []AssertionResult {
+	return e.evaluateWithDepth(assertions, 0)
+}
+
+const maxCombinatorDepth = 10 // Prevent infinite recursion
+
+func (e *AssertionEvaluator) evaluateWithDepth(assertions []Assertion, depth int) []AssertionResult {
 	results := make([]AssertionResult, 0, len(assertions))
 	assertionsCopy := make([]Assertion, 0, len(assertions))
 
@@ -325,6 +364,23 @@ func (e *AssertionEvaluator) Evaluate(assertions []Assertion) []AssertionResult 
 	}
 	for _, assertion := range assertionsCopy {
 		var result AssertionResult
+
+		// Check for boolean combinators first
+		if len(assertion.AnyOf) > 0 {
+			result = e.evalAnyOf(assertion, depth)
+			results = append(results, result)
+			continue
+		}
+		if len(assertion.AllOf) > 0 {
+			result = e.evalAllOf(assertion, depth)
+			results = append(results, result)
+			continue
+		}
+		if assertion.Not != nil {
+			result = e.evalNot(assertion, depth)
+			results = append(results, result)
+			continue
+		}
 
 		//transform assertion params value
 		if assertion.Params != nil {
@@ -797,6 +853,147 @@ func (e *AssertionEvaluator) evalNoErrorMessages(a Assertion) AssertionResult {
 		Message: fmt.Sprintf("No error messages: %v (errors: %d)", !hasErrors, len(e.result.Errors)),
 		Details: map[string]interface{}{
 			"errors": e.result.Errors,
+		},
+	}
+}
+
+// ============================================================================
+// BOOLEAN COMBINATOR FUNCTIONS (anyOf, allOf, not)
+// ============================================================================
+
+// evalAnyOf evaluates an anyOf combinator - passes if ANY child assertion passes
+func (e *AssertionEvaluator) evalAnyOf(a Assertion, depth int) AssertionResult {
+	if depth >= maxCombinatorDepth {
+		return AssertionResult{
+			Type:    "anyOf",
+			Passed:  false,
+			Message: fmt.Sprintf("Maximum combinator nesting depth (%d) exceeded", maxCombinatorDepth),
+		}
+	}
+
+	if len(a.AnyOf) == 0 {
+		return AssertionResult{
+			Type:    "anyOf",
+			Passed:  false,
+			Message: "anyOf requires at least one child assertion",
+		}
+	}
+
+	childResults := e.evaluateWithDepth(a.AnyOf, depth+1)
+	passedChildren := []string{}
+	failedChildren := []string{}
+
+	for _, child := range childResults {
+		if child.Passed {
+			passedChildren = append(passedChildren, child.Message)
+		} else {
+			failedChildren = append(failedChildren, child.Message)
+		}
+	}
+
+	passed := len(passedChildren) > 0
+
+	return AssertionResult{
+		Type:   "anyOf",
+		Passed: passed,
+		Message: func() string {
+			if passed {
+				return fmt.Sprintf("anyOf passed: %d of %d assertions passed", len(passedChildren), len(childResults))
+			}
+			return fmt.Sprintf("anyOf failed: none of %d assertions passed", len(childResults))
+		}(),
+		Details: map[string]interface{}{
+			"passed_count": len(passedChildren),
+			"failed_count": len(failedChildren),
+			"children":     childResults,
+		},
+	}
+}
+
+// evalAllOf evaluates an allOf combinator - passes if ALL child assertions pass
+func (e *AssertionEvaluator) evalAllOf(a Assertion, depth int) AssertionResult {
+	if depth >= maxCombinatorDepth {
+		return AssertionResult{
+			Type:    "allOf",
+			Passed:  false,
+			Message: fmt.Sprintf("Maximum combinator nesting depth (%d) exceeded", maxCombinatorDepth),
+		}
+	}
+
+	if len(a.AllOf) == 0 {
+		return AssertionResult{
+			Type:    "allOf",
+			Passed:  false,
+			Message: "allOf requires at least one child assertion",
+		}
+	}
+
+	childResults := e.evaluateWithDepth(a.AllOf, depth+1)
+	passedChildren := []string{}
+	failedChildren := []string{}
+
+	for _, child := range childResults {
+		if child.Passed {
+			passedChildren = append(passedChildren, child.Message)
+		} else {
+			failedChildren = append(failedChildren, child.Message)
+		}
+	}
+
+	passed := len(failedChildren) == 0
+
+	return AssertionResult{
+		Type:   "allOf",
+		Passed: passed,
+		Message: func() string {
+			if passed {
+				return fmt.Sprintf("allOf passed: all %d assertions passed", len(childResults))
+			}
+			return fmt.Sprintf("allOf failed: %d of %d assertions failed", len(failedChildren), len(childResults))
+		}(),
+		Details: map[string]interface{}{
+			"passed_count": len(passedChildren),
+			"failed_count": len(failedChildren),
+			"children":     childResults,
+		},
+	}
+}
+
+// evalNot evaluates a not combinator - passes if the child assertion FAILS
+func (e *AssertionEvaluator) evalNot(a Assertion, depth int) AssertionResult {
+	if depth >= maxCombinatorDepth {
+		return AssertionResult{
+			Type:    "not",
+			Passed:  false,
+			Message: fmt.Sprintf("Maximum combinator nesting depth (%d) exceeded", maxCombinatorDepth),
+		}
+	}
+
+	if a.Not == nil {
+		return AssertionResult{
+			Type:    "not",
+			Passed:  false,
+			Message: "not requires a child assertion",
+		}
+	}
+
+	childResults := e.evaluateWithDepth([]Assertion{*a.Not}, depth+1)
+	childResult := childResults[0]
+
+	// Invert the result
+	passed := !childResult.Passed
+
+	return AssertionResult{
+		Type:   "not",
+		Passed: passed,
+		Message: func() string {
+			if passed {
+				return fmt.Sprintf("not passed: child assertion failed as expected (%s)", childResult.Message)
+			}
+			return fmt.Sprintf("not failed: child assertion passed unexpectedly (%s)", childResult.Message)
+		}(),
+		Details: map[string]interface{}{
+			"child": childResult,
 		},
 	}
 }

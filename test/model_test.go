@@ -999,6 +999,356 @@ func TestAssertionEvaluator_NoHallucinatedTools(t *testing.T) {
 }
 
 // ============================================================================
+// Boolean Combinator Tests (anyOf, allOf, not)
+// ============================================================================
+
+func TestAssertionEvaluator_AnyOf(t *testing.T) {
+	result := &model.ExecutionResult{
+		ToolCalls: []model.ToolCall{
+			{Name: "keyboard_control"},
+		},
+		FinalOutput: "Task completed successfully",
+	}
+
+	tests := []struct {
+		name       string
+		assertion  model.Assertion
+		wantPassed bool
+	}{
+		{
+			name: "Any passes - first matches",
+			assertion: model.Assertion{
+				AnyOf: []model.Assertion{
+					{Type: "tool_called", Tool: "keyboard_control"},
+					{Type: "tool_called", Tool: "ui_automation"},
+				},
+			},
+			wantPassed: true,
+		},
+		{
+			name: "Any passes - second matches",
+			assertion: model.Assertion{
+				AnyOf: []model.Assertion{
+					{Type: "tool_called", Tool: "ui_automation"},
+					{Type: "tool_called", Tool: "keyboard_control"},
+				},
+			},
+			wantPassed: true,
+		},
+		{
+			name: "None match - fails",
+			assertion: model.Assertion{
+				AnyOf: []model.Assertion{
+					{Type: "tool_called", Tool: "ui_automation"},
+					{Type: "tool_called", Tool: "window_control"},
+				},
+			},
+			wantPassed: false,
+		},
+		{
+			name: "Both match - passes",
+			assertion: model.Assertion{
+				AnyOf: []model.Assertion{
+					{Type: "tool_called", Tool: "keyboard_control"},
+					{Type: "output_contains", Value: "completed"},
+				},
+			},
+			wantPassed: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			evaluator := model.NewAssertionEvaluator(result, map[string]string{}, []string{})
+			results := evaluator.Evaluate([]model.Assertion{tt.assertion})
+			require.Len(t, results, 1)
+			assert.Equal(t, tt.wantPassed, results[0].Passed)
+			assert.Equal(t, "anyOf", results[0].Type)
+		})
+	}
+}
+
+func TestAssertionEvaluator_AllOf(t *testing.T) {
+	result := &model.ExecutionResult{
+		ToolCalls: []model.ToolCall{
+			{Name: "keyboard_control"},
+			{Name: "window_control"},
+		},
+		FinalOutput: "Task completed successfully",
+	}
+
+	tests := []struct {
+		name       string
+		assertion  model.Assertion
+		wantPassed bool
+	}{
+		{
+			name: "All pass",
+			assertion: model.Assertion{
+				AllOf: []model.Assertion{
+					{Type: "tool_called", Tool: "keyboard_control"},
+					{Type: "tool_called", Tool: "window_control"},
+				},
+			},
+			wantPassed: true,
+		},
+		{
+			name: "One fails",
+			assertion: model.Assertion{
+				AllOf: []model.Assertion{
+					{Type: "tool_called", Tool: "keyboard_control"},
+					{Type: "tool_called", Tool: "ui_automation"},
+				},
+			},
+			wantPassed: false,
+		},
+		{
+			name: "All fail",
+			assertion: model.Assertion{
+				AllOf: []model.Assertion{
+					{Type: "tool_called", Tool: "ui_automation"},
+					{Type: "tool_called", Tool: "mouse_control"},
+				},
+			},
+			wantPassed: false,
+		},
+		{
+			name: "Mixed assertion types - all pass",
+			assertion: model.Assertion{
+				AllOf: []model.Assertion{
+					{Type: "tool_called", Tool: "keyboard_control"},
+					{Type: "output_contains", Value: "completed"},
+				},
+			},
+			wantPassed: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			evaluator := model.NewAssertionEvaluator(result, map[string]string{}, []string{})
+			results := evaluator.Evaluate([]model.Assertion{tt.assertion})
+			require.Len(t, results, 1)
+			assert.Equal(t, tt.wantPassed, results[0].Passed)
+			assert.Equal(t, "allOf", results[0].Type)
+		})
+	}
+}
+
+func TestAssertionEvaluator_Not(t *testing.T) {
+	result := &model.ExecutionResult{
+		ToolCalls: []model.ToolCall{
+			{Name: "keyboard_control"},
+		},
+		FinalOutput: "Task completed successfully",
+	}
+
+	tests := []struct {
+		name       string
+		assertion  model.Assertion
+		wantPassed bool
+	}{
+		{
+			name: "Child fails - not passes",
+			assertion: model.Assertion{
+				Not: &model.Assertion{
+					Type: "tool_called",
+					Tool: "ui_automation",
+				},
+			},
+			wantPassed: true,
+		},
+		{
+			name: "Child passes - not fails",
+			assertion: model.Assertion{
+				Not: &model.Assertion{
+					Type: "tool_called",
+					Tool: "keyboard_control",
+				},
+			},
+			wantPassed: false,
+		},
+		{
+			name: "Not with output_contains - negation",
+			assertion: model.Assertion{
+				Not: &model.Assertion{
+					Type:  "output_contains",
+					Value: "error",
+				},
+			},
+			wantPassed: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			evaluator := model.NewAssertionEvaluator(result, map[string]string{}, []string{})
+			results := evaluator.Evaluate([]model.Assertion{tt.assertion})
+			require.Len(t, results, 1)
+			assert.Equal(t, tt.wantPassed, results[0].Passed)
+			assert.Equal(t, "not", results[0].Type)
+		})
+	}
+}
+
+func TestAssertionEvaluator_NestedCombinators(t *testing.T) {
+	result := &model.ExecutionResult{
+		ToolCalls: []model.ToolCall{
+			{Name: "keyboard_control"},
+			{Name: "window_control"},
+		},
+		FinalOutput: "Task completed successfully",
+	}
+
+	tests := []struct {
+		name       string
+		assertion  model.Assertion
+		wantPassed bool
+	}{
+		{
+			name: "anyOf with nested allOf - passes",
+			assertion: model.Assertion{
+				AnyOf: []model.Assertion{
+					{
+						AllOf: []model.Assertion{
+							{Type: "tool_called", Tool: "ui_automation"},
+							{Type: "tool_called", Tool: "mouse_control"},
+						},
+					},
+					{
+						AllOf: []model.Assertion{
+							{Type: "tool_called", Tool: "keyboard_control"},
+							{Type: "tool_called", Tool: "window_control"},
+						},
+					},
+				},
+			},
+			wantPassed: true,
+		},
+		{
+			name: "allOf with nested anyOf - passes",
+			assertion: model.Assertion{
+				AllOf: []model.Assertion{
+					{
+						AnyOf: []model.Assertion{
+							{Type: "tool_called", Tool: "keyboard_control"},
+							{Type: "tool_called", Tool: "ui_automation"},
+						},
+					},
+					{Type: "output_contains", Value: "completed"},
+				},
+			},
+			wantPassed: true,
+		},
+		{
+			name: "not with nested anyOf - passes",
+			assertion: model.Assertion{
+				Not: &model.Assertion{
+					AnyOf: []model.Assertion{
+						{Type: "tool_called", Tool: "ui_automation"},
+						{Type: "tool_called", Tool: "mouse_control"},
+					},
+				},
+			},
+			wantPassed: true,
+		},
+		{
+			name: "not with nested anyOf - fails (child passes)",
+			assertion: model.Assertion{
+				Not: &model.Assertion{
+					AnyOf: []model.Assertion{
+						{Type: "tool_called", Tool: "keyboard_control"},
+						{Type: "tool_called", Tool: "mouse_control"},
+					},
+				},
+			},
+			wantPassed: false,
+		},
+		{
+			name: "Double negation",
+			assertion: model.Assertion{
+				Not: &model.Assertion{
+					Not: &model.Assertion{
+						Type: "tool_called",
+						Tool: "keyboard_control",
+					},
+				},
+			},
+			wantPassed: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			evaluator := model.NewAssertionEvaluator(result, map[string]string{}, []string{})
+			results := evaluator.Evaluate([]model.Assertion{tt.assertion})
+			require.Len(t, results, 1)
+			assert.Equal(t, tt.wantPassed, results[0].Passed)
+		})
+	}
+}
+
+func TestAssertionEvaluator_CombinatorDetails(t *testing.T) {
+	result := &model.ExecutionResult{
+		ToolCalls: []model.ToolCall{
+			{Name: "keyboard_control"},
+		},
+	}
+
+	t.Run("anyOf includes child results in details", func(t *testing.T) {
+		assertion := model.Assertion{
+			AnyOf: []model.Assertion{
+				{Type: "tool_called", Tool: "keyboard_control"},
+				{Type: "tool_called", Tool: "ui_automation"},
+			},
+		}
+		evaluator := model.NewAssertionEvaluator(result, map[string]string{}, []string{})
+		results := evaluator.Evaluate([]model.Assertion{assertion})
+		require.Len(t, results, 1)
+
+		details := results[0].Details
+		assert.NotNil(t, details)
+		assert.Equal(t, 1, details["passed_count"])
+		assert.Equal(t, 1, details["failed_count"])
+		assert.NotNil(t, details["children"])
+	})
+
+	t.Run("allOf includes child results in details", func(t *testing.T) {
+		assertion := model.Assertion{
+			AllOf: []model.Assertion{
+				{Type: "tool_called", Tool: "keyboard_control"},
+				{Type: "tool_called", Tool: "ui_automation"},
+			},
+		}
+		evaluator := model.NewAssertionEvaluator(result, map[string]string{}, []string{})
+		results := evaluator.Evaluate([]model.Assertion{assertion})
+		require.Len(t, results, 1)
+
+		details := results[0].Details
+		assert.NotNil(t, details)
+		assert.Equal(t, 1, details["passed_count"])
+		assert.Equal(t, 1, details["failed_count"])
+		assert.NotNil(t, details["children"])
+	})
+
+	t.Run("not includes child result in details", func(t *testing.T) {
+		assertion := model.Assertion{
+			Not: &model.Assertion{
+				Type: "tool_called",
+				Tool: "ui_automation",
+			},
+		}
+		evaluator := model.NewAssertionEvaluator(result, map[string]string{}, []string{})
+		results := evaluator.Evaluate([]model.Assertion{assertion})
+		require.Len(t, results, 1)
+
+		details := results[0].Details
+		assert.NotNil(t, details)
+		assert.NotNil(t, details["child"])
+	})
+}
+
+// ============================================================================
 // Utility Functions Tests
 // ============================================================================
 
