@@ -1348,6 +1348,95 @@ func TestAssertionEvaluator_CombinatorDetails(t *testing.T) {
 	})
 }
 
+func TestAssertionEvaluator_CombinatorDepthLimit(t *testing.T) {
+	result := &model.ExecutionResult{
+		ToolCalls: []model.ToolCall{
+			{Name: "test_tool"},
+		},
+	}
+
+	// Build deeply nested structure that exceeds depth limit (10)
+	// Create 12 levels of nesting to exceed the limit
+	buildDeeplyNested := func(depth int) model.Assertion {
+		innermost := model.Assertion{Type: "tool_called", Tool: "test_tool"}
+		current := &innermost
+		for i := 0; i < depth; i++ {
+			next := model.Assertion{
+				Not: current,
+			}
+			current = &next
+		}
+		return *current
+	}
+
+	t.Run("Deeply nested combinators exceed depth limit", func(t *testing.T) {
+		// 12 levels of nesting should exceed the limit of 10
+		assertion := buildDeeplyNested(12)
+		evaluator := model.NewAssertionEvaluator(result, map[string]string{}, []string{})
+		results := evaluator.Evaluate([]model.Assertion{assertion})
+		require.Len(t, results, 1)
+
+		// Should fail due to depth limit
+		assert.False(t, results[0].Passed)
+		assert.Contains(t, results[0].Message, "Maximum combinator nesting depth")
+	})
+
+	t.Run("Nesting within limit succeeds", func(t *testing.T) {
+		// 5 levels of nesting should be fine (within limit of 10)
+		// 5 levels of NOT on tool_called("test_tool"):
+		// not(not(not(not(not(tool_called))))) = not(tool_called) = false (since tool was called)
+		assertion := buildDeeplyNested(5)
+		evaluator := model.NewAssertionEvaluator(result, map[string]string{}, []string{})
+		results := evaluator.Evaluate([]model.Assertion{assertion})
+		require.Len(t, results, 1)
+
+		// Should not fail due to depth limit
+		assert.NotContains(t, results[0].Message, "Maximum combinator nesting depth")
+	})
+
+	t.Run("anyOf depth limit", func(t *testing.T) {
+		// Build anyOf chain that exceeds depth - need proper nesting to avoid circular refs
+		var buildAnyOfChain func(depth int) model.Assertion
+		buildAnyOfChain = func(depth int) model.Assertion {
+			if depth == 0 {
+				return model.Assertion{Type: "tool_called", Tool: "test_tool"}
+			}
+			return model.Assertion{
+				AnyOf: []model.Assertion{buildAnyOfChain(depth - 1)},
+			}
+		}
+
+		assertion := buildAnyOfChain(12)
+		evaluator := model.NewAssertionEvaluator(result, map[string]string{}, []string{})
+		results := evaluator.Evaluate([]model.Assertion{assertion})
+		require.Len(t, results, 1)
+
+		assert.False(t, results[0].Passed)
+		assert.Contains(t, results[0].Message, "Maximum combinator nesting depth")
+	})
+
+	t.Run("allOf depth limit", func(t *testing.T) {
+		// Build allOf chain that exceeds depth - need proper nesting to avoid circular refs
+		var buildAllOfChain func(depth int) model.Assertion
+		buildAllOfChain = func(depth int) model.Assertion {
+			if depth == 0 {
+				return model.Assertion{Type: "tool_called", Tool: "test_tool"}
+			}
+			return model.Assertion{
+				AllOf: []model.Assertion{buildAllOfChain(depth - 1)},
+			}
+		}
+
+		assertion := buildAllOfChain(12)
+		evaluator := model.NewAssertionEvaluator(result, map[string]string{}, []string{})
+		results := evaluator.Evaluate([]model.Assertion{assertion})
+		require.Len(t, results, 1)
+
+		assert.False(t, results[0].Passed)
+		assert.Contains(t, results[0].Message, "Maximum combinator nesting depth")
+	})
+}
+
 // ============================================================================
 // Utility Functions Tests
 // ============================================================================
