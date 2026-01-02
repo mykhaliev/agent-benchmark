@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
+	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/bedrockruntime"
@@ -407,6 +409,7 @@ func InitProviders(ctx context.Context, providerConfigs []model.Provider) (map[s
 		p.ProjectID = model.RenderTemplate(p.ProjectID, envs)
 		p.Location = model.RenderTemplate(p.Location, envs)
 		p.CredentialsPath = model.RenderTemplate(p.CredentialsPath, envs)
+		p.AuthType = model.RenderTemplate(p.AuthType, envs)
 		logger.Logger.Debug("Initializing provider",
 			"index", i+1,
 			"total", len(providerConfigs),
@@ -436,7 +439,9 @@ func InitProviders(ctx context.Context, providerConfigs []model.Provider) (map[s
 }
 
 func CreateProvider(ctx context.Context, p model.Provider) (llms.Model, error) {
-	if p.Type != model.ProviderVertex && p.Token == "" {
+	// Token validation: required for all providers except Vertex and Azure with Entra ID auth
+	isEntraIdAuth := p.Type == model.ProviderAzure && strings.ToLower(p.AuthType) == "entra_id"
+	if p.Type != model.ProviderVertex && !isEntraIdAuth && p.Token == "" {
 		return nil, fmt.Errorf("provider token is empty")
 	}
 
@@ -515,18 +520,39 @@ func CreateProvider(ctx context.Context, p model.Provider) (llms.Model, error) {
 			return nil, fmt.Errorf("Azure provider requires version")
 		}
 
+		if p.BaseURL == "" {
+			return nil, fmt.Errorf("Azure provider requires base URL")
+		}
+
 		opts := []openai.Option{
-			openai.WithToken(p.Token),
 			openai.WithModel(p.Model),
 			openai.WithAPIType(openai.APITypeAzure),
 			openai.WithAPIVersion(p.Version),
+			openai.WithBaseURL(p.BaseURL),
 		}
+		logger.Logger.Debug("Using Azure base URL", "url", p.BaseURL)
 
-		if p.BaseURL != "" {
-			opts = append(opts, openai.WithBaseURL(p.BaseURL))
-			logger.Logger.Debug("Using Azure base URL", "url", p.BaseURL)
+		// Handle authentication type: "entra_id" uses DefaultAzureCredential, otherwise use API key
+		if strings.ToLower(p.AuthType) == "entra_id" {
+			logger.Logger.Debug("Using Entra ID authentication for Azure provider")
+			cred, err := azidentity.NewDefaultAzureCredential(nil)
+			if err != nil {
+				return nil, fmt.Errorf("failed to create Azure credential: %w", err)
+			}
+			// Get token for Azure OpenAI scope
+			token, err := cred.GetToken(ctx, policy.TokenRequestOptions{
+				Scopes: []string{"https://cognitiveservices.azure.com/.default"},
+			})
+			if err != nil {
+				return nil, fmt.Errorf("failed to get Azure token: %w", err)
+			}
+			opts = append(opts, openai.WithToken(token.Token))
 		} else {
-			return nil, fmt.Errorf("Azure provider requires base URL")
+			// Default to API key authentication (backward compatible)
+			if p.Token == "" {
+				return nil, fmt.Errorf("Azure provider requires token when using api_key authentication")
+			}
+			opts = append(opts, openai.WithToken(p.Token))
 		}
 
 		llmModel, err = openai.New(opts...)

@@ -62,6 +62,7 @@ type Provider struct {
 	ProjectID       string       `yaml:"project_id"`       // e.g., 2025-01-01-preview
 	Location        string       `yaml:"location"`         // e.g., 2025-01-01-preview
 	CredentialsPath string       `yaml:"credentials_path"` // e.g., 2025-01-01-preview
+	AuthType        string       `yaml:"auth_type"`        // For AZURE: "api_key" (default) or "entra_id"
 }
 
 type ProviderType string

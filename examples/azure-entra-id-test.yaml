@@ -1,0 +1,69 @@
+# Azure OpenAI with Entra ID Authentication Example
+# This example demonstrates using Microsoft Entra ID (formerly Azure AD) 
+# for passwordless authentication with Azure OpenAI.
+#
+# Prerequisites:
+# - Azure OpenAI resource deployed
+# - One of the following authentication methods configured:
+#   * Azure CLI logged in (az login)
+#   * Environment variables: AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_CLIENT_SECRET
+#   * Managed Identity (when running in Azure)
+#   * Visual Studio Code Azure Account extension
+#
+# For more information on DefaultAzureCredential:
+# https://learn.microsoft.com/en-us/azure/developer/go/sdk/authentication/credential-chains
+
+providers:
+  # Azure OpenAI with Entra ID authentication (passwordless)
+  - name: azure-entra
+    type: AZURE
+    auth_type: entra_id  # Uses DefaultAzureCredential - no API key needed
+    model: gpt-4o
+    baseUrl: "{{AZURE_OPENAI_ENDPOINT}}"  # e.g., https://your-resource.openai.azure.com
+    version: "2024-10-21"
+
+  # Azure OpenAI with API key authentication (traditional)
+  - name: azure-apikey
+    type: AZURE
+    auth_type: api_key  # Optional, this is the default
+    token: "{{AZURE_OPENAI_API_KEY}}"
+    model: gpt-4o
+    baseUrl: "{{AZURE_OPENAI_ENDPOINT}}"
+    version: "2024-10-21"
+
+servers:
+  - name: filesystem
+    type: stdio
+    command: npx @modelcontextprotocol/server-filesystem C:/temp
+
+agents:
+  - name: entra-agent
+    provider: azure-entra
+    servers:
+      - name: filesystem
+
+  - name: apikey-agent
+    provider: azure-apikey
+    servers:
+      - name: filesystem
+
+sessions:
+  - name: "Azure Authentication Test"
+    tests:
+      - name: "Test Entra ID Authentication"
+        prompt: "List the files in the current directory"
+        agent: entra-agent
+        assertions:
+          - type: tool_called
+            tool: list_directory
+
+      - name: "Test API Key Authentication"
+        prompt: "List the files in the current directory"
+        agent: apikey-agent
+        assertions:
+          - type: tool_called
+            tool: list_directory
+
+settings:
+  verbose: true
+  max_iterations: 5

@@ -330,6 +330,13 @@ providers:
     baseUrl: https://your-resource.openai.azure.com
     version: 2024-02-15-preview
 
+  - name: azure-entra
+    type: AZURE
+    auth_type: entra_id  # Use Microsoft Entra ID authentication (passwordless)
+    model: gpt-4
+    baseUrl: https://your-resource.openai.azure.com
+    version: 2024-02-15-preview
+
   - name: vertex-ai
     type: VERTEX
     project_id: "your-gcp-project-id"
@@ -343,6 +350,45 @@ providers:
     model: openai/gpt-oss-120b
     baseUrl: https://api.groq.com/openai/v1 # Optional
 ```
+
+#### Azure OpenAI Authentication
+
+The AZURE provider supports two authentication methods:
+
+**API Key Authentication (default):**
+```yaml
+providers:
+  - name: azure-apikey
+    type: AZURE
+    auth_type: api_key  # Optional, this is the default
+    token: {{AZURE_OPENAI_API_KEY}}
+    model: gpt-4
+    baseUrl: https://your-resource.openai.azure.com
+    version: 2024-02-15-preview
+```
+
+**Microsoft Entra ID Authentication (passwordless):**
+```yaml
+providers:
+  - name: azure-entra
+    type: AZURE
+    auth_type: entra_id  # Uses DefaultAzureCredential
+    model: gpt-4
+    baseUrl: https://your-resource.openai.azure.com
+    version: 2024-02-15-preview
+    # No token required - uses Azure credentials from environment
+```
+
+Entra ID authentication uses Azure's `DefaultAzureCredential`, which automatically tries multiple authentication methods in order:
+1. **Environment variables**: `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_CLIENT_SECRET`
+2. **Workload Identity** (for Kubernetes)
+3. **Managed Identity** (when running in Azure)
+4. **Azure CLI** (`az login`)
+5. **Azure Developer CLI** (`azd auth login`)
+6. **Azure PowerShell** (`Connect-AzAccount`)
+
+For more information, see [Azure Identity authentication](https://learn.microsoft.com/en-us/azure/developer/go/sdk/authentication/credential-chains).
+
 ---
 
 ### Servers
