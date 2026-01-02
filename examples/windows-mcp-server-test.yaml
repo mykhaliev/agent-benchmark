@@ -12,9 +12,14 @@
 # Prerequisites:
 # - Windows 10/11
 # - Windows MCP Server executable in examples folder
+# - Azure OpenAI resource with Entra ID authentication configured
+# - One of the following authentication methods:
+#   * Azure CLI logged in (az login)
+#   * Environment variables: AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_CLIENT_SECRET
+#   * Managed Identity (when running in Azure)
+#   * Visual Studio Code Azure Account extension
 # - Environment variables set:
 #   - AZURE_OPENAI_ENDPOINT: Azure OpenAI endpoint
-#   - AZURE_OPENAI_API_KEY: Azure OpenAI API key
 #
 # Run command:
 #   go run . -f examples/windows-mcp-server-test.yaml -reportType html,json
@@ -25,14 +30,14 @@ criteria:
 providers:
   - name: azure-openai-gpt41
     type: AZURE
-    token: "{{AZURE_OPENAI_API_KEY}}"
+    auth_type: entra_id  # Uses DefaultAzureCredential - no API key needed
     model: gpt-4.1
     baseUrl: "{{AZURE_OPENAI_ENDPOINT}}"
     version: 2025-01-01-preview
 
   - name: azure-openai-gpt4o
     type: AZURE
-    token: "{{AZURE_OPENAI_API_KEY}}"
+    auth_type: entra_id  # Uses DefaultAzureCredential - no API key needed
     model: gpt-4o
     baseUrl: "{{AZURE_OPENAI_ENDPOINT}}"
     version: 2025-01-01-preview
@@ -129,16 +134,16 @@ sessions:
                 tool: keyboard_control
                 params:
                   text: "(?i)hello.*world"
-              # Via ui_automation Type action
-              - type: tool_param_equals
+              # Via ui_automation Type action (case-insensitive)
+              - type: tool_param_matches_regex
                 tool: ui_automation
                 params:
-                  action: "Type"
-              # Via ui_automation setValue action
-              - type: tool_param_equals
+                  action: "(?i)^type$"
+              # Via ui_automation setValue action (case-insensitive)
+              - type: tool_param_matches_regex
                 tool: ui_automation
                 params:
-                  action: "setValue"
+                  action: "(?i)^setvalue$"
 
           # PERFORMANCE: Complete within 60 seconds
           - type: max_latency_ms
