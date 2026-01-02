@@ -387,7 +387,28 @@ Entra ID authentication uses Azure's `DefaultAzureCredential`, which automatical
 5. **Azure Developer CLI** (`azd auth login`)
 6. **Azure PowerShell** (`Connect-AzAccount`)
 
-For more information, see [Azure Identity authentication](https://learn.microsoft.com/en-us/azure/developer/go/sdk/authentication/credential-chains).
+**Required RBAC Role:**
+
+Your identity must have the **"Cognitive Services OpenAI User"** role (or higher) assigned on the Azure OpenAI resource. Without this role, you will receive a 401 Unauthorized error.
+
+To assign the role using Azure CLI:
+```bash
+# Get your Azure OpenAI resource ID
+az cognitiveservices account show \
+  --name <your-openai-resource-name> \
+  --resource-group <your-resource-group> \
+  --query id -o tsv
+
+# Assign the required role
+az role assignment create \
+  --assignee <your-email-or-principal-id> \
+  --role "Cognitive Services OpenAI User" \
+  --scope <resource-id-from-above>
+```
+
+> **Note:** Role assignments can take up to 5-10 minutes to propagate.
+
+For more information, see [Azure Identity authentication](https://learn.microsoft.com/en-us/azure/developer/go/sdk/authentication/credential-chains) and [Azure OpenAI RBAC roles](https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/role-based-access-control).
 
 ---
 
