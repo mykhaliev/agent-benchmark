@@ -526,7 +526,6 @@ func CreateProvider(ctx context.Context, p model.Provider) (llms.Model, error) {
 
 		opts := []openai.Option{
 			openai.WithModel(p.Model),
-			openai.WithAPIType(openai.APITypeAzure),
 			openai.WithAPIVersion(p.Version),
 			openai.WithBaseURL(p.BaseURL),
 		}
@@ -546,12 +545,16 @@ func CreateProvider(ctx context.Context, p model.Provider) (llms.Model, error) {
 			if err != nil {
 				return nil, fmt.Errorf("failed to get Azure token: %w", err)
 			}
+			// Use APITypeAzureAD to send token as Bearer token in Authorization header
+			opts = append(opts, openai.WithAPIType(openai.APITypeAzureAD))
 			opts = append(opts, openai.WithToken(token.Token))
 		} else {
 			// Default to API key authentication (backward compatible)
+			// Use APITypeAzure to send token as api-key header
 			if p.Token == "" {
 				return nil, fmt.Errorf("Azure provider requires token when using api_key authentication")
 			}
+			opts = append(opts, openai.WithAPIType(openai.APITypeAzure))
 			opts = append(opts, openai.WithToken(p.Token))
 		}
 
