@@ -611,6 +611,7 @@ func TestCreateTemplateContext(t *testing.T) {
 // ============================================================================
 
 func TestCreateProvider_Validation(t *testing.T) {
+	logger.SetupLogger(NewDummyWriter(), true)
 	mockFactory := &engine.DefaultServerFactory{}
 	engine.SetServerFactory(mockFactory)
 	ctx := context.Background()
@@ -677,6 +678,57 @@ func TestCreateProvider_Validation(t *testing.T) {
 		_, err := engine.CreateProvider(ctx, provider)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "base URL")
+	})
+
+	t.Run("Azure with entra_id auth skips token validation", func(t *testing.T) {
+		// When using Entra ID auth, token is not required for initial validation
+		// The provider creation may succeed or fail depending on Azure credentials in env
+		// We just verify it doesn't fail on "token is empty" validation
+		provider := model.Provider{
+			Type:     model.ProviderAzure,
+			Token:    "", // No token needed for Entra ID
+			Model:    "gpt-4",
+			Version:  "2024-01-01",
+			BaseURL:  "https://test.openai.azure.com",
+			AuthType: "entra_id",
+		}
+
+		_, err := engine.CreateProvider(ctx, provider)
+		// Error is expected (no Azure credentials in test env)
+		// But if there IS an error, it should NOT be about empty token
+		if err != nil {
+			assert.NotContains(t, err.Error(), "token is empty")
+		}
+	})
+
+	t.Run("Azure with api_key auth requires token", func(t *testing.T) {
+		provider := model.Provider{
+			Type:     model.ProviderAzure,
+			Token:    "", // No token
+			Model:    "gpt-4",
+			Version:  "2024-01-01",
+			BaseURL:  "https://test.openai.azure.com",
+			AuthType: "api_key",
+		}
+
+		_, err := engine.CreateProvider(ctx, provider)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "token")
+	})
+
+	t.Run("Azure with empty auth_type defaults to api_key (requires token)", func(t *testing.T) {
+		provider := model.Provider{
+			Type:     model.ProviderAzure,
+			Token:    "", // No token
+			Model:    "gpt-4",
+			Version:  "2024-01-01",
+			BaseURL:  "https://test.openai.azure.com",
+			AuthType: "", // Empty defaults to api_key
+		}
+
+		_, err := engine.CreateProvider(ctx, provider)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "token")
 	})
 }
 
