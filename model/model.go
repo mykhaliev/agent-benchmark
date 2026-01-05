@@ -104,10 +104,11 @@ const (
 // ============================================================================
 
 type Agent struct {
-	Name     string        `yaml:"name"`
-	Settings Settings      `yaml:"settings"`
-	Servers  []AgentServer `yaml:"servers"`
-	Provider string        `yaml:"provider"`
+	Name         string        `yaml:"name"`
+	Settings     Settings      `yaml:"settings"`
+	Servers      []AgentServer `yaml:"servers"`
+	Provider     string        `yaml:"provider"`
+	SystemPrompt string        `yaml:"system_prompt,omitempty"`
 }
 
 type AgentServer struct {
