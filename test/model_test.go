@@ -70,6 +70,81 @@ sessions:
 		_, err := model.ParseTestConfig("/non/existent/file.yaml")
 		assert.Error(t, err)
 	})
+
+	t.Run("Agent with system_prompt", func(t *testing.T) {
+		yamlContent := `
+providers:
+  - name: test-provider
+    type: OPENAI
+    model: gpt-4
+    token: test-token
+
+servers:
+  - name: test-server
+    type: stdio
+    command: "node server.js"
+
+agents:
+  - name: test-agent
+    provider: test-provider
+    system_prompt: |
+      You are an autonomous agent.
+      Execute tasks directly without asking for confirmation.
+    servers:
+      - name: test-server
+
+sessions:
+  - name: test-session
+    tests:
+      - name: test-1
+        prompt: "Test prompt"
+`
+		tmpfile := createTempYAML(t, yamlContent)
+
+		config, err := model.ParseTestConfig(tmpfile)
+		require.NoError(t, err)
+		assert.NotNil(t, config)
+
+		assert.Len(t, config.Agents, 1)
+		assert.Equal(t, "test-agent", config.Agents[0].Name)
+		assert.Contains(t, config.Agents[0].SystemPrompt, "autonomous agent")
+		assert.Contains(t, config.Agents[0].SystemPrompt, "without asking for confirmation")
+	})
+
+	t.Run("Agent without system_prompt", func(t *testing.T) {
+		yamlContent := `
+providers:
+  - name: test-provider
+    type: OPENAI
+    model: gpt-4
+    token: test-token
+
+servers:
+  - name: test-server
+    type: stdio
+    command: "node server.js"
+
+agents:
+  - name: test-agent
+    provider: test-provider
+    servers:
+      - name: test-server
+
+sessions:
+  - name: test-session
+    tests:
+      - name: test-1
+        prompt: "Test prompt"
+`
+		tmpfile := createTempYAML(t, yamlContent)
+
+		config, err := model.ParseTestConfig(tmpfile)
+		require.NoError(t, err)
+		assert.NotNil(t, config)
+
+		assert.Len(t, config.Agents, 1)
+		assert.Empty(t, config.Agents[0].SystemPrompt)
+	})
 }
 
 func TestParseTestConfigFromString(t *testing.T) {
@@ -1488,6 +1563,22 @@ func TestRenderTemplate(t *testing.T) {
 			input:    "{{unclosed",
 			context:  map[string]string{},
 			expected: "{{unclosed",
+		},
+		{
+			name:  "System prompt with agent context variables",
+			input: "You are {{AGENT_NAME}} running on {{PROVIDER_NAME}} in session {{SESSION_NAME}}.",
+			context: map[string]string{
+				"AGENT_NAME":    "test-agent",
+				"PROVIDER_NAME": "azure-openai",
+				"SESSION_NAME":  "test-session",
+			},
+			expected: "You are test-agent running on azure-openai in session test-session.",
+		},
+		{
+			name:     "System prompt with missing variable",
+			input:    "Agent: {{AGENT_NAME}}, Provider: {{MISSING_VAR}}",
+			context:  map[string]string{"AGENT_NAME": "my-agent"},
+			expected: "Agent: my-agent, Provider: ",
 		},
 	}
 
