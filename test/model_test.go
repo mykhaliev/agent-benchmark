@@ -70,81 +70,6 @@ sessions:
 		_, err := model.ParseTestConfig("/non/existent/file.yaml")
 		assert.Error(t, err)
 	})
-
-	t.Run("Agent with system_prompt", func(t *testing.T) {
-		yamlContent := `
-providers:
-  - name: test-provider
-    type: OPENAI
-    model: gpt-4
-    token: test-token
-
-servers:
-  - name: test-server
-    type: stdio
-    command: "node server.js"
-
-agents:
-  - name: test-agent
-    provider: test-provider
-    system_prompt: |
-      You are an autonomous agent.
-      Execute tasks directly without asking for confirmation.
-    servers:
-      - name: test-server
-
-sessions:
-  - name: test-session
-    tests:
-      - name: test-1
-        prompt: "Test prompt"
-`
-		tmpfile := createTempYAML(t, yamlContent)
-
-		config, err := model.ParseTestConfig(tmpfile)
-		require.NoError(t, err)
-		assert.NotNil(t, config)
-
-		assert.Len(t, config.Agents, 1)
-		assert.Equal(t, "test-agent", config.Agents[0].Name)
-		assert.Contains(t, config.Agents[0].SystemPrompt, "autonomous agent")
-		assert.Contains(t, config.Agents[0].SystemPrompt, "without asking for confirmation")
-	})
-
-	t.Run("Agent without system_prompt", func(t *testing.T) {
-		yamlContent := `
-providers:
-  - name: test-provider
-    type: OPENAI
-    model: gpt-4
-    token: test-token
-
-servers:
-  - name: test-server
-    type: stdio
-    command: "node server.js"
-
-agents:
-  - name: test-agent
-    provider: test-provider
-    servers:
-      - name: test-server
-
-sessions:
-  - name: test-session
-    tests:
-      - name: test-1
-        prompt: "Test prompt"
-`
-		tmpfile := createTempYAML(t, yamlContent)
-
-		config, err := model.ParseTestConfig(tmpfile)
-		require.NoError(t, err)
-		assert.NotNil(t, config)
-
-		assert.Len(t, config.Agents, 1)
-		assert.Empty(t, config.Agents[0].SystemPrompt)
-	})
 }
 
 func TestParseTestConfigFromString(t *testing.T) {
@@ -164,6 +89,183 @@ providers:
 		_, err := model.ParseTestConfigFromString("invalid: yaml: :")
 		assert.Error(t, err)
 	})
+}
+
+func TestParseAgentClarificationDetection(t *testing.T) {
+	tests := []struct {
+		name                    string
+		yaml                    string
+		expectedEnabled         bool
+		expectedLevel           string
+		expectedUseBuiltin      *bool
+		expectedCustomPatterns  []string
+	}{
+		{
+			name: "clarification detection enabled with warning level",
+			yaml: `
+agents:
+  - name: test-agent
+    provider: test-provider
+    clarification_detection:
+      enabled: true
+      level: warning
+`,
+			expectedEnabled:        true,
+			expectedLevel:          "warning",
+			expectedUseBuiltin:     nil,
+			expectedCustomPatterns: nil,
+		},
+		{
+			name: "clarification detection enabled with error level",
+			yaml: `
+agents:
+  - name: test-agent
+    provider: test-provider
+    clarification_detection:
+      enabled: true
+      level: error
+`,
+			expectedEnabled:        true,
+			expectedLevel:          "error",
+			expectedUseBuiltin:     nil,
+			expectedCustomPatterns: nil,
+		},
+		{
+			name: "clarification detection enabled with info level",
+			yaml: `
+agents:
+  - name: test-agent
+    provider: test-provider
+    clarification_detection:
+      enabled: true
+      level: info
+`,
+			expectedEnabled:        true,
+			expectedLevel:          "info",
+			expectedUseBuiltin:     nil,
+			expectedCustomPatterns: nil,
+		},
+		{
+			name: "clarification detection disabled",
+			yaml: `
+agents:
+  - name: test-agent
+    provider: test-provider
+    clarification_detection:
+      enabled: false
+`,
+			expectedEnabled:        false,
+			expectedLevel:          "",
+			expectedUseBuiltin:     nil,
+			expectedCustomPatterns: nil,
+		},
+		{
+			name: "clarification detection not specified (defaults)",
+			yaml: `
+agents:
+  - name: test-agent
+    provider: test-provider
+`,
+			expectedEnabled:        false,
+			expectedLevel:          "",
+			expectedUseBuiltin:     nil,
+			expectedCustomPatterns: nil,
+		},
+		{
+			name: "clarification detection enabled without level (uses default)",
+			yaml: `
+agents:
+  - name: test-agent
+    provider: test-provider
+    clarification_detection:
+      enabled: true
+`,
+			expectedEnabled:        true,
+			expectedLevel:          "",
+			expectedUseBuiltin:     nil,
+			expectedCustomPatterns: nil,
+		},
+		{
+			name: "clarification detection with custom patterns",
+			yaml: `
+agents:
+  - name: test-agent
+    provider: test-provider
+    clarification_detection:
+      enabled: true
+      level: warning
+      custom_patterns:
+        - "(?i)¿te gustaría"
+        - "(?i)möchten sie"
+`,
+			expectedEnabled:        true,
+			expectedLevel:          "warning",
+			expectedUseBuiltin:     nil,
+			expectedCustomPatterns: []string{"(?i)¿te gustaría", "(?i)möchten sie"},
+		},
+		{
+			name: "clarification detection with use_builtin_patterns false",
+			yaml: `
+agents:
+  - name: test-agent
+    provider: test-provider
+    clarification_detection:
+      enabled: true
+      use_builtin_patterns: false
+      custom_patterns:
+        - "(?i)custom pattern"
+`,
+			expectedEnabled:        true,
+			expectedLevel:          "",
+			expectedUseBuiltin:     boolPtr(false),
+			expectedCustomPatterns: []string{"(?i)custom pattern"},
+		},
+		{
+			name: "clarification detection with use_builtin_patterns true explicitly",
+			yaml: `
+agents:
+  - name: test-agent
+    provider: test-provider
+    clarification_detection:
+      enabled: true
+      use_builtin_patterns: true
+`,
+			expectedEnabled:        true,
+			expectedLevel:          "",
+			expectedUseBuiltin:     boolPtr(true),
+			expectedCustomPatterns: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			config, err := model.ParseTestConfigFromString(tt.yaml)
+			require.NoError(t, err)
+			require.Len(t, config.Agents, 1)
+
+			agent := config.Agents[0]
+			assert.Equal(t, tt.expectedEnabled, agent.ClarificationDetection.Enabled,
+				"ClarificationDetection.Enabled mismatch")
+			assert.Equal(t, tt.expectedLevel, agent.ClarificationDetection.Level,
+				"ClarificationDetection.Level mismatch")
+			if tt.expectedUseBuiltin == nil {
+				assert.Nil(t, agent.ClarificationDetection.UseBuiltinPatterns,
+					"ClarificationDetection.UseBuiltinPatterns should be nil")
+			} else {
+				require.NotNil(t, agent.ClarificationDetection.UseBuiltinPatterns,
+					"ClarificationDetection.UseBuiltinPatterns should not be nil")
+				assert.Equal(t, *tt.expectedUseBuiltin, *agent.ClarificationDetection.UseBuiltinPatterns,
+					"ClarificationDetection.UseBuiltinPatterns mismatch")
+			}
+			assert.Equal(t, tt.expectedCustomPatterns, agent.ClarificationDetection.CustomPatterns,
+				"ClarificationDetection.CustomPatterns mismatch")
+		})
+	}
+}
+
+// boolPtr is a helper function to create a pointer to a bool
+func boolPtr(b bool) *bool {
+	return &b
 }
 
 // ============================================================================
@@ -1563,22 +1665,6 @@ func TestRenderTemplate(t *testing.T) {
 			input:    "{{unclosed",
 			context:  map[string]string{},
 			expected: "{{unclosed",
-		},
-		{
-			name:  "System prompt with agent context variables",
-			input: "You are {{AGENT_NAME}} running on {{PROVIDER_NAME}} in session {{SESSION_NAME}}.",
-			context: map[string]string{
-				"AGENT_NAME":    "test-agent",
-				"PROVIDER_NAME": "azure-openai",
-				"SESSION_NAME":  "test-session",
-			},
-			expected: "You are test-agent running on azure-openai in session test-session.",
-		},
-		{
-			name:     "System prompt with missing variable",
-			input:    "Agent: {{AGENT_NAME}}, Provider: {{MISSING_VAR}}",
-			context:  map[string]string{"AGENT_NAME": "my-agent"},
-			expected: "Agent: my-agent, Provider: ",
 		},
 	}
 

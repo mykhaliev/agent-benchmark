@@ -103,12 +103,21 @@ const (
 // AGENT CONFIGURATION
 // ============================================================================
 
+// ClarificationDetection configures how the agent handles LLM clarification requests.
+// When enabled, the agent detects when an LLM asks for confirmation instead of acting.
+type ClarificationDetection struct {
+	Enabled            bool     `yaml:"enabled"`                       // Enable clarification detection (default: false)
+	Level              string   `yaml:"level,omitempty"`               // Log level: "info", "warning", "error" (default: "warning")
+	UseBuiltinPatterns *bool    `yaml:"use_builtin_patterns,omitempty"` // Use built-in heuristics (default: true)
+	CustomPatterns     []string `yaml:"custom_patterns,omitempty"`      // Additional regex patterns
+}
+
 type Agent struct {
-	Name         string        `yaml:"name"`
-	Settings     Settings      `yaml:"settings"`
-	Servers      []AgentServer `yaml:"servers"`
-	Provider     string        `yaml:"provider"`
-	SystemPrompt string        `yaml:"system_prompt,omitempty"`
+	Name                   string                 `yaml:"name"`
+	Settings               Settings               `yaml:"settings"`
+	Servers                []AgentServer          `yaml:"servers"`
+	Provider               string                 `yaml:"provider"`
+	ClarificationDetection ClarificationDetection `yaml:"clarification_detection,omitempty"`
 }
 
 type AgentServer struct {
