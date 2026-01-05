@@ -490,6 +490,9 @@ agents:
         
   - name: coding-agent
     provider: claude-sonnet
+    system_prompt: |
+      You are an autonomous coding agent.
+      Execute tasks directly without asking for confirmation.
     servers:
       - name: filesystem-server  # No tool restrictions
 ```
@@ -499,6 +502,43 @@ agents:
 - `provider` - Reference to provider name
 - `servers` - List of MCP servers
 - `allowedTools` - Optional tool whitelist per server
+- `system_prompt` - Optional system message prepended to all prompts (see below)
+
+#### System Prompt
+
+The `system_prompt` field allows you to configure agent behavior by prepending a system message before test prompts. This is useful for:
+
+- Instructing the agent to act autonomously without asking for confirmation
+- Setting context about the agent's capabilities
+- Configuring response style or constraints
+
+**Template Variables:**
+
+System prompts support template substitution with the following variables:
+- `{{AGENT_NAME}}` - The name of the agent
+- `{{SESSION_NAME}}` - The name of the current session  
+- `{{PROVIDER_NAME}}` - The provider being used
+
+These variables make system prompts dynamic and context-aware, enabling you to:
+- **Reuse a single template** across multiple agents instead of duplicating prompts
+- **Enable agent self-identification** in responses when testing multiple configurations
+- **Provide session context** so the agent knows which test session it's executing
+- **Add provider awareness** for debugging and tracing which configuration produced which result
+
+**Example:**
+
+```yaml
+agents:
+  - name: autonomous-agent
+    provider: azure-openai
+    system_prompt: |
+      You are {{AGENT_NAME}} running on {{PROVIDER_NAME}}.
+      Execute tasks directly without asking for confirmation.
+      When given a task, use the available tools to complete it immediately.
+      Do not ask "Would you like me to..." or "Should I proceed...".
+    servers:
+      - name: my-server
+```
 
 ---
 
