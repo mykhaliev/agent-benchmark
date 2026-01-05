@@ -490,9 +490,6 @@ agents:
         
   - name: coding-agent
     provider: claude-sonnet
-    system_prompt: |
-      You are an autonomous coding agent.
-      Execute tasks directly without asking for confirmation.
     servers:
       - name: filesystem-server  # No tool restrictions
 ```
@@ -502,43 +499,6 @@ agents:
 - `provider` - Reference to provider name
 - `servers` - List of MCP servers
 - `allowedTools` - Optional tool whitelist per server
-- `system_prompt` - Optional system message prepended to all prompts (see below)
-
-#### System Prompt
-
-The `system_prompt` field allows you to configure agent behavior by prepending a system message before test prompts. This is useful for:
-
-- Instructing the agent to act autonomously without asking for confirmation
-- Setting context about the agent's capabilities
-- Configuring response style or constraints
-
-**Template Variables:**
-
-System prompts support template substitution with the following variables:
-- `{{AGENT_NAME}}` - The name of the agent
-- `{{SESSION_NAME}}` - The name of the current session  
-- `{{PROVIDER_NAME}}` - The provider being used
-
-These variables make system prompts dynamic and context-aware, enabling you to:
-- **Reuse a single template** across multiple agents instead of duplicating prompts
-- **Enable agent self-identification** in responses when testing multiple configurations
-- **Provide session context** so the agent knows which test session it's executing
-- **Add provider awareness** for debugging and tracing which configuration produced which result
-
-**Example:**
-
-```yaml
-agents:
-  - name: autonomous-agent
-    provider: azure-openai
-    system_prompt: |
-      You are {{AGENT_NAME}} running on {{PROVIDER_NAME}}.
-      Execute tasks directly without asking for confirmation.
-      When given a task, use the available tools to complete it immediately.
-      Do not ask "Would you like me to..." or "Should I proceed...".
-    servers:
-      - name: my-server
-```
 
 ---
 
@@ -1602,6 +1562,84 @@ Session Start
    - Max iterations reached
    - Context cancelled
    - Error occurred
+```
+
+### Clarification Request Detection
+
+The agent can detect when an LLM asks for clarification instead of taking action. This is a common issue where LLMs respond with questions like:
+
+- "Would you like me to..."
+- "Do you want me to..."
+- "Should I proceed..."
+- "Please confirm..."
+
+This feature is **disabled by default** and can be enabled per agent using the `clarification_detection` configuration.
+
+**Configuration:**
+
+```yaml
+agents:
+  - name: autonomous-agent
+    provider: my-provider
+    clarification_detection:
+      enabled: true              # Enable detection (default: false)
+      level: warning             # Log level: "info", "warning", or "error" (default: "warning")
+      use_builtin_patterns: true # Use builtin detection patterns (default: true)
+      custom_patterns:           # Additional regex patterns (optional)
+        - "(?i)¿te gustaría"     # Spanish clarification
+        - "(?i)möchten sie"      # German clarification
+    servers:
+      - name: my-server
+```
+
+**Configuration Options:**
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `enabled` | bool | `false` | Enable clarification detection |
+| `level` | string | `"warning"` | Log level: `info`, `warning`, or `error` |
+| `use_builtin_patterns` | bool | `true` | Use the 16 builtin English detection patterns |
+| `custom_patterns` | list | `[]` | Additional regex patterns for detection |
+
+**Log Levels:**
+
+| Level | Behavior |
+|-------|----------|
+| `info` | Logs detection at INFO level, does NOT record as error |
+| `warning` | Logs at WARN level and records in test errors (default) |
+| `error` | Logs at ERROR level and records in test errors |
+
+**Custom Patterns:**
+
+Custom patterns are **additive** by default - they are checked in addition to the builtin patterns. To use **only** custom patterns, set `use_builtin_patterns: false`:
+
+```yaml
+agents:
+  - name: multilingual-agent
+    provider: my-provider
+    clarification_detection:
+      enabled: true
+      use_builtin_patterns: false  # Disable builtin English patterns
+      custom_patterns:
+        - "(?i)¿desea que"         # Spanish: "Do you want me to"
+        - "(?i)möchten sie dass"   # German: "Would you like me to"
+        - "(?i)voulez-vous que"    # French: "Do you want me to"
+```
+
+**Tip:** Combine with `system_prompt` to instruct the LLM to act autonomously:
+
+```yaml
+agents:
+  - name: autonomous-agent
+    provider: my-provider
+    system_prompt: |
+      Execute tasks directly without asking for confirmation.
+      Do not ask "Would you like me to..." or "Should I proceed...".
+    clarification_detection:
+      enabled: true
+      level: error  # Treat clarification requests as errors
+    servers:
+      - name: my-server
 ```
 
 ## License

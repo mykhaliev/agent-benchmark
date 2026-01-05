@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -763,20 +764,17 @@ func runTests(
 		"agents", len(agents),
 		"sessions", len(testConfig.Sessions))
 
+	// Build a map of agent definitions for quick lookup
+	agentDefMap := make(map[string]model.Agent)
+	for _, a := range testConfig.Agents {
+		agentDefMap[a.Name] = a
+	}
+
 	for _, agentConfig := range agents {
 		ag, ok := agents[agentConfig.Name]
 		if !ok {
 			logger.Logger.Warn("Agent not found, skipping tests", "agent", agentConfig.Name)
 			continue
-		}
-
-		// Find the original agent config from testConfig.Agents to get system_prompt
-		var originalAgentConfig *model.Agent
-		for i := range testConfig.Agents {
-			if testConfig.Agents[i].Name == agentConfig.Name {
-				originalAgentConfig = &testConfig.Agents[i]
-				break
-			}
 		}
 
 		logger.Logger.Info("Starting tests for agent",
@@ -794,26 +792,9 @@ func runTests(
 
 			// Reload variables and reset message history for each session
 			templateCtx := CreateTemplateContext(testConfig.Variables)
-			// Add agent and session context for template substitution
-			templateCtx["AGENT_NAME"] = agentConfig.Name
-			templateCtx["SESSION_NAME"] = session.Name
-			templateCtx["PROVIDER_NAME"] = ag.Provider
 
 			// Initialize fresh message history for this session
 			msgs := make([]llms.MessageContent, 0)
-
-			// Add system prompt if configured for this agent
-			if originalAgentConfig != nil && originalAgentConfig.SystemPrompt != "" {
-				systemPrompt := model.RenderTemplate(originalAgentConfig.SystemPrompt, templateCtx)
-				msgs = append(msgs, llms.MessageContent{
-					Role: llms.ChatMessageTypeSystem,
-					Parts: []llms.ContentPart{
-						llms.TextContent{Text: systemPrompt},
-					},
-				})
-				logger.Logger.Debug("System prompt added", "length", len(systemPrompt))
-			}
-
 			sessionTools := allAgentTools // Don't mutate original
 			if session.AllowedTools != nil {
 				sessionTools = make([]llms.Tool, 0)
@@ -871,13 +852,29 @@ func runTests(
 					},
 				})
 
+				// Get agent definition for config
+				agentDef := agentDefMap[agentConfig.Name]
+
+				// Compile custom clarification patterns
+				customPatterns := CompileClarificationPatterns(agentDef.ClarificationDetection.CustomPatterns)
+
+				// Determine if builtin patterns should be used (default: true)
+				useBuiltinPatterns := true
+				if agentDef.ClarificationDetection.UseBuiltinPatterns != nil {
+					useBuiltinPatterns = *agentDef.ClarificationDetection.UseBuiltinPatterns
+				}
+
 				// Execute test
 				startTime := time.Now()
 				executionResult := ag.GenerateContentWithConfig(ctx, &msgs, agent.AgentConfig{
-					MaxIterations:        maxIterations,
-					ToolTimeout:          toolTimeout,
-					AddNotFinalResponses: true,
-					Verbose:              testConfig.Settings.Verbose,
+					MaxIterations:                   maxIterations,
+					ToolTimeout:                     toolTimeout,
+					AddNotFinalResponses:            true,
+					Verbose:                         testConfig.Settings.Verbose,
+					ClarificationDetectionEnabled:   agentDef.ClarificationDetection.Enabled,
+					ClarificationDetectionLevel:     agent.ClarificationLevel(agentDef.ClarificationDetection.Level),
+					ClarificationUseBuiltinPatterns: useBuiltinPatterns,
+					ClarificationCustomPatterns:     customPatterns,
 				}, testTools)
 				executionResult.TestName = test.Name
 				duration := time.Since(startTime)
@@ -1162,4 +1159,30 @@ func GetServerNames(servers []model.AgentServer) []string {
 		names[i] = s.Name
 	}
 	return names
+}
+
+// CompileClarificationPatterns compiles a list of regex pattern strings into regexp.Regexp objects.
+// Invalid patterns are logged and skipped.
+func CompileClarificationPatterns(patterns []string) []*regexp.Regexp {
+	if len(patterns) == 0 {
+		return nil
+	}
+
+	compiled := make([]*regexp.Regexp, 0, len(patterns))
+	for _, pattern := range patterns {
+		re, err := regexp.Compile(pattern)
+		if err != nil {
+			logger.Logger.Error("Invalid clarification detection pattern",
+				"pattern", pattern,
+				"error", err)
+			continue
+		}
+		compiled = append(compiled, re)
+	}
+
+	if len(compiled) > 0 {
+		logger.Logger.Debug("Compiled custom clarification patterns", "count", len(compiled))
+	}
+
+	return compiled
 }
