@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -35,11 +36,24 @@ type MCPAgent struct {
 	AvailableTools []string              `json:"-"`
 }
 
+// ClarificationLevel defines the severity level for clarification detection logging
+type ClarificationLevel string
+
+const (
+	ClarificationLevelInfo    ClarificationLevel = "info"
+	ClarificationLevelWarning ClarificationLevel = "warning"
+	ClarificationLevelError   ClarificationLevel = "error"
+)
+
 type AgentConfig struct {
-	MaxIterations        int
-	AddNotFinalResponses bool
-	Verbose              bool
-	ToolTimeout          time.Duration
+	MaxIterations                      int
+	AddNotFinalResponses               bool
+	Verbose                            bool
+	ToolTimeout                        time.Duration
+	ClarificationDetectionEnabled      bool
+	ClarificationDetectionLevel        ClarificationLevel
+	ClarificationUseBuiltinPatterns    bool
+	ClarificationCustomPatterns        []*regexp.Regexp
 }
 
 func NewMCPAgent(
@@ -297,6 +311,10 @@ func (m *MCPAgent) GenerateContentWithConfig(
 		tokens += GetTokenCount(resp)
 		if len(toolCalls) == 0 {
 			response += assistantText
+			// Check if LLM is asking for clarification instead of acting
+			if config.ClarificationDetectionEnabled && IsClarificationRequest(assistantText, config.ClarificationUseBuiltinPatterns, config.ClarificationCustomPatterns) {
+				logClarificationRequest(config.ClarificationDetectionLevel, iteration, assistantText, &result)
+			}
 			if config.Verbose {
 				logger.Logger.Debug("LLM finished conversation:",
 					"reason", resp.Choices[0].StopReason,
@@ -901,5 +919,77 @@ func extractInt(v any) int {
 		return 0
 	default:
 		return 0
+	}
+}
+
+// BuiltinClarificationPatterns contains the default patterns for detecting clarification requests.
+var BuiltinClarificationPatterns = []string{
+	"would you like me to",
+	"do you want me to",
+	"should i proceed",
+	"shall i proceed",
+	"shall i continue",
+	"would you prefer",
+	"do you prefer",
+	"please confirm",
+	"please clarify",
+	"can you confirm",
+	"can you clarify",
+	"let me know if",
+	"is that correct",
+	"is this correct",
+	"would you like to",
+	"do you want to proceed",
+}
+
+// IsClarificationRequest detects if the LLM is asking for clarification instead of acting.
+// This happens when the LLM returns text with questions like "Would you like me to..." or
+// "Do you want me to..." instead of calling tools to complete the task.
+// The useBuiltinPatterns parameter controls whether built-in heuristics are applied.
+// The customPatterns parameter allows additional regex patterns to be matched.
+func IsClarificationRequest(text string, useBuiltinPatterns bool, customPatterns []*regexp.Regexp) bool {
+	lowerText := strings.ToLower(text)
+
+	// Check built-in patterns if enabled
+	if useBuiltinPatterns {
+		for _, pattern := range BuiltinClarificationPatterns {
+			if strings.Contains(lowerText, pattern) {
+				return true
+			}
+		}
+	}
+
+	// Check custom regex patterns
+	for _, pattern := range customPatterns {
+		if pattern != nil && pattern.MatchString(text) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// logClarificationRequest logs the clarification request at the configured level
+// and optionally adds it to the result errors based on the level.
+func logClarificationRequest(level ClarificationLevel, iteration int, text string, result *model.ExecutionResult) {
+	preview := TruncateString(text, 200)
+	msg := fmt.Sprintf("LLM asked for clarification instead of acting (iteration %d): %s", iteration, preview)
+
+	switch level {
+	case ClarificationLevelInfo:
+		logger.Logger.Info("LLM asked for clarification instead of acting",
+			"iteration", iteration,
+			"response_preview", preview)
+		// Info level does not add to errors
+	case ClarificationLevelError:
+		logger.Logger.Error("LLM asked for clarification instead of acting",
+			"iteration", iteration,
+			"response_preview", preview)
+		result.Errors = append(result.Errors, msg)
+	default: // warning is the default
+		logger.Logger.Warn("LLM asked for clarification instead of acting",
+			"iteration", iteration,
+			"response_preview", preview)
+		result.Errors = append(result.Errors, msg)
 	}
 }
