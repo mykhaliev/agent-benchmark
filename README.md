@@ -417,6 +417,38 @@ az role assignment create \
 
 For more information, see [Azure Identity authentication](https://learn.microsoft.com/en-us/azure/developer/go/sdk/authentication/credential-chains) and [Azure OpenAI RBAC roles](https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/role-based-access-control).
 
+#### Rate Limiting
+
+Providers can be configured with rate limits to avoid exceeding API quotas and handle 429 (Too Many Requests) errors gracefully:
+
+```yaml
+providers:
+  - name: azure-gpt
+    type: AZURE
+    token: {{AZURE_API_KEY}}
+    model: gpt-4
+    baseUrl: https://your-resource.openai.azure.com
+    version: 2024-02-15-preview
+    rate_limits:
+      tpm: 30000               # Tokens per minute limit
+      rpm: 60                  # Requests per minute limit
+      max_rate_limit_retries: 3 # Max retries on 429 errors (default: 1)
+```
+
+**Rate Limit Configuration Options:**
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `tpm` | Maximum tokens per minute | No limit |
+| `rpm` | Maximum requests per minute | No limit |
+| `max_rate_limit_retries` | Number of retry attempts when receiving 429 errors | 1 |
+
+**Behavior:**
+- When rate limits are configured, the framework uses a token bucket algorithm to proactively limit request rates
+- If a 429 error is received, the framework will wait and retry up to `max_rate_limit_retries` times
+- Set `max_rate_limit_retries: 0` to disable retries (fail immediately on 429)
+- Rate limiting is applied per-provider, allowing different limits for different API endpoints
+
 ---
 
 ### Servers
@@ -488,6 +520,10 @@ Define agents that combine providers with MCP servers:
 agents:
   - name: research-agent
     provider: gemini-flash
+    system_prompt: |
+      You are an autonomous research agent.
+      Execute tasks directly without asking for clarification.
+      Use available tools to complete the requested tasks.
     servers:
       - name: filesystem-server
         allowedTools:  # Optional: restrict tool access
@@ -504,8 +540,27 @@ agents:
 **Agent Configuration:**
 - `name` - Unique agent identifier
 - `provider` - Reference to provider name
+- `system_prompt` - Optional system prompt prepended to all conversations (supports templates)
 - `servers` - List of MCP servers
 - `allowedTools` - Optional tool whitelist per server
+
+**System Prompt Templates:**
+
+The `system_prompt` field supports template variables for dynamic context:
+- `{{AGENT_NAME}}` - Current agent name
+- `{{SESSION_NAME}}` - Current session name  
+- `{{PROVIDER_NAME}}` - Provider name being used
+
+Example:
+```yaml
+agents:
+  - name: test-agent
+    provider: gemini-flash
+    system_prompt: |
+      You are {{AGENT_NAME}} using {{PROVIDER_NAME}}.
+      Currently running session: {{SESSION_NAME}}.
+      Execute all tasks autonomously.
+```
 
 ---
 
