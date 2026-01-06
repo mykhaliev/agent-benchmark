@@ -700,11 +700,14 @@ func (m *MCPAgent) ExecuteToolWithTimeout(
 		}
 	}
 
+	// Measure actual tool execution time
+	execStart := time.Now()
 	toolRes, toolErr := m.ExecuteTool(
 		toolCtx,
 		suggestedTool.FunctionCall.Name,
 		suggestedTool.FunctionCall.Arguments,
 	)
+	toolCall.DurationMs = time.Since(execStart).Milliseconds()
 
 	if cancel != nil {
 		cancel()
@@ -729,7 +732,7 @@ func (m *MCPAgent) ExecuteToolWithTimeout(
 			"tool_name", suggestedTool.FunctionCall.Name,
 			"error", toolErr)
 
-		return toolCall, errMsg, fmt.Errorf(errMsg)
+		return toolCall, errMsg, fmt.Errorf("%s", errMsg)
 	}
 
 	var resultData model.Result

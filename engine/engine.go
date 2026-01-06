@@ -18,6 +18,7 @@ import (
 	"github.com/mykhaliev/agent-benchmark/agent"
 	"github.com/mykhaliev/agent-benchmark/logger"
 	"github.com/mykhaliev/agent-benchmark/model"
+	"github.com/mykhaliev/agent-benchmark/report"
 	"github.com/mykhaliev/agent-benchmark/server"
 	"github.com/tmc/langchaingo/llms"
 	"github.com/tmc/langchaingo/llms/anthropic"
@@ -110,7 +111,7 @@ func Run(testPath *string, verbose *bool, suitePath *string, reportFileName *str
 
 		// Run tests
 		logger.Logger.Info("Starting test execution")
-		testResults := runTests(ctx, testConfig, agents, maxIterations, toolTimeout, testDelay)
+		testResults := runTests(ctx, testConfig, agents, maxIterations, toolTimeout, testDelay, *testPath, "")
 		results = append(results, testResults...)
 		if len(testResults) > 0 {
 			criteria = testResults[0].TestCriteria
@@ -218,7 +219,7 @@ func Run(testPath *string, verbose *bool, suitePath *string, reportFileName *str
 				"tests", totalTests)
 			// Run tests
 			logger.Logger.Info("Starting test execution")
-			testResults := runTests(ctx, testConfig, agents, maxIterations, toolTimeout, testDelay)
+			testResults := runTests(ctx, testConfig, agents, maxIterations, toolTimeout, testDelay, testFile, testSuiteConfig.Name)
 			results = append(results, testResults...)
 		}
 		criteria = testSuiteConfig.TestCriteria
@@ -748,6 +749,8 @@ func runTests(
 	maxIterations int,
 	toolTimeout time.Duration,
 	testDelay time.Duration,
+	sourceFile string, // Source test file (empty for single file runs)
+	suiteName string, // Suite name (empty for single file runs)
 ) []model.TestRun {
 	results := make([]model.TestRun, 0)
 
@@ -880,6 +883,9 @@ func runTests(
 					Verbose:              testConfig.Settings.Verbose,
 				}, testTools)
 				executionResult.TestName = test.Name
+				executionResult.SourceFile = sourceFile
+				executionResult.SuiteName = suiteName
+				executionResult.SessionName = session.Name
 				duration := time.Since(startTime)
 
 				logger.Logger.Info("Test execution completed",
@@ -971,20 +977,29 @@ func GenerateReports(results []model.TestRun, reportType, outputPath string) err
 	reporter.GenerateConsoleReport(results)
 	// Print summary
 	PrintTestSummary(results)
-	report := ""
+	reportContent := ""
 	switch reportType {
 	case "json":
-		report = reporter.GenerateJSONReport(results)
+		reportContent = reporter.GenerateJSONReport(results)
 	case "html":
-		report = reporter.GenerateHTMLReport(results)
+		// Use the new template-based HTML generator
+		gen, err := report.NewGenerator()
+		if err != nil {
+			return fmt.Errorf("failed to create report generator: %w", err)
+		}
+		htmlContent, err := gen.GenerateHTML(results)
+		if err != nil {
+			return fmt.Errorf("failed to generate HTML report: %w", err)
+		}
+		reportContent = htmlContent
 	case "md":
-		report = reporter.GenerateMarkdownReport(results)
+		reportContent = reporter.GenerateMarkdownReport(results)
 	default:
 		return fmt.Errorf("Unknown report type")
 	}
 
-	if report == "" {
-		return fmt.Errorf("generated HTML report is empty")
+	if reportContent == "" {
+		return fmt.Errorf("generated report is empty")
 	}
 
 	// Ensure output directory exists
@@ -996,7 +1011,7 @@ func GenerateReports(results []model.TestRun, reportType, outputPath string) err
 	}
 
 	// Write report to file
-	err := os.WriteFile(outputPath, []byte(report), logger.FilePermission)
+	err := os.WriteFile(outputPath, []byte(reportContent), logger.FilePermission)
 	if err != nil {
 		return fmt.Errorf("failed to write report file: %w", err)
 	}

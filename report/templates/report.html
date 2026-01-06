@@ -1,0 +1,753 @@
+{{/*
+    Main Report Template
+    
+    This template composes modular building blocks for the full report.
+    It adapts to both single-agent and multi-agent views using shared components.
+    
+    Template Definitions (20 total):
+    - summary-cards: Summary statistics grid
+    - test-overview: Single-agent multiple tests overview table
+    - comparison-matrix: Multi-agent test × agent results matrix
+    - agent-leaderboard: Agent ranking table with success rates
+    - file-summary: Source file grouping summary
+    - session-summary: Session grouping with diagrams
+    - test-results: Container for all test groups
+    - test-group: Single test with single or multi-agent view
+    - multi-agent-comparison: Horizontal agent comparison table
+    - tool-comparison: Side-by-side tool call comparison
+    - sequence-comparison: Side-by-side execution flow diagrams
+    - single-agent-detail: Full details for one agent run
+    - agent-assertions: Assertions list with pass/fail status
+    - agent-errors: Error messages display
+    - agent-sequence-diagram: Mermaid execution flow
+    - agent-tool-calls: Tool call timeline with parameters
+    - agent-messages: Conversation history
+    - agent-final-output: Final agent output
+    - fullscreen-overlay: Overlays for diagrams and details
+    - scripts: JavaScript for interactivity
+*/}}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Test Results - Agent Benchmark</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+{{.CSS}}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="report-header">
+            <h1>🧪 Agent Benchmark Report</h1>
+            <div class="report-meta">
+                <span>📦 Version: {{.Version}}</span>
+                <span>📅 Generated: {{.GeneratedAt}}</span>
+                {{if .ShowSuiteInfo}}
+                <span>📁 Suite: {{if .SuiteName}}{{.SuiteName}}{{else}}Test Suite{{end}}</span>
+                {{end}}
+                {{if .ShowFileSections}}
+                <span>📄 Files: {{len .FileGroups}}</span>
+                {{end}}
+            </div>
+        </header>
+        
+        <!-- Summary Cards -->
+        {{template "summary-cards" .}}
+
+        <!-- Test Overview (for single-agent with multiple tests) -->
+        {{if .ShowTestOverview}}
+        {{template "test-overview" .}}
+        {{end}}
+
+        <!-- Comparison Matrix (only for multi-agent runs) -->
+        {{if and .ShowAgentComparison (gt (len .Matrix.TestNames) 0)}}
+        {{template "comparison-matrix" .}}
+        {{end}}
+        
+        <!-- Agent Leaderboard (only for multi-agent runs) -->
+        {{if .ShowAgentComparison}}
+        {{template "agent-leaderboard" .}}
+        {{end}}
+
+        {{if .ShowFileSections}}
+        {{template "file-summary" .}}
+        {{end}}
+
+        {{if .ShowSessionSections}}
+        {{template "session-summary" .}}
+        {{end}}
+
+        <!-- Detailed Test Results -->
+        {{template "test-results" .}}
+    </div>
+
+    {{template "fullscreen-overlay"}}
+    {{template "scripts"}}
+</body>
+</html>
+
+{{/* ================ Summary Cards ================ */}}
+{{define "summary-cards"}}
+<div class="summary-grid">
+    <div class="summary-card total">
+        <div class="summary-value">{{.Summary.Total}}</div>
+        <div class="summary-label">Total Tests</div>
+    </div>
+    <div class="summary-card passed">
+        <div class="summary-value">{{.Summary.Passed}}</div>
+        <div class="summary-label">Passed</div>
+    </div>
+    <div class="summary-card failed">
+        <div class="summary-value">{{.Summary.Failed}}</div>
+        <div class="summary-label">Failed</div>
+    </div>
+    {{if gt .Summary.AgentCount 1}}
+    <div class="summary-card agents">
+        <div class="summary-value">{{.Summary.AgentCount}}</div>
+        <div class="summary-label">Agents</div>
+    </div>
+    {{end}}
+    <div class="summary-card rate">
+        <div class="summary-value">{{printf "%.0f%%" .Summary.PassRate}}</div>
+        <div class="summary-label">Pass Rate</div>
+    </div>
+    <div class="summary-card tokens">
+        <div class="summary-value">{{formatNumber .Summary.AvgTokensPassed}}</div>
+        <div class="summary-label">Avg Tokens ✓</div>
+    </div>
+    <div class="summary-card duration">
+        <div class="summary-value">{{printf "%.1fs" .Summary.AvgDuration}}</div>
+        <div class="summary-label">Avg Duration</div>
+    </div>
+</div>
+{{end}}
+
+{{/* ================ Test Overview (Single Agent, Multiple Tests) ================ */}}
+{{define "test-overview"}}
+<section class="section">
+    <div class="section-header">
+        <h2 class="section-title">📋 Test Overview</h2>
+    </div>
+    <div class="section-body">
+        <div class="matrix-container">
+            <table class="comparison-matrix test-overview-table">
+                <thead>
+                    <tr>
+                        <th>Test Name</th>
+                        <th>Status</th>
+                        <th>Duration</th>
+                        <th>Tokens</th>
+                        <th>Tools</th>
+                        <th>Assertions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{range .TestOverview}}
+                    <tr class="{{if .Passed}}row-passed{{else}}row-failed{{end}}">
+                        <td>{{.TestName}}</td>
+                        <td>
+                            {{if .Passed}}
+                            <span class="status-badge status-passed">✓ Passed</span>
+                            {{else}}
+                            <span class="status-badge status-failed">✗ Failed</span>
+                            {{end}}
+                        </td>
+                        <td>{{printf "%.1f" (divFloat .DurationMs 1000)}}s</td>
+                        <td>{{formatNumber .TokensUsed}}</td>
+                        <td>{{.ToolCalls}}</td>
+                        <td>{{.Assertions}}{{if gt .ErrorCount 0}} <span class="error-count">({{.ErrorCount}} errors)</span>{{end}}</td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+{{end}}
+
+{{/* ================ Comparison Matrix ================ */}}
+{{define "comparison-matrix"}}
+<section class="section">
+    <div class="section-header">
+        <h2 class="section-title">📊 Comparison Matrix</h2>
+    </div>
+    <div class="section-body">
+        <div class="matrix-container">
+            <table class="comparison-matrix">
+                <thead>
+                    <tr>
+                        <th>Test</th>
+                        {{range .Matrix.AgentNames}}
+                        <th>{{.}}</th>
+                        {{end}}
+                    </tr>
+                </thead>
+                <tbody>
+                    {{range $testName := .Matrix.TestNames}}
+                    <tr>
+                        <td>{{$testName}}</td>
+                        {{range $agentName := $.Matrix.AgentNames}}
+                        {{$cell := getMatrixCell $.Matrix.Cells $testName $agentName}}
+                        <td>
+                            {{if $cell.HasResult}}
+                            <div class="matrix-cell">
+                                <span class="matrix-status">{{if $cell.Passed}}✅{{else}}❌{{end}}</span>
+                                <span class="matrix-duration">{{printf "%.0fms" $cell.DurationMs}}</span>
+                                <span class="matrix-tokens">{{formatNumber $cell.Tokens}} tok</span>
+                            </div>
+                            {{else}}
+                            <span class="text-muted">—</span>
+                            {{end}}
+                        </td>
+                        {{end}}
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+{{end}}
+
+{{/* ================ Agent Leaderboard ================ */}}
+{{define "agent-leaderboard"}}
+<section class="section">
+    <div class="section-header">
+        <h2 class="section-title">🏆 Agent Leaderboard</h2>
+    </div>
+    <div class="section-body">
+        <table class="leaderboard">
+            <thead>
+                <tr>
+                    <th class="rank-col">Rank</th>
+                    <th>Agent</th>
+                    <th>Success Rate</th>
+                    <th>Results</th>
+                    <th>Efficiency</th>
+                    <th>Avg Time</th>
+                </tr>
+            </thead>
+            <tbody>
+            {{range $agent := .AgentStats}}
+                <tr class="{{.RowClass}}">
+                    <td class="rank-col">
+                        {{if .IsDisqualified}}<span class="rank-badge rank-dq">DQ</span>
+                        {{else if eq .Rank 1}}<span class="rank-badge rank-1">🥇</span>
+                        {{else if eq .Rank 2}}<span class="rank-badge rank-2">🥈</span>
+                        {{else if eq .Rank 3}}<span class="rank-badge rank-3">🥉</span>
+                        {{else}}<span class="rank-badge rank-other">{{.Rank}}</span>
+                        {{end}}
+                    </td>
+                    <td>
+                        <div class="agent-info">
+                            <span class="agent-name">{{.AgentName}}</span>
+                            <span class="provider-badge provider-{{.Provider | printf "%s" }}">{{.Provider}}</span>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="success-rate-cell">
+                            <span class="success-bar"><span class="success-bar-fill {{.SuccessRateClass}}" style="width: {{printf "%.0f" .SuccessRate}}%"></span></span>
+                            <span class="stat-value">{{printf "%.0f%%" .SuccessRate}}</span>
+                        </div>
+                    </td>
+                    <td class="results-cell">
+                        <span class="result-pass">✓{{.PassedTests}}</span>
+                        <span class="result-fail">✗{{.FailedTests}}</span>
+                        {{if gt .ErrorCount 0}}<span class="result-error">⚠{{.ErrorCount}}</span>{{end}}
+                    </td>
+                    <td class="stat-value {{if .IsDisqualified}}text-muted{{end}}">{{.EfficiencyStr}}</td>
+                    <td class="stat-value">{{printf "%.2fs" .AvgDuration}}</td>
+                </tr>
+            {{end}}
+            </tbody>
+        </table>
+        <div class="leaderboard-legend">
+            <span class="legend-item"><span class="result-pass">✓</span> Passed</span>
+            <span class="legend-item"><span class="result-fail">✗</span> Failed</span>
+            <span class="legend-item"><span class="result-error">⚠</span> Errors</span>
+            <span class="legend-item"><span class="rank-badge rank-dq">DQ</span> Disqualified (0% success)</span>
+        </div>
+    </div>
+</section>
+{{end}}
+
+{{/* ================ File Summary ================ */}}
+{{define "file-summary"}}
+<section class="section">
+    <div class="section-header">
+        <h2 class="section-title">📁 Test Files Summary</h2>
+    </div>
+    <div class="section-body">
+        <div class="file-summary-list">
+            {{range .FileGroups}}
+            <div class="file-summary-item">
+                <div class="file-summary-header">
+                    <span class="file-name">📄 {{.FileName}}</span>
+                    <span class="success-bar"><span class="success-bar-fill {{.SuccessRateClass}}" style="width: {{printf "%.0f" .SuccessRate}}%"></span></span>
+                    <span class="file-stats">
+                        <span class="text-pass">{{.PassedTests}} passed</span> / 
+                        <span class="text-fail">{{.FailedTests}} failed</span>
+                        ({{printf "%.0f%%" .SuccessRate}})
+                    </span>
+                </div>
+            </div>
+            {{end}}
+        </div>
+    </div>
+</section>
+{{end}}
+
+{{/* ================ Session Summary ================ */}}
+{{define "session-summary"}}
+<section class="section">
+    <div class="section-header">
+        <h2 class="section-title">🔄 Sessions Summary</h2>
+    </div>
+    <div class="section-body">
+        <div class="file-summary-list">
+            {{range .SessionGroups}}
+            <div class="file-summary-item">
+                <div class="file-summary-header">
+                    <span class="file-name">🔄 {{.SessionName}}</span>
+                    <span class="success-bar"><span class="success-bar-fill {{.SuccessRateClass}}" style="width: {{printf "%.0f" .SuccessRate}}%"></span></span>
+                    <span class="file-stats">
+                        <span class="text-pass">{{.PassedTests}} passed</span> / 
+                        <span class="text-fail">{{.FailedTests}} failed</span>
+                        ({{printf "%.0f%%" .SuccessRate}})
+                    </span>
+                </div>
+                {{if .SequenceDiagram}}
+                <details class="session-diagram-details">
+                    <summary class="session-diagram-summary">📊 View Session Flow</summary>
+                    <div class="mermaid">{{.SequenceDiagram}}</div>
+                </details>
+                {{end}}
+            </div>
+            {{end}}
+        </div>
+    </div>
+</section>
+{{end}}
+
+{{/* ================ Test Results ================ */}}
+{{define "test-results"}}
+<section class="section">
+    <div class="section-header">
+        <h2 class="section-title">📋 Detailed Test Results</h2>
+    </div>
+    <div class="section-body">
+        <div class="test-list">
+            {{range .TestGroups}}
+            <div class="test-group-section">
+                {{template "test-group" .}}
+            </div>
+            {{end}}
+        </div>
+    </div>
+</section>
+{{end}}
+
+{{/* ================ Test Group (single or multi-agent) ================ */}}
+{{define "test-group"}}
+<div class="test-group-header">
+    <h3 class="test-group-title">{{.TestName}}</h3>
+    {{if gt (len .Runs) 0}}
+    {{with index .Runs 0}}
+    {{if .Prompt}}
+    <div class="test-group-prompt">
+        <span class="prompt-label">📝 Prompt:</span>
+        <span class="prompt-text">{{.Prompt}}</span>
+    </div>
+    {{end}}
+    {{end}}
+    {{end}}
+</div>
+
+{{if gt (len .Runs) 1}}
+{{/* Multi-agent view: comparison table + expandable details */}}
+{{template "multi-agent-comparison" .}}
+{{else}}
+{{/* Single-agent view: detailed layout */}}
+{{range .Runs}}
+{{template "single-agent-detail" .}}
+{{end}}
+{{end}}
+{{end}}
+
+{{/* ================ Multi-Agent Comparison ================ */}}
+{{define "multi-agent-comparison"}}
+<!-- Multi-agent comparison table (horizontal layout: agents as columns) -->
+<div class="comparison-table-wrapper">
+    <table class="agent-comparison-table">
+        <thead>
+            <tr>
+                <th class="attribute-col">Metric</th>
+                {{range $idx, $run := .Runs}}
+                <th class="agent-col {{if $run.Passed}}passed{{else}}failed{{end}}">
+                    <span class="agent-status">{{if $run.Passed}}✅{{else}}❌{{end}}</span>
+                    <span class="agent-name">{{$run.AgentName}}</span>
+                    <span class="provider-badge provider-{{$run.Provider}}">{{$run.Provider}}</span>
+                </th>
+                {{end}}
+            </tr>
+        </thead>
+        <tbody>
+            <tr class="metric-row">
+                <td class="metric-label">⏱️ Duration</td>
+                {{range .Runs}}
+                <td class="metric-value">{{printf "%.2fs" .DurationSeconds}}</td>
+                {{end}}
+            </tr>
+            <tr class="metric-row">
+                <td class="metric-label">🎯 Tokens</td>
+                {{range .Runs}}
+                <td class="metric-value">{{formatNumber .TokensUsed}}</td>
+                {{end}}
+            </tr>
+            <tr class="metric-row">
+                <td class="metric-label">🔧 Tool Calls</td>
+                {{range .Runs}}
+                <td class="metric-value">{{len .ToolCalls}}</td>
+                {{end}}
+            </tr>
+            <tr class="metric-row details-row">
+                <td class="metric-label">📋 Details</td>
+                {{range $idx, $run := .Runs}}
+                <td class="metric-value">
+                    <button class="details-toggle-btn" onclick="openAgentDetails({{$idx}}, this)" title="Click to view full details">
+                        🔍 View
+                    </button>
+                </td>
+                {{end}}
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- Side-by-side comparisons -->
+{{template "tool-comparison" .}}
+{{template "sequence-comparison" .}}
+
+<!-- Hidden detail panels (content source for overlay) -->
+<div class="agent-details-source" style="display: none;">
+    {{range $idx, $run := .Runs}}
+    <div class="agent-detail-panel" data-agent-idx="{{$idx}}" data-agent-name="{{$run.AgentName}}">
+        {{template "single-agent-detail" $run}}
+    </div>
+    {{end}}
+</div>
+{{end}}
+
+{{/* ================ Tool Calls Comparison (expandable) ================ */}}
+{{define "tool-comparison"}}
+<details class="tool-comparison-section">
+    <summary class="tool-comparison-header">🔧 Compare Tool Calls</summary>
+    <div class="tool-comparison-content">
+        <div class="tool-lists-grid">
+            {{range .Runs}}
+            <div class="agent-tool-list">
+                <div class="agent-tool-header">{{.AgentName}}</div>
+                <ol class="tool-sequence">
+                    {{range .ToolCalls}}
+                    <li class="tool-item">{{.Name}}</li>
+                    {{end}}
+                    {{if not .ToolCalls}}
+                    <li class="no-tools">No tool calls</li>
+                    {{end}}
+                </ol>
+            </div>
+            {{end}}
+        </div>
+    </div>
+</details>
+{{end}}
+
+{{/* ================ Sequence Diagram Comparison (expandable) ================ */}}
+{{define "sequence-comparison"}}
+<details class="sequence-comparison-section">
+    <summary class="sequence-comparison-header">📊 Execution Flow</summary>
+    <div class="sequence-comparison-content">
+        <div class="sequence-grid">
+            {{range .Runs}}
+            {{if .SequenceDiagram}}
+            <div class="agent-sequence-box">
+                <div class="agent-sequence-header">{{.AgentName}}</div>
+                <div class="mermaid">{{.SequenceDiagram}}</div>
+            </div>
+            {{end}}
+            {{end}}
+        </div>
+    </div>
+</details>
+{{end}}
+
+{{/* ================ Single Agent Detail View ================ */}}
+{{define "single-agent-detail"}}
+<details class="test-item {{if .Passed}}passed{{else}}failed{{end}}" open>
+    <summary class="test-header">
+        <div class="test-info">
+            <span class="test-status-icon">{{if .Passed}}✅{{else}}❌{{end}}</span>
+            <span class="test-agent">{{.AgentName}}</span>
+            <span class="provider-badge">{{.Provider}}</span>
+        </div>
+        <div class="test-meta">
+            <span class="duration">{{printf "%.2fs" .DurationSeconds}}</span>
+            <span class="tokens">{{formatNumber .TokensUsed}} tokens</span>
+            <span class="expand-icon">▼</span>
+        </div>
+    </summary>
+    <div class="test-details">
+        {{template "agent-assertions" .}}
+        {{template "agent-errors" .}}
+        {{template "agent-sequence-diagram" .}}
+        {{template "agent-tool-calls" .}}
+        {{template "agent-messages" .}}
+        {{template "agent-final-output" .}}
+    </div>
+</details>
+{{end}}
+
+{{/* ================ Single Agent: Assertions ================ */}}
+{{define "agent-assertions"}}
+{{if .Assertions}}
+<div class="assertions-section">
+    <h4 class="subsection-title">Assertions</h4>
+    <div class="assertions-list">
+        {{range .Assertions}}
+        <div class="assertion-item {{if .Passed}}passed{{else}}failed{{end}}">
+            <span class="assertion-icon">{{if .Passed}}✓{{else}}✗{{end}}</span>
+            <div class="assertion-content">
+                <span class="assertion-type">{{.Type}}</span>
+                <span class="assertion-message">{{.Message}}</span>
+                {{if and (not .Passed) (hasDetails .Details)}}
+                <div class="assertion-details">
+                    <pre class="assertion-details-content">{{prettyJSON .Details}}</pre>
+                </div>
+                {{end}}
+            </div>
+        </div>
+        {{end}}
+    </div>
+</div>
+{{end}}
+{{end}}
+
+{{/* ================ Single Agent: Errors ================ */}}
+{{define "agent-errors"}}
+{{if .Errors}}
+<div class="errors-box">
+    <div class="errors-title">❌ Errors</div>
+    {{range .Errors}}
+    <div class="error-item">• {{.}}</div>
+    {{end}}
+</div>
+{{end}}
+{{end}}
+
+{{/* ================ Single Agent: Sequence Diagram ================ */}}
+{{define "agent-sequence-diagram"}}
+{{if .SequenceDiagram}}
+<div class="sequence-section">
+    <h4 class="subsection-title">Execution Flow</h4>
+    <div class="mermaid">
+{{.SequenceDiagram}}
+    </div>
+</div>
+{{end}}
+{{end}}
+
+{{/* ================ Single Agent: Tool Calls ================ */}}
+{{define "agent-tool-calls"}}
+{{if .ToolCalls}}
+<div class="toolcalls-section">
+    <h4 class="subsection-title">Tool Calls ({{len .ToolCalls}})</h4>
+    <div class="timeline">
+        {{range .ToolCalls}}
+        <div class="timeline-item tool-call">
+            <div class="timeline-header">
+                <span class="tool-name">🔧 {{.Name}}</span>
+                <span class="timeline-meta">
+                    {{if gt .DurationMs 0}}<span class="tool-duration">{{.DurationMs}}ms</span>{{end}}
+                    <span class="timeline-time">{{.Timestamp}}</span>
+                </span>
+            </div>
+            {{if .Parameters}}
+            <details class="tool-params-toggle">
+                <summary>Parameters</summary>
+                <pre class="tool-params">{{prettyJSON .Parameters}}</pre>
+            </details>
+            {{end}}
+            {{if .Result}}
+            <details class="tool-result-toggle">
+                <summary>Result</summary>
+                <pre class="tool-result-content">{{prettyJSON .Result}}</pre>
+            </details>
+            {{end}}
+        </div>
+        {{end}}
+    </div>
+</div>
+{{end}}
+{{end}}
+
+{{/* ================ Single Agent: Messages ================ */}}
+{{define "agent-messages"}}
+{{if .Messages}}
+<details class="messages-section">
+    <summary class="subsection-title">💬 Conversation ({{len .Messages}} messages)</summary>
+    <div class="conversation-timeline">
+        {{range .Messages}}
+        <div class="timeline-item {{.Role}}">
+            <div class="timeline-header">
+                <span class="timeline-role">{{.Role}}</span>
+                <span class="timeline-time">{{.Timestamp}}</span>
+            </div>
+            <div class="timeline-content">{{truncate .Content 1000}}</div>
+        </div>
+        {{end}}
+    </div>
+</details>
+{{end}}
+{{end}}
+
+{{/* ================ Single Agent: Final Output ================ */}}
+{{define "agent-final-output"}}
+{{if .FinalOutput}}
+<details class="final-output-section">
+    <summary class="subsection-title">📤 Final Output</summary>
+    <div class="final-output-content">{{.FinalOutput}}</div>
+</details>
+{{end}}
+{{end}}
+
+{{/* ================ Fullscreen Overlay ================ */}}
+{{define "fullscreen-overlay"}}
+<!-- Sequence Diagram Overlay -->
+<div class="sequence-fullscreen-overlay" id="sequenceOverlay" onclick="closeSequenceOverlay(event)">
+    <div class="sequence-fullscreen-content" onclick="event.stopPropagation()">
+        <div class="sequence-fullscreen-header">
+            <span id="sequenceOverlayTitle">Execution Flow</span>
+            <span class="sequence-fullscreen-close" onclick="closeSequenceOverlay(event)">✕</span>
+        </div>
+        <div id="sequenceOverlayDiagram"></div>
+    </div>
+</div>
+
+<!-- Agent Details Overlay -->
+<div class="details-fullscreen-overlay" id="detailsOverlay" onclick="closeDetailsOverlay(event)">
+    <div class="details-fullscreen-content" onclick="event.stopPropagation()">
+        <div class="details-fullscreen-header">
+            <span id="detailsOverlayTitle">Agent Details</span>
+            <span class="details-fullscreen-close" onclick="closeDetailsOverlay(event)">✕</span>
+        </div>
+        <div id="detailsOverlayContent" class="details-overlay-body"></div>
+    </div>
+</div>
+{{end}}
+
+{{/* ================ Scripts ================ */}}
+{{define "scripts"}}
+<script>
+    // Store original mermaid sources before rendering
+    document.querySelectorAll('.agent-sequence-box .mermaid').forEach(el => {
+        el.setAttribute('data-mermaid-source', el.textContent.trim());
+    });
+
+    mermaid.initialize({ 
+        startOnLoad: true,
+        theme: 'neutral',
+        securityLevel: 'loose',
+        sequence: {
+            diagramMarginX: 10,
+            diagramMarginY: 10,
+            actorMargin: 50,
+            width: 150,
+            height: 65,
+            boxMargin: 10,
+            boxTextMargin: 5,
+            noteMargin: 10,
+            messageMargin: 35
+        }
+    });
+
+    // Sequence diagram fullscreen functionality
+    document.querySelectorAll('.agent-sequence-box').forEach(box => {
+        box.addEventListener('click', async function() {
+            const agentName = this.querySelector('.agent-sequence-header')?.textContent || 'Execution Flow';
+            const mermaidEl = this.querySelector('.mermaid');
+            if (!mermaidEl) return;
+            
+            // Get the stored original source
+            const mermaidSrc = mermaidEl.getAttribute('data-mermaid-source');
+            if (!mermaidSrc) return;
+            
+            const overlay = document.getElementById('sequenceOverlay');
+            const diagramContainer = document.getElementById('sequenceOverlayDiagram');
+            const titleEl = document.getElementById('sequenceOverlayTitle');
+            
+            titleEl.textContent = agentName;
+            
+            // Create unique ID for this render
+            const uniqueId = 'fullscreen-diagram-' + Date.now();
+            
+            try {
+                // Render with mermaid API for larger, readable diagram
+                const { svg } = await mermaid.render(uniqueId, mermaidSrc);
+                diagramContainer.innerHTML = svg;
+                
+                // Scale up the SVG for readability
+                const svgEl = diagramContainer.querySelector('svg');
+                if (svgEl) {
+                    svgEl.style.width = '100%';
+                    svgEl.style.minWidth = '800px';
+                    svgEl.style.height = 'auto';
+                }
+            } catch (e) {
+                diagramContainer.innerHTML = '<p style="color: red;">Error rendering diagram: ' + e.message + '</p><pre>' + mermaidSrc + '</pre>';
+            }
+            
+            overlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        });
+    });
+
+    function closeSequenceOverlay(event) {
+        const overlay = document.getElementById('sequenceOverlay');
+        overlay.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+
+    // Open agent details in fullscreen overlay
+    function openAgentDetails(agentIdx, btn) {
+        const section = btn.closest('.test-group-section');
+        const panel = section.querySelector('.agent-detail-panel[data-agent-idx="' + agentIdx + '"]');
+        const agentName = panel.getAttribute('data-agent-name');
+        
+        const overlay = document.getElementById('detailsOverlay');
+        const titleEl = document.getElementById('detailsOverlayTitle');
+        const contentEl = document.getElementById('detailsOverlayContent');
+        
+        titleEl.textContent = agentName + ' - Details';
+        contentEl.innerHTML = panel.innerHTML;
+        
+        overlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeDetailsOverlay(event) {
+        const overlay = document.getElementById('detailsOverlay');
+        overlay.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+
+    // Close on Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeSequenceOverlay();
+            closeDetailsOverlay();
+        }
+    });
+</script>
+{{end}}

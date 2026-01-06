@@ -28,10 +28,10 @@ criteria:
   success_rate: 1 # 100%
 
 providers:
-  - name: azure-openai-gpt41
+  - name: azure-openai-gpt5
     type: AZURE
     auth_type: entra_id  # Uses DefaultAzureCredential - no API key needed
-    model: gpt-4.1
+    model: gpt-5-chat
     baseUrl: "{{AZURE_OPENAI_ENDPOINT}}"
     version: 2025-01-01-preview
 
@@ -49,10 +49,10 @@ servers:
     server_delay: 10s
 
 agents:
-  - name: gpt41-agent
+  - name: gpt5-agent
     servers:
       - name: windows-mcp
-    provider: azure-openai-gpt41
+    provider: azure-openai-gpt5
 
   - name: gpt4o-agent
     servers:
@@ -114,7 +114,7 @@ sessions:
             value: true
 
           # FLEXIBLE: Text input can use different tools depending on the LLM
-          # GPT-4.1 often uses keyboard_control, GPT-4o may use ui_automation
+          # GPT-5 often uses keyboard_control, GPT-4o may use ui_automation
           - anyOf:
               - type: tool_called
                 tool: keyboard_control
