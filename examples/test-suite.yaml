@@ -1,0 +1,44 @@
+# Test Suite Example
+# Demonstrates running multiple test files with suite-level reporting
+#
+# Prerequisites:
+# - Azure OpenAI resource with Entra ID authentication
+# - Azure CLI logged in (az login)
+# - AZURE_OPENAI_ENDPOINT environment variable set
+#
+# Run command:
+#   go run . -s examples/test-suite.yaml -reportType html,json
+
+name: "Windows MCP Test Suite"
+
+test_files:
+  - examples/windows-mcp-server-notepad.yaml   # Notepad automation test
+  - examples/windows-mcp-word-test.yaml     # Microsoft Word automation test
+
+providers:
+  - name: azure-openai-gpt4o
+    type: AZURE
+    auth_type: entra_id
+    model: gpt-4o
+    baseUrl: "{{AZURE_OPENAI_ENDPOINT}}"
+    version: 2025-01-01-preview
+
+servers:
+  - name: windows-mcp
+    type: stdio
+    command: ./examples/Sbroenne.WindowsMcp.exe
+    server_delay: 10s
+
+agents:
+  - name: gpt4o-agent
+    servers:
+      - name: windows-mcp
+    provider: azure-openai-gpt4o
+
+settings:
+  verbose: true
+  max_iterations: 10
+  test_delay: 5s
+
+criteria:
+  success_rate: "0.8"

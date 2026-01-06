@@ -197,6 +197,7 @@ agent-benchmark [options]
 Required (one of):
   -f <file>         Path to test configuration file (YAML)
   -s <file>         Path to suite configuration file (YAML)
+  -generate-report <file>  Generate HTML report from existing JSON results file
 
 Optional:
   -o <file>         Output report filename without extension (default: report)
@@ -217,13 +218,19 @@ Optional:
 ./agent-benchmark -f tests.yaml -verbose
 
 # Run test suite with JSON report
-./agent-benchmark -s suite.yaml -o results.json -reportType json
+./agent-benchmark -s suite.yaml -o results -reportType json
 
 # Run with custom log file
 ./agent-benchmark -f tests.yaml -l test-run.log
 
 # Generate Markdown report
-./agent-benchmark -f tests.yaml -o report.md -reportType md
+./agent-benchmark -f tests.yaml -o report -reportType md
+
+# Generate HTML report from existing JSON results (fast iteration)
+./agent-benchmark -generate-report results.json -o new-report
+
+# Generate both JSON and HTML reports (for later regeneration)
+./agent-benchmark -f tests.yaml -o results -reportType json,html
 ```
 
 ---
@@ -1305,6 +1312,167 @@ Rich visual report featuring:
 - Individual assertion results with pass/fail status
 - Performance metrics (duration, tokens, latency)
 - Tool call information and parameters
+
+#### HTML Report Template Architecture
+
+The HTML report is built from modular, reusable template components. Each report type composes these building blocks differently based on context (single agent vs multi-agent, single file vs suite, etc.).
+
+##### Component Hierarchy
+
+```mermaid
+graph TD
+    subgraph "Main Layout"
+        A[report.html] --> B[summary-cards]
+        A --> C[comparison-matrix]
+        A --> D[agent-leaderboard]
+        A --> E[file-summary]
+        A --> F[session-summary]
+        A --> G[test-results]
+        A --> H[fullscreen-overlay]
+        A --> I[scripts]
+    end
+
+    subgraph "Test Results Container"
+        G --> J[test-group]
+    end
+
+    subgraph "View Selection"
+        J -->|"1 agent"| K[single-agent-detail]
+        J -->|"2+ agents"| L[multi-agent-comparison]
+    end
+
+    subgraph "Single Agent Components"
+        K --> K1[agent-assertions]
+        K --> K2[agent-errors]
+        K --> K3[agent-sequence-diagram]
+        K --> K4[agent-tool-calls]
+        K --> K5[agent-messages]
+        K --> K6[agent-final-output]
+    end
+
+    subgraph "Multi-Agent Components"
+        L --> L1[comparison-table]
+        L --> L2[tool-comparison]
+        L --> L3[errors-comparison]
+        L --> L4[sequence-comparison]
+        L --> L5[outputs-comparison]
+    end
+```
+
+##### Report Hierarchy (Simple → Complex)
+
+Reports are designed hierarchically, with each level building upon the previous:
+
+| Level | Report Type | Description | Key Components |
+|-------|-------------|-------------|----------------|
+| **1** | Single Agent, Single Test | Simplest case - one agent, one test | Summary cards, single-agent-detail |
+| **2** | Single Agent, Multiple Tests | Multiple independent tests, same agent | + test-overview table |
+| **3** | Multiple Agents | Compare agents on same tests | + comparison-matrix, agent-leaderboard |
+| **4** | Multiple Sessions | Tests grouped by session with shared context | + session-summary |
+| **5** | Full Suite | Multi-agent, multi-session, multi-file | All components combined |
+
+Generate sample reports for each level:
+```bash
+go run test/generate_reports.go
+```
+
+This creates hierarchical sample reports in `generated_reports/`:
+- `01_single_agent_single_test.html` - Level 1: One agent, one test
+- `02_single_agent_multi_test.html` - Level 2: One agent, multiple independent tests
+- `03_multi_agent.html` - Level 3: Multiple agents compared
+- `04_multi_session.html` - Level 4: Multiple sessions with grouped tests
+- `05_full_suite.html` - Level 5: Everything combined
+- `06_failed_with_errors.html` - Error display example
+
+##### Report Types and Their Components
+
+**Single Agent Report** - One agent running tests:
+
+```mermaid
+graph LR
+    subgraph "Single Agent Report"
+        A[summary-cards] --> B[test-results]
+        B --> C[test-group]
+        C --> D[single-agent-detail]
+        D --> D1[assertions]
+        D --> D2[errors]
+        D --> D3[sequence-diagram]
+        D --> D4[tool-calls]
+        D --> D5[messages]
+        D --> D6[final-output]
+    end
+```
+
+**Multi-Agent Report** - Multiple agents compared on same tests:
+
+```mermaid
+graph LR
+    subgraph "Multi-Agent Report"
+        A[summary-cards] --> B[comparison-matrix]
+        B --> C[agent-leaderboard]
+        C --> D[test-results]
+        D --> E[test-group]
+        E --> F[multi-agent-comparison]
+        F --> F1[comparison-table]
+        F --> F2[tool-comparison]
+        F --> F3[errors-comparison]
+        F --> F4[sequence-comparison]
+        F --> F5[outputs-comparison]
+    end
+```
+
+**Multi-Session Report** - Tests organized by conversation sessions:
+
+```mermaid
+graph LR
+    subgraph "Multi-Session Report"
+        A[summary-cards] --> B[session-summary]
+        B --> C[test-results]
+        C --> D[test-group]
+        D --> E[single-agent-detail]
+    end
+```
+
+**Full Suite Report** - Multiple test files with optional multi-agent:
+
+```mermaid
+graph LR
+    subgraph "Full Suite Report"
+        A[summary-cards] --> B[comparison-matrix]
+        B --> C[agent-leaderboard]
+        C --> D[file-summary]
+        D --> E[test-results]
+        E --> F[test-group]
+        F -->|"1 agent"| G[single-agent-detail]
+        F -->|"2+ agents"| H[multi-agent-comparison]
+    end
+```
+
+##### Template Components Reference
+
+| Component | Purpose | Used In |
+|-----------|---------|---------|
+| `summary-cards` | Top-level stats (total/passed/failed/tokens/duration) | All reports |
+| `comparison-matrix` | Test × Agent pass/fail matrix | Multi-agent |
+| `agent-leaderboard` | Ranked agent performance table | Multi-agent |
+| `file-summary` | Test file grouping with stats | Suite runs |
+| `session-summary` | Session grouping with flow diagrams | Multi-session |
+| `test-results` | Container for all test groups | All reports |
+| `test-group` | Single test, decides single vs multi view | All reports |
+| `single-agent-detail` | Detailed expandable view for one agent | Single-agent |
+| `multi-agent-comparison` | Side-by-side comparison table | Multi-agent |
+| `agent-assertions` | Assertion results list | Single-agent |
+| `agent-errors` | Error messages display | Single-agent |
+| `agent-sequence-diagram` | Mermaid execution flow diagram | Single-agent |
+| `agent-tool-calls` | Tool calls timeline with params/results | Single-agent |
+| `agent-messages` | Conversation history | Single-agent |
+| `agent-final-output` | Final agent response | Single-agent |
+| `tool-comparison` | Tool calls side-by-side | Multi-agent |
+| `errors-comparison` | Errors side-by-side | Multi-agent |
+| `sequence-comparison` | Diagrams side-by-side (click to fullscreen) | Multi-agent |
+| `outputs-comparison` | Final outputs side-by-side | Multi-agent |
+| `fullscreen-overlay` | Modal overlay for enlarged diagrams | All reports |
+| `scripts` | Mermaid init, expand/collapse, fullscreen JS | All reports |
 
 ### JSON Report
 

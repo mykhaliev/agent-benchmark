@@ -259,6 +259,9 @@ type ExecutionResult struct {
 	TokensUsed   int          `json:"tokensUsed"`
 	LatencyMs    int64        `json:"latencyMs"`
 	Errors       []string     `json:"errors"`
+	SourceFile   string       `json:"sourceFile,omitempty"`  // Source test file (for suite runs)
+	SuiteName    string       `json:"suiteName,omitempty"`   // Suite name (for suite runs)
+	SessionName  string       `json:"sessionName,omitempty"` // Session name
 }
 
 type Message struct {
@@ -271,6 +274,7 @@ type ToolCall struct {
 	Name       string                 `json:"name"`
 	Parameters map[string]interface{} `json:"parameters"`
 	Timestamp  time.Time              `json:"timestamp"`
+	DurationMs int64                  `json:"duration_ms,omitempty"`
 	Result     Result                 `json:"result,omitempty"`
 }
 
@@ -1222,7 +1226,8 @@ func (rg *ReportGenerator) printComparisonSummary(results []TestRun) {
 
 	fmt.Println("\n" + "═══════════════════════════════════════════════════════════════")
 	fmt.Println("                    SERVER COMPARISON SUMMARY")
-	fmt.Println("═══════════════════════════════════════════════════════════════\n")
+	fmt.Println("═══════════════════════════════════════════════════════════════")
+	fmt.Println()
 
 	for testName, comp := range comparisons {
 		successRate := float64(comp.PassedRuns) / float64(comp.TotalRuns) * 100
@@ -1251,7 +1256,7 @@ func (rg *ReportGenerator) printComparisonSummary(results []TestRun) {
 			fmt.Printf("   │ %-25s │ %-19s │ %8.2fs │\n",
 				truncate(serverName, 25),
 				status,
-				result.DurationMs)
+				float64(result.DurationMs)/1000.0)
 
 			// Show provider
 			fmt.Printf("   │   └─ [%s]%-16s │            │          │\n",
@@ -1288,7 +1293,8 @@ func (rg *ReportGenerator) GenerateConsoleReport(results []TestRun) {
 	// Then show detailed results
 	fmt.Println("\n" + "═══════════════════════════════════════════════════════════════")
 	fmt.Println("                     DETAILED TEST RESULTS")
-	fmt.Println("═══════════════════════════════════════════════════════════════\n")
+	fmt.Println("═══════════════════════════════════════════════════════════════")
+	fmt.Println()
 
 	passed := 0
 	failed := 0
@@ -1351,7 +1357,8 @@ func (rg *ReportGenerator) GenerateConsoleReport(results []TestRun) {
 	fmt.Println("═══════════════════════════════════════════════════════════════")
 	fmt.Printf("Total: %d | \033[32mPassed: %d\033[0m | \033[31mFailed: %d\033[0m\n",
 		passed+failed, passed, failed)
-	fmt.Println("═══════════════════════════════════════════════════════════════\n")
+	fmt.Println("═══════════════════════════════════════════════════════════════")
+	fmt.Println()
 }
 
 func (rg *ReportGenerator) GenerateMarkdownReport(results []TestRun) string {
@@ -1402,7 +1409,7 @@ func (rg *ReportGenerator) GenerateMarkdownReport(results []TestRun) string {
 				serverName,
 				result.Provider,
 				status,
-				result.DurationMs)
+				float64(result.DurationMs)/1000.0)
 		}
 
 		if comp.FailedRuns > 0 {
@@ -1463,313 +1470,6 @@ func (rg *ReportGenerator) GenerateMarkdownReport(results []TestRun) string {
 	return md
 }
 
-func (rg *ReportGenerator) GenerateHTMLReport(results []TestRun) string {
-	passed := 0
-	failed := 0
-	for _, result := range results {
-		if result.Passed {
-			passed++
-		} else {
-			failed++
-		}
-	}
-
-	// Group results by test name
-	testGroups := make(map[string][]TestRun)
-	for _, result := range results {
-		testGroups[result.Execution.TestName] = append(testGroups[result.Execution.TestName], result)
-	}
-
-	// Generate agent statistics
-	agentStats := generateAgentStats(results)
-
-	comparisons := rg.GenerateComparisonSummary(results)
-
-	html := `<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>Test Results</title>
-    <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 20px; background: #f5f5f5; }
-        .container { max-width: 1400px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        h1, h2 { color: #333; border-bottom: 3px solid #4CAF50; padding-bottom: 10px; }
-        h2 { border-bottom: 2px solid #2196F3; margin-top: 40px; }
-        .summary { display: flex; gap: 20px; margin: 20px 0; }
-        .stat { padding: 15px 25px; border-radius: 6px; flex: 1; text-align: center; }
-        .stat-total { background: #2196F3; color: white; }
-        .stat-passed { background: #4CAF50; color: white; }
-        .stat-failed { background: #f44336; color: white; }
-        .stat-value { font-size: 32px; font-weight: bold; }
-        .stat-label { font-size: 14px; opacity: 0.9; margin-top: 5px; }
-        
-        .agent-stats-section { margin: 30px 0; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden; background: white; }
-        .agent-stats-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; color: white; }
-        .agent-stats-title { font-size: 20px; font-weight: bold; margin: 0; }
-        .agent-stats-table { width: 100%; border-collapse: collapse; }
-        .agent-stats-table th { background: #f5f5f5; padding: 14px 12px; text-align: left; font-weight: 600; color: #555; border-bottom: 2px solid #e0e0e0; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; }
-        .agent-stats-table td { padding: 14px 12px; border-bottom: 1px solid #f0f0f0; font-size: 14px; }
-        .agent-stats-table tbody tr:hover { background: #fafafa; transition: background 0.2s; }
-        .agent-name-cell { font-weight: 600; color: #333; }
-        .provider-tag { background: #e3f2fd; color: #1976d2; padding: 4px 10px; border-radius: 12px; font-size: 11px; display: inline-block; font-weight: 500; }
-        .test-count { color: #666; font-weight: 500; }
-        .pass-count { color: #4CAF50; font-weight: 600; }
-        .fail-count { color: #f44336; font-weight: 600; }
-        .success-percentage { padding: 4px 10px; border-radius: 6px; font-weight: 600; font-size: 13px; display: inline-block; }
-        .success-high { background: #c8e6c9; color: #2e7d32; }
-        .success-medium { background: #fff9c4; color: #f57f17; }
-        .success-low { background: #ffcdd2; color: #c62828; }
-        .metric-cell { text-align: right; color: #666; font-variant-numeric: tabular-nums; }
-        .duration-cell { text-align: right; font-family: 'Courier New', monospace; color: #555; }
-        .tokens-cell { text-align: right; font-family: 'Courier New', monospace; color: #555; }
-        
-        .comparison-section { margin: 30px 0; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden; }
-        .comparison-header { background: #f5f5f5; padding: 15px 20px; border-bottom: 1px solid #e0e0e0; }
-        .comparison-title { font-size: 18px; font-weight: bold; color: #333; }
-        .success-rate { display: inline-block; padding: 4px 12px; border-radius: 6px; font-weight: 600; margin-left: 10px; font-size: 14px; }
-        .success-rate.high { background: #c8e6c9; color: #2e7d32; }
-        .success-rate.medium { background: #fff9c4; color: #f57f17; }
-        .success-rate.low { background: #ffcdd2; color: #c62828; }
-        .comparison-table { width: 100%; border-collapse: collapse; }
-        .comparison-table th { background: #fafafa; padding: 12px; text-align: left; font-weight: 600; color: #555; border-bottom: 2px solid #e0e0e0; }
-        .comparison-table td { padding: 12px; border-bottom: 1px solid #f0f0f0; }
-        .comparison-table tr:hover { background: #fafafa; }
-        .status-pass { color: #4CAF50; font-weight: 600; }
-        .status-fail { color: #f44336; font-weight: 600; }
-        .provider-badge { background: #e3f2fd; color: #1976d2; padding: 4px 10px; border-radius: 12px; font-size: 12px; display: inline-block; }
-        .failed-servers { background: #ffebee; padding: 15px; margin: 0 20px 20px 20px; border-radius: 6px; border-left: 4px solid #f44336; }
-        .failed-servers h4 { margin: 0 0 10px 0; color: #c62828; font-size: 14px; }
-        .error-list { list-style: none; padding-left: 20px; margin: 5px 0; }
-        .error-item { color: #666; font-size: 13px; margin: 3px 0; }
-        
-        .test-group { margin: 30px 0; }
-        .test-name { font-size: 20px; font-weight: bold; color: #333; margin-bottom: 15px; }
-        .test-result { background: #fafafa; padding: 15px; margin: 10px 0; border-left: 4px solid #ccc; border-radius: 4px; }
-        .test-result.passed { border-left-color: #4CAF50; }
-        .test-result.failed { border-left-color: #f44336; }
-        .test-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-        .test-title { font-weight: 600; color: #555; }
-        .duration { color: #666; font-size: 14px; }
-        .assertions { margin-left: 20px; }
-        .assertion { padding: 8px; margin: 5px 0; font-size: 14px; }
-        .assertion.passed { color: #2e7d32; }
-        .assertion.failed { color: #c62828; }
-        .errors { background: #ffebee; padding: 10px; margin-top: 10px; border-radius: 4px; }
-        .error-item { color: #c62828; margin: 5px 0; font-size: 14px; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>🧪 Test Results</h1>
-        <p><strong>Agent Benchmark Version:</strong> ` + version.Version + `</p>
-        <p><strong>Generated:</strong> ` + time.Now().Format(time.RFC3339) + `</p>
-        
-        <div class="summary">
-            <div class="stat stat-total">
-                <div class="stat-value">` + fmt.Sprintf("%d", passed+failed) + `</div>
-                <div class="stat-label">Total Tests</div>
-            </div>
-            <div class="stat stat-passed">
-                <div class="stat-value">` + fmt.Sprintf("%d", passed) + `</div>
-                <div class="stat-label">Passed</div>
-            </div>
-            <div class="stat stat-failed">
-                <div class="stat-value">` + fmt.Sprintf("%d", failed) + `</div>
-                <div class="stat-label">Failed</div>
-            </div>
-        </div>
-        
-        <h2>🤖 Agent Performance Comparison</h2>
-        <div class="agent-stats-section">
-            <div class="agent-stats-header">
-                <h3 class="agent-stats-title">📊 Performance Metrics by Agent</h3>
-            </div>
-            <table class="agent-stats-table">
-                <thead>
-                    <tr>
-                        <th>Agent</th>
-                        <th>Provider</th>
-                        <th style="text-align: center;">Tests</th>
-                        <th style="text-align: center;">Passed</th>
-                        <th style="text-align: center;">Failed</th>
-                        <th style="text-align: center;">Success Rate</th>
-                        <th style="text-align: right;">Avg Duration</th>
-                        <th style="text-align: right;">Total Tokens</th>
-                        <th style="text-align: right;">Avg Tokens</th>
-                    </tr>
-                </thead>
-                <tbody>`
-
-	// Add agent statistics rows
-	for _, stats := range agentStats {
-		successRate := 0.0
-		if stats.TotalTests > 0 {
-			successRate = float64(stats.PassedTests) / float64(stats.TotalTests) * 100
-		}
-
-		rateClass := "success-high"
-		if successRate < 100 && successRate >= 50 {
-			rateClass = "success-medium"
-		} else if successRate < 50 {
-			rateClass = "success-low"
-		}
-
-		html += `
-                    <tr>
-                        <td class="agent-name-cell">` + stats.AgentName + `</td>
-                        <td><span class="provider-tag">` + string(stats.Provider) + `</span></td>
-                        <td class="metric-cell test-count">` + fmt.Sprintf("%d", stats.TotalTests) + `</td>
-                        <td class="metric-cell pass-count">` + fmt.Sprintf("%d", stats.PassedTests) + `</td>
-                        <td class="metric-cell fail-count">` + fmt.Sprintf("%d", stats.FailedTests) + `</td>
-                        <td style="text-align: center;"><span class="success-percentage ` + rateClass + `">` + fmt.Sprintf("%.1f%%", successRate) + `</span></td>
-                        <td class="duration-cell">` + fmt.Sprintf("%.2fs", stats.AvgDuration) + `</td>
-                        <td class="tokens-cell">` + fmt.Sprintf("%s", formatNumber(stats.TotalTokens)) + `</td>
-                        <td class="tokens-cell">` + fmt.Sprintf("%s", formatNumber(stats.AvgTokens)) + `</td>
-                    </tr>`
-	}
-
-	html += `
-                </tbody>
-            </table>
-        </div>
-        
-        <h2>🔄 Server Comparison Summary</h2>`
-
-	// Rest of the HTML generation remains the same...
-	for testName, comp := range comparisons {
-		successRate := float64(comp.PassedRuns) / float64(comp.TotalRuns) * 100
-		rateClass := "high"
-		if successRate < 100 && successRate >= 50 {
-			rateClass = "medium"
-		} else if successRate < 50 {
-			rateClass = "low"
-		}
-
-		html += `
-        <div class="comparison-section">
-            <div class="comparison-header">
-                <span class="comparison-title">📋 ` + testName + `</span>
-                <span class="success-rate ` + rateClass + `">` + fmt.Sprintf("%.0f%%", successRate) + `</span>
-                <div style="font-size: 13px; color: #666; margin-top: 5px;">` + fmt.Sprintf("%d/%d servers passed", comp.PassedRuns, comp.TotalRuns) + `</div>
-            </div>
-            <table class="comparison-table">
-                <thead>
-                    <tr>
-                        <th>Server/Agent</th>
-                        <th>Provider</th>
-                        <th>Status</th>
-                        <th>Duration</th>
-                    </tr>
-                </thead>
-                <tbody>`
-
-		for serverName, result := range comp.ServerResults {
-			statusClass := "status-pass"
-			statusText := "✅ PASS"
-			if !result.Passed {
-				statusClass = "status-fail"
-				statusText = "❌ FAIL"
-			}
-
-			html += `
-                    <tr>
-                        <td><strong>` + serverName + `</strong></td>
-                        <td><span class="provider-badge">` + string(result.Provider) + `</span></td>
-                        <td class="` + statusClass + `">` + statusText + `</td>
-                        <td>` + fmt.Sprintf("%.2fms", result.DurationMs) + `</td>
-                    </tr>`
-		}
-
-		html += `
-                </tbody>
-            </table>`
-
-		if comp.FailedRuns > 0 {
-			html += `
-            <div class="failed-servers">
-                <h4>❌ Failed Servers</h4>`
-
-			for serverName, result := range comp.ServerResults {
-				if !result.Passed {
-					html += `<div style="margin-bottom: 10px;"><strong>` + serverName + `</strong> [` + string(result.Provider) + `]`
-					if len(result.Errors) > 0 {
-						html += `<ul class="error-list">`
-						for _, err := range result.Errors {
-							html += `<li class="error-item">• ` + err + `</li>`
-						}
-						html += `</ul>`
-					}
-					html += `</div>`
-				}
-			}
-
-			html += `</div>`
-		}
-
-		html += `
-        </div>`
-	}
-
-	html += `
-        <h2>📊 Detailed Test Results</h2>`
-
-	for testName, testRuns := range testGroups {
-		html += `<div class="test-group">
-            <div class="test-name">📋 ` + testName + `</div>`
-
-		for _, run := range testRuns {
-			status := "passed"
-			icon := "✅"
-			if !run.Passed {
-				status = "failed"
-				icon = "❌"
-			}
-
-			duration := run.Execution.EndTime.Sub(run.Execution.StartTime)
-
-			html += `<div class="test-result ` + status + `">
-                <div class="test-header">
-                    <div class="test-title">` + icon + ` ` + run.Execution.AgentName + `</div>
-                    <div>
-                        <span class="provider-badge">` + string(run.Execution.ProviderType) + `</span>
-                        <span class="duration">` + fmt.Sprintf("%.2fs", duration.Seconds()) + `</span>
-                    </div>
-                </div>`
-
-			if len(run.Assertions) > 0 {
-				html += `<div class="assertions">`
-				for _, assertion := range run.Assertions {
-					assertStatus := "passed"
-					assertIcon := "✓"
-					if !assertion.Passed {
-						assertStatus = "failed"
-						assertIcon = "✗"
-					}
-					html += `<div class="assertion ` + assertStatus + `">` + assertIcon + ` ` + assertion.Type + `: ` + assertion.Message + `</div>`
-				}
-				html += `</div>`
-			}
-
-			if len(run.Execution.Errors) > 0 {
-				html += `<div class="errors"><strong>Errors:</strong>`
-				for _, err := range run.Execution.Errors {
-					html += `<div class="error-item">• ` + err + `</div>`
-				}
-				html += `</div>`
-			}
-
-			html += `</div>`
-		}
-
-		html += `</div>`
-	}
-
-	html += `</div>
-</body>
-</html>`
-
-	return html
-}
 
 func (rg *ReportGenerator) GenerateJSONReport(results []TestRun) string {
 	comparisons := rg.GenerateComparisonSummary(results)
