@@ -4,10 +4,12 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/mykhaliev/agent-benchmark/engine"
 	"github.com/mykhaliev/agent-benchmark/logger"
+	"github.com/mykhaliev/agent-benchmark/report"
 	"github.com/mykhaliev/agent-benchmark/templates"
 	"github.com/mykhaliev/agent-benchmark/version"
 )
@@ -24,6 +26,7 @@ func main() {
 	verbose := flag.Bool("verbose", false, "Enable verbose logging")
 	showVersion := flag.Bool("v", false, "Show version and exit")
 	reportTypes := flag.String("reportType", "html", "Report type(s) (comma-separated): html, json, markdown, txt")
+	generateFromJSON := flag.String("generate-report", "", "Generate HTML report from existing JSON results file")
 
 	flag.Parse()
 
@@ -45,6 +48,26 @@ func main() {
 
 	logger.SetupLogger(logWriter, *verbose)
 	templates.NewTemplateEngine()
+
+	// Handle report generation from JSON
+	if *generateFromJSON != "" {
+		outputPath := *reportFileName
+		if outputPath == "" {
+			// Default: same name as input but with .html extension
+			base := strings.TrimSuffix(*generateFromJSON, filepath.Ext(*generateFromJSON))
+			outputPath = base + ".html"
+		} else if !strings.HasSuffix(outputPath, ".html") {
+			outputPath = outputPath + ".html"
+		}
+
+		fmt.Printf("Generating HTML report from: %s\n", *generateFromJSON)
+		if err := report.GenerateReportFromJSON(*generateFromJSON, outputPath); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: Failed to generate report: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Printf("Report generated: %s\n", outputPath)
+		return
+	}
 
 	// Validate input
 	if *testPath == "" && *suitePath == "" {
