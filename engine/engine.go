@@ -780,6 +780,15 @@ func runTests(
 			continue
 		}
 
+		// Find the original agent config from testConfig.Agents to get system_prompt
+		var originalAgentConfig *model.Agent
+		for i := range testConfig.Agents {
+			if testConfig.Agents[i].Name == agentConfig.Name {
+				originalAgentConfig = &testConfig.Agents[i]
+				break
+			}
+		}
+
 		logger.Logger.Info("Starting tests for agent",
 			"agent", agentConfig.Name,
 			"total", len(agents))
@@ -795,9 +804,26 @@ func runTests(
 
 			// Reload variables and reset message history for each session
 			templateCtx := CreateTemplateContext(testConfig.Variables)
+			// Add agent and session context for template substitution
+			templateCtx["AGENT_NAME"] = agentConfig.Name
+			templateCtx["SESSION_NAME"] = session.Name
+			templateCtx["PROVIDER_NAME"] = ag.Provider
 
 			// Initialize fresh message history for this session
 			msgs := make([]llms.MessageContent, 0)
+
+			// Add system prompt if configured for this agent
+			if originalAgentConfig != nil && originalAgentConfig.SystemPrompt != "" {
+				systemPrompt := model.RenderTemplate(originalAgentConfig.SystemPrompt, templateCtx)
+				msgs = append(msgs, llms.MessageContent{
+					Role: llms.ChatMessageTypeSystem,
+					Parts: []llms.ContentPart{
+						llms.TextContent{Text: systemPrompt},
+					},
+				})
+				logger.Logger.Debug("System prompt added", "length", len(systemPrompt))
+			}
+
 			sessionTools := allAgentTools // Don't mutate original
 			if session.AllowedTools != nil {
 				sessionTools = make([]llms.Tool, 0)
