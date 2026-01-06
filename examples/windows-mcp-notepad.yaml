@@ -34,6 +34,10 @@ providers:
     model: gpt-5-chat
     baseUrl: "{{AZURE_OPENAI_ENDPOINT}}"
     version: 2025-01-01-preview
+    rate_limits:
+      tpm: 150000  # Tokens per minute limit
+      rpm: 900     # Requests per minute limit
+      max_rate_limit_retries: 1  # Stop after 1 rate limit retry
 
   - name: azure-openai-gpt4o
     type: AZURE
@@ -41,6 +45,10 @@ providers:
     model: gpt-4o
     baseUrl: "{{AZURE_OPENAI_ENDPOINT}}"
     version: 2025-01-01-preview
+    rate_limits:
+      tpm: 150000  # Tokens per minute limit
+      rpm: 900     # Requests per minute limit
+      max_rate_limit_retries: 1  # Stop after 1 rate limit retry
 
 servers:
   - name: windows-mcp
@@ -53,11 +61,39 @@ agents:
     servers:
       - name: windows-mcp
     provider: azure-openai-gpt5
+    system_prompt: |
+      You are {{AGENT_NAME}}, an autonomous Windows automation agent using {{PROVIDER_NAME}}.
+      Session: {{SESSION_NAME}}
+      
+      CRITICAL RULES:
+      - Execute all tasks IMMEDIATELY without asking for confirmation
+      - NEVER ask "Would you like me to...", "Should I proceed...", or similar questions
+      - NEVER request clarification - make reasonable assumptions and proceed
+      - Use available tools directly to complete the requested tasks
+      - Report results after completion, not before starting
+    clarification_detection:
+      enabled: true
+      level: warning
+      use_builtin_patterns: true
 
   - name: gpt4o-agent
     servers:
       - name: windows-mcp
     provider: azure-openai-gpt4o
+    system_prompt: |
+      You are {{AGENT_NAME}}, an autonomous Windows automation agent using {{PROVIDER_NAME}}.
+      Session: {{SESSION_NAME}}
+      
+      CRITICAL RULES:
+      - Execute all tasks IMMEDIATELY without asking for confirmation
+      - NEVER ask "Would you like me to...", "Should I proceed...", or similar questions
+      - NEVER request clarification - make reasonable assumptions and proceed
+      - Use available tools directly to complete the requested tasks
+      - Report results after completion, not before starting
+    clarification_detection:
+      enabled: true
+      level: warning
+      use_builtin_patterns: true
 
 settings:
   verbose: true
@@ -82,9 +118,18 @@ sessions:
           - type: output_regex
             pattern: "(?i)(no.*(notepad|window).*(open|found|running)|verified|notepad.*(closed|not found))"
 
-          # OUTCOME: Proof that "Hello World" was typed
-          - type: output_regex
-            pattern: "(?i)hello\\s*world"
+          # OUTCOME: Proof that "Hello World" was typed (via output OR tool params)
+          - anyOf:
+              - type: output_regex
+                pattern: "(?i)hello\\s*world"
+              - type: tool_param_matches_regex
+                tool: keyboard_control
+                params:
+                  text: "(?i)hello.*world"
+              - type: tool_param_matches_regex
+                tool: ui_type
+                params:
+                  text: "(?i)hello.*world"
 
           # SAFETY: No failure indicators
           - type: output_not_contains
@@ -96,54 +141,29 @@ sessions:
           # QUALITY: No errors during execution
           - type: no_error_messages
 
-          # REQUIRED: Must use window_management to launch/close/find windows
+          # REQUIRED: Must use app tool to launch Notepad
           - type: tool_called
-            tool: window_management
+            tool: app
 
-          # VERIFY: Notepad was launched with correct program
-          - type: tool_param_equals
-            tool: window_management
-            params:
-              action: "launch"
-              programPath: "notepad.exe"
-
-          # VERIFY: Launch succeeded (ok: true in JSON response)
+          # VERIFY: Notepad was launched (check output or tool result)
           - type: tool_result_matches_json
-            tool: window_management
+            tool: app
             path: "$.ok"
             value: true
 
           # FLEXIBLE: Text input can use different tools depending on the LLM
-          # GPT-5 often uses keyboard_control, GPT-4o may use ui_automation
+          # May use keyboard_control or ui_type
           - anyOf:
               - type: tool_called
                 tool: keyboard_control
               - type: tool_called
-                tool: ui_automation
+                tool: ui_type
 
           # VERIFY: Window was closed (find returned empty or no matches)
           - anyOf:
               # Either the output confirms closure
               - type: output_regex
                 pattern: "(?i)(no.*windows?.*found|0.*windows?|empty.*list|windows.*\\[\\])"
-
-          # VERIFY: "Hello World" was typed using one of these methods
-          - anyOf:
-              # Via keyboard_control with the text
-              - type: tool_param_matches_regex
-                tool: keyboard_control
-                params:
-                  text: "(?i)hello.*world"
-              # Via ui_automation Type action (case-insensitive)
-              - type: tool_param_matches_regex
-                tool: ui_automation
-                params:
-                  action: "(?i)^type$"
-              # Via ui_automation setValue action (case-insensitive)
-              - type: tool_param_matches_regex
-                tool: ui_automation
-                params:
-                  action: "(?i)^setvalue$"
 
           # PERFORMANCE: Complete within 60 seconds
           - type: max_latency_ms

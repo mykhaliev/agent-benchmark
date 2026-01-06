@@ -51,18 +51,26 @@ type TestConfiguration struct {
 // PROVIDER CONFIGURATION
 // ============================================================================
 
+// RateLimitConfig defines rate limiting settings for a provider
+type RateLimitConfig struct {
+	TPM                 int `yaml:"tpm"`                    // Tokens per minute limit
+	RPM                 int `yaml:"rpm"`                    // Requests per minute limit
+	MaxRateLimitRetries int `yaml:"max_rate_limit_retries"` // Max number of 429 retries before stopping (default: 1)
+}
+
 type Provider struct {
-	Name            string       `yaml:"name"`
-	Type            ProviderType `yaml:"type"`
-	Token           string       `yaml:"token"`
-	Secret          string       `yaml:"secret"`
-	Model           string       `yaml:"model"`
-	BaseURL         string       `yaml:"baseUrl"`          // e.g., gpt-4o-mini
-	Version         string       `yaml:"version"`          // e.g., 2025-01-01-preview
-	ProjectID       string       `yaml:"project_id"`       // e.g., 2025-01-01-preview
-	Location        string       `yaml:"location"`         // e.g., 2025-01-01-preview
-	CredentialsPath string       `yaml:"credentials_path"` // e.g., 2025-01-01-preview
-	AuthType        string       `yaml:"auth_type"`        // For AZURE: "api_key" (default) or "entra_id"
+	Name            string          `yaml:"name"`
+	Type            ProviderType    `yaml:"type"`
+	Token           string          `yaml:"token"`
+	Secret          string          `yaml:"secret"`
+	Model           string          `yaml:"model"`
+	BaseURL         string          `yaml:"baseUrl"`          // e.g., gpt-4o-mini
+	Version         string          `yaml:"version"`          // e.g., 2025-01-01-preview
+	ProjectID       string          `yaml:"project_id"`       // e.g., 2025-01-01-preview
+	Location        string          `yaml:"location"`         // e.g., 2025-01-01-preview
+	CredentialsPath string          `yaml:"credentials_path"` // e.g., 2025-01-01-preview
+	AuthType        string          `yaml:"auth_type"`        // For AZURE: "api_key" (default) or "entra_id"
+	RateLimits      RateLimitConfig `yaml:"rate_limits"`      // Optional rate limiting configuration
 }
 
 type ProviderType string
@@ -117,6 +125,7 @@ type Agent struct {
 	Settings               Settings               `yaml:"settings"`
 	Servers                []AgentServer          `yaml:"servers"`
 	Provider               string                 `yaml:"provider"`
+	SystemPrompt           string                 `yaml:"system_prompt,omitempty"`
 	ClarificationDetection ClarificationDetection `yaml:"clarification_detection,omitempty"`
 	SystemPrompt           string                 `yaml:"system_prompt,omitempty"`
 }
