@@ -574,6 +574,15 @@ func CreateProvider(ctx context.Context, p model.Provider) (llms.Model, error) {
 		return nil, fmt.Errorf("provider created but model is nil")
 	}
 
+	// Wrap with rate limiter if configured
+	if HasRateLimiting(p.RateLimits) {
+		logger.Logger.Info("Wrapping provider with rate limiter",
+			"name", p.Name,
+			"tpm", p.RateLimits.TPM,
+			"rpm", p.RateLimits.RPM)
+		llmModel = NewRateLimitedLLM(llmModel, p.RateLimits)
+	}
+
 	return llmModel, nil
 }
 

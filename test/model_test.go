@@ -70,6 +70,111 @@ sessions:
 		_, err := model.ParseTestConfig("/non/existent/file.yaml")
 		assert.Error(t, err)
 	})
+
+	t.Run("Agent with system_prompt", func(t *testing.T) {
+		yamlContent := `
+providers:
+  - name: test-provider
+    type: OPENAI
+    model: gpt-4
+    token: test-token
+
+servers:
+  - name: test-server
+    type: stdio
+    command: "node server.js"
+
+agents:
+  - name: test-agent
+    provider: test-provider
+    system_prompt: |
+      You are an autonomous agent.
+      Execute tasks directly without asking for confirmation.
+    servers:
+      - name: test-server
+
+sessions:
+  - name: test-session
+    tests:
+      - name: test-1
+        prompt: "Test prompt"
+`
+		tmpfile := createTempYAML(t, yamlContent)
+
+		config, err := model.ParseTestConfig(tmpfile)
+		require.NoError(t, err)
+		assert.NotNil(t, config)
+
+		assert.Len(t, config.Agents, 1)
+		assert.Equal(t, "test-agent", config.Agents[0].Name)
+		assert.Contains(t, config.Agents[0].SystemPrompt, "autonomous agent")
+		assert.Contains(t, config.Agents[0].SystemPrompt, "without asking for confirmation")
+	})
+
+	t.Run("Agent without system_prompt", func(t *testing.T) {
+		yamlContent := `
+providers:
+  - name: test-provider
+    type: OPENAI
+    model: gpt-4
+    token: test-token
+
+servers:
+  - name: test-server
+    type: stdio
+    command: "node server.js"
+
+agents:
+  - name: test-agent
+    provider: test-provider
+    servers:
+      - name: test-server
+
+sessions:
+  - name: test-session
+    tests:
+      - name: test-1
+        prompt: "Test prompt"
+`
+		tmpfile := createTempYAML(t, yamlContent)
+
+		config, err := model.ParseTestConfig(tmpfile)
+		require.NoError(t, err)
+		assert.NotNil(t, config)
+
+		assert.Len(t, config.Agents, 1)
+		assert.Empty(t, config.Agents[0].SystemPrompt)
+	})
+
+	t.Run("Provider with rate_limits", func(t *testing.T) {
+		yamlContent := `
+providers:
+  - name: test-provider
+    type: AZURE
+    model: gpt-4
+    baseUrl: "https://test.openai.azure.com"
+    rate_limits:
+      tpm: 30000
+      rpm: 60
+      max_rate_limit_retries: 3
+
+sessions:
+  - name: test-session
+    tests:
+      - name: test-1
+        prompt: "Test prompt"
+`
+		tmpfile := createTempYAML(t, yamlContent)
+
+		config, err := model.ParseTestConfig(tmpfile)
+		require.NoError(t, err)
+		assert.NotNil(t, config)
+
+		assert.Len(t, config.Providers, 1)
+		assert.Equal(t, 30000, config.Providers[0].RateLimits.TPM)
+		assert.Equal(t, 60, config.Providers[0].RateLimits.RPM)
+		assert.Equal(t, 3, config.Providers[0].RateLimits.MaxRateLimitRetries)
+	})
 }
 
 func TestParseTestConfigFromString(t *testing.T) {
@@ -93,12 +198,12 @@ providers:
 
 func TestParseAgentClarificationDetection(t *testing.T) {
 	tests := []struct {
-		name                    string
-		yaml                    string
-		expectedEnabled         bool
-		expectedLevel           string
-		expectedUseBuiltin      *bool
-		expectedCustomPatterns  []string
+		name                   string
+		yaml                   string
+		expectedEnabled        bool
+		expectedLevel          string
+		expectedUseBuiltin     *bool
+		expectedCustomPatterns []string
 	}{
 		{
 			name: "clarification detection enabled with warning level",
