@@ -419,7 +419,7 @@ For more information, see [Azure Identity authentication](https://learn.microsof
 
 #### Rate Limiting
 
-Providers can be configured with rate limits to avoid exceeding API quotas and handle 429 (Too Many Requests) errors gracefully:
+Providers can be configured with rate limits to proactively throttle requests and avoid exceeding API quotas:
 
 ```yaml
 providers:
@@ -430,9 +430,8 @@ providers:
     baseUrl: https://your-resource.openai.azure.com
     version: 2024-02-15-preview
     rate_limits:
-      tpm: 30000               # Tokens per minute limit
-      rpm: 60                  # Requests per minute limit
-      max_rate_limit_retries: 3 # Max retries on 429 errors (default: 1)
+      tpm: 30000               # Tokens per minute limit (proactive throttling)
+      rpm: 60                  # Requests per minute limit (proactive throttling)
 ```
 
 **Rate Limit Configuration Options:**
@@ -441,13 +440,45 @@ providers:
 |--------|-------------|---------|
 | `tpm` | Maximum tokens per minute | No limit |
 | `rpm` | Maximum requests per minute | No limit |
-| `max_rate_limit_retries` | Number of retry attempts when receiving 429 errors | 1 |
 
 **Behavior:**
 - When rate limits are configured, the framework uses a token bucket algorithm to proactively limit request rates
-- If a 429 error is received, the framework will wait and retry up to `max_rate_limit_retries` times
-- Set `max_rate_limit_retries: 0` to disable retries (fail immediately on 429)
+- This prevents hitting provider rate limits by throttling requests before they're sent
 - Rate limiting is applied per-provider, allowing different limits for different API endpoints
+
+#### 429 Retry Handling
+
+By default, 429 (Too Many Requests) errors are treated as regular errors and cause the test to fail immediately. If you want to retry on 429 errors, you can configure this separately:
+
+```yaml
+providers:
+  - name: azure-gpt
+    type: AZURE
+    token: {{AZURE_API_KEY}}
+    model: gpt-4
+    baseUrl: https://your-resource.openai.azure.com
+    version: 2024-02-15-preview
+    rate_limits:
+      tpm: 30000               # Proactive rate limiting
+      rpm: 60
+    retry:
+      retry_on_429: true       # Enable retry on 429 errors (default: false)
+      max_retries: 3           # Max retry attempts (default: 3 when enabled)
+```
+
+**Retry Configuration Options:**
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `retry_on_429` | Enable automatic retry when receiving 429 errors | `false` |
+| `max_retries` | Number of retry attempts for 429 errors | 3 (when enabled) |
+
+**Behavior:**
+- By default, 429 errors fail immediately (no retry)
+- When `retry_on_429: true` is set, the framework will retry with exponential backoff
+- If the API returns a `retry-after` header, that duration is used for the backoff
+
+> **Note:** Rate limiting (proactive throttling) and 429 retry handling (reactive recovery) are separate concepts. You can use either or both depending on your needs
 
 ---
 

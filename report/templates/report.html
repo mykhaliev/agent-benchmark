@@ -501,6 +501,8 @@
     <div class="test-details">
         {{template "agent-assertions" .}}
         {{template "agent-errors" .}}
+        {{template "agent-clarification-stats" .}}
+        {{template "agent-rate-limit-stats" .}}
         {{template "agent-sequence-diagram" .}}
         {{template "agent-tool-calls" .}}
         {{template "agent-messages" .}}
@@ -542,6 +544,74 @@
     {{range .Errors}}
     <div class="error-item">• {{.}}</div>
     {{end}}
+</div>
+{{end}}
+{{end}}
+
+{{/* ================ Single Agent: Rate Limit Stats ================ */}}
+{{define "agent-rate-limit-stats"}}
+{{if .RateLimitStats}}
+<div class="rate-limit-stats-section">
+    <h4 class="subsection-title">⏱️ Rate Limit Stats</h4>
+    <div class="rate-limit-stats-grid">
+        {{if gt .RateLimitStats.ThrottleCount 0}}
+        <div class="rate-limit-stat throttle">
+            <span class="stat-icon">🚦</span>
+            <div class="stat-content">
+                <span class="stat-value">{{.RateLimitStats.ThrottleCount}}</span>
+                <span class="stat-label">Throttled</span>
+                <span class="stat-detail">{{printf "%.1fs" .RateLimitStats.ThrottleWaitSec}} wait</span>
+            </div>
+        </div>
+        {{end}}
+        {{if gt .RateLimitStats.RateLimitHits 0}}
+        <div class="rate-limit-stat hits">
+            <span class="stat-icon">⚠️</span>
+            <div class="stat-content">
+                <span class="stat-value">{{.RateLimitStats.RateLimitHits}}</span>
+                <span class="stat-label">429 Hits</span>
+            </div>
+        </div>
+        {{end}}
+        {{if gt .RateLimitStats.RetryCount 0}}
+        <div class="rate-limit-stat retries">
+            <span class="stat-icon">🔄</span>
+            <div class="stat-content">
+                <span class="stat-value">{{.RateLimitStats.RetryCount}}</span>
+                <span class="stat-label">Retries</span>
+                <span class="stat-detail">{{.RateLimitStats.RetrySuccessCount}} succeeded, {{printf "%.1fs" .RateLimitStats.RetryWaitSec}} wait</span>
+            </div>
+        </div>
+        {{end}}
+    </div>
+</div>
+{{end}}
+{{end}}
+
+{{/* ================ Single Agent: Clarification Stats ================ */}}
+{{define "agent-clarification-stats"}}
+{{if .ClarificationStats}}
+<div class="clarification-stats-section">
+    <h4 class="subsection-title">🤔 Clarification Requests</h4>
+    <div class="clarification-stats-content">
+        <div class="clarification-count">
+            <span class="stat-icon">❓</span>
+            <div class="stat-content">
+                <span class="stat-value">{{.ClarificationStats.Count}}</span>
+                <span class="stat-label">Clarification{{if gt .ClarificationStats.Count 1}}s{{end}} Detected</span>
+                <span class="stat-detail">Iterations: {{range $i, $iter := .ClarificationStats.Iterations}}{{if $i}}, {{end}}#{{$iter}}{{end}}</span>
+            </div>
+        </div>
+        {{if .ClarificationStats.Examples}}
+        <div class="clarification-examples">
+            {{range .ClarificationStats.Examples}}
+            <div class="clarification-example">
+                <span class="example-quote">"{{.}}"</span>
+            </div>
+            {{end}}
+        </div>
+        {{end}}
+    </div>
 </div>
 {{end}}
 {{end}}

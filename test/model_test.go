@@ -146,7 +146,7 @@ sessions:
 		assert.Empty(t, config.Agents[0].SystemPrompt)
 	})
 
-	t.Run("Provider with rate_limits", func(t *testing.T) {
+	t.Run("Provider with rate_limits and retry config", func(t *testing.T) {
 		yamlContent := `
 providers:
   - name: test-provider
@@ -156,7 +156,9 @@ providers:
     rate_limits:
       tpm: 30000
       rpm: 60
-      max_rate_limit_retries: 3
+    retry:
+      retry_on_429: true
+      max_retries: 3
 
 sessions:
   - name: test-session
@@ -173,7 +175,8 @@ sessions:
 		assert.Len(t, config.Providers, 1)
 		assert.Equal(t, 30000, config.Providers[0].RateLimits.TPM)
 		assert.Equal(t, 60, config.Providers[0].RateLimits.RPM)
-		assert.Equal(t, 3, config.Providers[0].RateLimits.MaxRateLimitRetries)
+		assert.True(t, config.Providers[0].Retry.RetryOn429)
+		assert.Equal(t, 3, config.Providers[0].Retry.MaxRetries)
 	})
 }
 

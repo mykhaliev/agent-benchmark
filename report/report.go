@@ -38,13 +38,13 @@ type ReportData struct {
 	SuiteName  string
 	FileGroups []FileGroupView
 	// Adaptive rendering flags
-	ShowSuiteInfo        bool // Show suite name/info section
-	ShowFileSections     bool // Show file grouping (multiple source files)
-	ShowSessionSections  bool // Show session grouping (multiple sessions)
-	ShowAgentComparison  bool // Show agent comparison matrix (multiple agents)
-	ShowTestOverview     bool // Show test overview table (multiple tests)
-	SessionGroups        []SessionGroupView
-	TestOverview         []TestOverviewRow
+	ShowSuiteInfo       bool // Show suite name/info section
+	ShowFileSections    bool // Show file grouping (multiple source files)
+	ShowSessionSections bool // Show session grouping (multiple sessions)
+	ShowAgentComparison bool // Show agent comparison matrix (multiple agents)
+	ShowTestOverview    bool // Show test overview table (multiple tests)
+	SessionGroups       []SessionGroupView
+	TestOverview        []TestOverviewRow
 }
 
 // SummaryData holds overall test summary
@@ -60,13 +60,13 @@ type SummaryData struct {
 
 // TestOverviewRow represents a single test in the overview table
 type TestOverviewRow struct {
-	TestName     string
-	Passed       bool
-	DurationMs   float64
-	TokensUsed   int
-	ToolCalls    int
-	Assertions   int
-	ErrorCount   int
+	TestName   string
+	Passed     bool
+	DurationMs float64
+	TokensUsed int
+	ToolCalls  int
+	Assertions int
+	ErrorCount int
 }
 
 // MatrixView represents the test × agent comparison matrix
@@ -86,23 +86,23 @@ type MatrixCell struct {
 
 // AgentStatsView is a view model for agent statistics
 type AgentStatsView struct {
-	Rank             int     // 1, 2, 3... or 0 for disqualified
-	RankDisplay      string  // "🥇", "🥈", "🥉", "4", "DQ"
+	Rank             int    // 1, 2, 3... or 0 for disqualified
+	RankDisplay      string // "🥇", "🥈", "🥉", "4", "DQ"
 	AgentName        string
 	Provider         string
 	TotalTests       int
 	PassedTests      int
 	FailedTests      int
-	ErrorCount       int     // Tests that had errors (subset of failed)
+	ErrorCount       int // Tests that had errors (subset of failed)
 	SuccessRate      float64
 	SuccessRateClass string
 	AvgDuration      float64
 	TotalTokens      int
 	AvgTokens        int
-	Efficiency       int     // Tokens per passed test (lower = better)
-	EfficiencyStr    string  // Display string ("125 tok/✓" or "—")
-	IsDisqualified   bool    // 0% success rate
-	RowClass         string  // CSS class for row styling
+	Efficiency       int    // Tokens per passed test (lower = better)
+	EfficiencyStr    string // Display string ("125 tok/✓" or "—")
+	IsDisqualified   bool   // 0% success rate
+	RowClass         string // CSS class for row styling
 }
 
 // ComparisonView is a view model for test comparisons
@@ -170,9 +170,29 @@ type TestRunView struct {
 	TokensUsed      int
 	FinalOutput     string
 	Messages        []MessageView
-	ToolCalls       []ToolCallView
-	SequenceDiagram string // Mermaid syntax
+	ToolCalls          []ToolCallView           // Tool call timeline
+	SequenceDiagram    string                   // Mermaid syntax
+	RateLimitStats     *RateLimitStatsView      // Rate limiting and 429 stats
+	ClarificationStats *ClarificationStatsView  // Clarification detection stats
 }
+
+// RateLimitStatsView is a view model for rate limit statistics
+type RateLimitStatsView struct {
+	ThrottleCount     int     // Number of times request was throttled
+	ThrottleWaitSec   float64 // Total time spent waiting due to throttling (seconds)
+	RateLimitHits     int     // Number of 429 errors received
+	RetryCount        int     // Number of retry attempts made
+	RetryWaitSec      float64 // Total time spent waiting for retries (seconds)
+	RetrySuccessCount int     // Number of successful retries
+}
+
+// ClarificationStatsView is a view model for clarification detection display
+type ClarificationStatsView struct {
+	Count      int      // Number of clarification requests detected
+	Iterations []int    // Which iterations had clarification requests
+	Examples   []string // Sample text from clarification requests (truncated)
+}
+
 
 // MessageView is a view model for conversation messages
 type MessageView struct {
@@ -187,7 +207,7 @@ type ToolCallView struct {
 	Parameters string // JSON string
 	Result     string // JSON string
 	Timestamp  string
-	DurationMs int64  // Execution time in milliseconds
+	DurationMs int64 // Execution time in milliseconds
 }
 
 // AssertionView is a view model for assertions
@@ -420,22 +440,22 @@ func buildReportData(results []model.TestRun) ReportData {
 			AvgTokensPassed: avgTokensPassed,
 			AvgDuration:     avgDuration,
 		},
-		AgentStats:           buildAgentStats(results),
-		Comparisons:          buildComparisons(results),
-		TestGroups:           buildTestGroups(results),
-		Matrix:               matrix,
-		AgentNames:           matrix.AgentNames,
-		TestNames:            matrix.TestNames,
-		IsSuiteRun:           isSuiteRun,
-		SuiteName:            suiteName,
-		FileGroups:           fileGroups,
-		ShowSuiteInfo:        showSuiteInfo,
-		ShowFileSections:     showFileSections,
-		ShowSessionSections:  showSessionSections,
-		ShowAgentComparison:  showAgentComparison,
-		ShowTestOverview:     showTestOverview,
-		SessionGroups:        sessionGroups,
-		TestOverview:         testOverview,
+		AgentStats:          buildAgentStats(results),
+		Comparisons:         buildComparisons(results),
+		TestGroups:          buildTestGroups(results),
+		Matrix:              matrix,
+		AgentNames:          matrix.AgentNames,
+		TestNames:           matrix.TestNames,
+		IsSuiteRun:          isSuiteRun,
+		SuiteName:           suiteName,
+		FileGroups:          fileGroups,
+		ShowSuiteInfo:       showSuiteInfo,
+		ShowFileSections:    showFileSections,
+		ShowSessionSections: showSessionSections,
+		ShowAgentComparison: showAgentComparison,
+		ShowTestOverview:    showTestOverview,
+		SessionGroups:       sessionGroups,
+		TestOverview:        testOverview,
 	}
 }
 
@@ -713,9 +733,11 @@ func buildTestGroups(results []model.TestRun) []TestGroupView {
 			Prompt:          prompt,
 			TokensUsed:      run.Execution.TokensUsed,
 			FinalOutput:     run.Execution.FinalOutput,
-			Messages:        messages,
-			ToolCalls:       toolCalls,
-			SequenceDiagram: sequenceDiagram,
+			Messages:           messages,
+			ToolCalls:          toolCalls,
+			SequenceDiagram:    sequenceDiagram,
+			RateLimitStats:     buildRateLimitStatsView(run.Execution.RateLimitStats),
+			ClarificationStats: buildClarificationStatsView(run.Execution.ClarificationStats),
 		}
 
 		group.Runs = append(group.Runs, runView)
@@ -810,8 +832,10 @@ func buildFileGroups(results []model.TestRun) []FileGroupView {
 			Assertions:      assertions,
 			Errors:          run.Execution.Errors,
 			Prompt:          prompt,
-			TokensUsed:      run.Execution.TokensUsed,
-			FinalOutput:     run.Execution.FinalOutput,
+			TokensUsed:         run.Execution.TokensUsed,
+			FinalOutput:        run.Execution.FinalOutput,
+			RateLimitStats:     buildRateLimitStatsView(run.Execution.RateLimitStats),
+			ClarificationStats: buildClarificationStatsView(run.Execution.ClarificationStats),
 		}
 
 		fileTestMap[sourceFile][testName].Runs = append(fileTestMap[sourceFile][testName].Runs, runView)
@@ -928,8 +952,10 @@ func buildSessionGroups(results []model.TestRun) []SessionGroupView {
 			Assertions:      assertions,
 			Errors:          run.Execution.Errors,
 			Prompt:          prompt,
-			TokensUsed:      run.Execution.TokensUsed,
-			FinalOutput:     run.Execution.FinalOutput,
+			TokensUsed:         run.Execution.TokensUsed,
+			FinalOutput:        run.Execution.FinalOutput,
+			RateLimitStats:     buildRateLimitStatsView(run.Execution.RateLimitStats),
+			ClarificationStats: buildClarificationStatsView(run.Execution.ClarificationStats),
 		}
 
 		sessionTestMap[sessionName][testName].Runs = append(sessionTestMap[sessionName][testName].Runs, runView)
@@ -977,6 +1003,37 @@ func getSuccessRateClass(rate float64) string {
 		return "success-medium"
 	}
 	return "success-low"
+}
+
+// buildRateLimitStatsView converts model.RateLimitStats to RateLimitStatsView
+func buildRateLimitStatsView(stats *model.RateLimitStats) *RateLimitStatsView {
+	if stats == nil {
+		return nil
+	}
+	// Only return if there's something to report
+	if stats.ThrottleCount == 0 && stats.RateLimitHits == 0 && stats.RetryCount == 0 {
+		return nil
+	}
+	return &RateLimitStatsView{
+		ThrottleCount:     stats.ThrottleCount,
+		ThrottleWaitSec:   float64(stats.ThrottleWaitTimeMs) / 1000.0,
+		RateLimitHits:     stats.RateLimitHits,
+		RetryCount:        stats.RetryCount,
+		RetryWaitSec:      float64(stats.RetryWaitTimeMs) / 1000.0,
+		RetrySuccessCount: stats.RetrySuccessCount,
+	}
+}
+
+// buildClarificationStatsView converts model.ClarificationStats to ClarificationStatsView
+func buildClarificationStatsView(stats *model.ClarificationStats) *ClarificationStatsView {
+	if stats == nil || stats.Count == 0 {
+		return nil
+	}
+	return &ClarificationStatsView{
+		Count:      stats.Count,
+		Iterations: stats.Iterations,
+		Examples:   stats.Examples,
+	}
 }
 
 // buildMatrix creates a test×agent comparison matrix
@@ -1058,7 +1115,7 @@ func buildSequenceDiagram(run model.TestRun) string {
 	// Add tool calls with actual execution duration
 	for _, tc := range run.Execution.ToolCalls {
 		toolName := tc.Name
-		
+
 		// Use the actual measured execution duration
 		if tc.DurationMs > 0 {
 			sb.WriteString(fmt.Sprintf("    A->>M: %s() [%dms]\n", toolName, tc.DurationMs))

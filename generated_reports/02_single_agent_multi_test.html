@@ -633,6 +633,154 @@ body {
     margin-bottom: 6px;
 }
 
+/* Rate Limit Stats */
+.rate-limit-stats-section {
+    background: #fff3e0;
+    border: 1px solid #ffe0b2;
+    border-radius: var(--radius-md);
+    padding: 16px;
+    margin-bottom: 20px;
+}
+
+.rate-limit-stats-section .subsection-title {
+    margin: 0 0 12px 0;
+    color: #e65100;
+}
+
+.rate-limit-stats-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.rate-limit-stat {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    border-radius: var(--radius-sm);
+    background: rgba(255, 255, 255, 0.8);
+    min-width: 150px;
+}
+
+.rate-limit-stat.throttle {
+    border-left: 3px solid #ff9800;
+}
+
+.rate-limit-stat.hits {
+    border-left: 3px solid #f44336;
+}
+
+.rate-limit-stat.retries {
+    border-left: 3px solid #2196F3;
+}
+
+.rate-limit-stat .stat-icon {
+    font-size: 24px;
+}
+
+.rate-limit-stat .stat-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.rate-limit-stat .stat-value {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+.rate-limit-stat .stat-label {
+    font-size: 12px;
+    color: var(--color-text-light);
+    font-weight: 500;
+}
+
+.rate-limit-stat .stat-detail {
+    font-size: 11px;
+    color: var(--color-text-muted);
+}
+
+/* Clarification Stats */
+.clarification-stats-section {
+    background: #fce4ec;
+    border: 1px solid #f8bbd9;
+    border-radius: var(--radius-md);
+    padding: 16px;
+    margin-bottom: 20px;
+}
+
+.clarification-stats-section .subsection-title {
+    margin: 0 0 12px 0;
+    color: #c2185b;
+}
+
+.clarification-stats-content {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.clarification-count {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    border-radius: var(--radius-sm);
+    background: rgba(255, 255, 255, 0.8);
+    border-left: 3px solid #e91e63;
+}
+
+.clarification-count .stat-icon {
+    font-size: 24px;
+}
+
+.clarification-count .stat-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.clarification-count .stat-value {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+.clarification-count .stat-label {
+    font-size: 12px;
+    color: var(--color-text-light);
+    font-weight: 500;
+}
+
+.clarification-count .stat-detail {
+    font-size: 11px;
+    color: var(--color-text-muted);
+}
+
+.clarification-examples {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.clarification-example {
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.6);
+    border-radius: var(--radius-sm);
+    border-left: 2px solid #f48fb1;
+}
+
+.clarification-example .example-quote {
+    font-style: italic;
+    font-size: 12px;
+    color: var(--color-text-light);
+    display: block;
+    max-height: 60px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 /* Mermaid Diagram */
 .mermaid {
     background: #f8f9fa;
@@ -1578,7 +1726,7 @@ body {
             <h1>🧪 Agent Benchmark Report</h1>
             <div class="report-meta">
                 <span>📦 Version: 0.0.0-SNAPSHOT</span>
-                <span>📅 Generated: 2026-01-06T09:59:20&#43;01:00</span>
+                <span>📅 Generated: 2026-01-07T08:11:44&#43;01:00</span>
                 
                 
             </div>
@@ -1757,6 +1905,12 @@ body {
 
         
 
+
+        
+
+
+        
+
 <div class="sequence-section">
     <h4 class="subsection-title">Execution Flow</h4>
     <div class="mermaid">
@@ -1905,6 +2059,12 @@ sequenceDiagram
         
     </div>
 </div>
+
+
+        
+
+
+        
 
 
         
@@ -2132,6 +2292,12 @@ sequenceDiagram
 
 </body>
 </html>
+
+
+
+
+
+
 
 
 
