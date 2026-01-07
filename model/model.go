@@ -51,11 +51,23 @@ type TestConfiguration struct {
 // PROVIDER CONFIGURATION
 // ============================================================================
 
-// RateLimitConfig defines rate limiting settings for a provider
+// RateLimitConfig defines proactive rate limiting settings for a provider.
+// This throttles requests BEFORE they are sent to avoid hitting provider limits.
 type RateLimitConfig struct {
-	TPM                 int `yaml:"tpm"`                    // Tokens per minute limit
-	RPM                 int `yaml:"rpm"`                    // Requests per minute limit
-	MaxRateLimitRetries int `yaml:"max_rate_limit_retries"` // Max number of 429 retries before stopping (default: 1)
+	TPM int `yaml:"tpm"` // Tokens per minute limit (proactive throttling)
+	RPM int `yaml:"rpm"` // Requests per minute limit (proactive throttling)
+}
+
+// RetryConfig defines reactive error handling settings for a provider.
+// This controls how the system responds when errors like 429 are received.
+type RetryConfig struct {
+	// RetryOn429 enables automatic retry when receiving 429 (Too Many Requests) errors.
+	// By default (false), 429 is treated as a regular error and fails immediately.
+	// When enabled, the system will retry with exponential backoff.
+	RetryOn429 bool `yaml:"retry_on_429"`
+	// MaxRetries is the maximum number of retry attempts for 429 errors.
+	// Only used when RetryOn429 is enabled. Default: 3
+	MaxRetries int `yaml:"max_retries"`
 }
 
 type Provider struct {
@@ -70,7 +82,8 @@ type Provider struct {
 	Location        string          `yaml:"location"`         // e.g., 2025-01-01-preview
 	CredentialsPath string          `yaml:"credentials_path"` // e.g., 2025-01-01-preview
 	AuthType        string          `yaml:"auth_type"`        // For AZURE: "api_key" (default) or "entra_id"
-	RateLimits      RateLimitConfig `yaml:"rate_limits"`      // Optional rate limiting configuration
+	RateLimits      RateLimitConfig `yaml:"rate_limits"`      // Optional proactive rate limiting
+	Retry           RetryConfig     `yaml:"retry"`            // Optional reactive error handling (e.g., 429 retries)
 }
 
 type ProviderType string
@@ -127,7 +140,6 @@ type Agent struct {
 	Provider               string                 `yaml:"provider"`
 	SystemPrompt           string                 `yaml:"system_prompt,omitempty"`
 	ClarificationDetection ClarificationDetection `yaml:"clarification_detection,omitempty"`
-	SystemPrompt           string                 `yaml:"system_prompt,omitempty"`
 }
 
 type AgentServer struct {
@@ -258,20 +270,42 @@ func (a Assertion) Clone() Assertion {
 // ============================================================================
 
 type ExecutionResult struct {
-	TestName     string       `json:"testName"`
-	AgentName    string       `json:"agentName"`
-	ProviderType ProviderType `json:"providerType"`
-	StartTime    time.Time    `json:"startTime"`
-	EndTime      time.Time    `json:"endTime"`
-	Messages     []Message    `json:"messages"`
-	ToolCalls    []ToolCall   `json:"toolCalls"`
-	FinalOutput  string       `json:"finalOutput"`
-	TokensUsed   int          `json:"tokensUsed"`
-	LatencyMs    int64        `json:"latencyMs"`
-	Errors       []string     `json:"errors"`
-	SourceFile   string       `json:"sourceFile,omitempty"`  // Source test file (for suite runs)
-	SuiteName    string       `json:"suiteName,omitempty"`   // Suite name (for suite runs)
-	SessionName  string       `json:"sessionName,omitempty"` // Session name
+	TestName       string              `json:"testName"`
+	AgentName      string              `json:"agentName"`
+	ProviderType   ProviderType        `json:"providerType"`
+	StartTime      time.Time           `json:"startTime"`
+	EndTime        time.Time           `json:"endTime"`
+	Messages       []Message           `json:"messages"`
+	ToolCalls      []ToolCall          `json:"toolCalls"`
+	FinalOutput    string              `json:"finalOutput"`
+	TokensUsed     int                 `json:"tokensUsed"`
+	LatencyMs      int64               `json:"latencyMs"`
+	Errors         []string            `json:"errors"`
+	SourceFile          string               `json:"sourceFile,omitempty"`          // Source test file (for suite runs)
+	SuiteName           string               `json:"suiteName,omitempty"`           // Suite name (for suite runs)
+	SessionName         string               `json:"sessionName,omitempty"`         // Session name
+	RateLimitStats      *RateLimitStats      `json:"rateLimitStats,omitempty"`      // Rate limiting and 429 stats
+	ClarificationStats  *ClarificationStats  `json:"clarificationStats,omitempty"` // Clarification detection stats
+}
+
+// ClarificationStats tracks when the LLM asks for clarification instead of acting
+type ClarificationStats struct {
+	Count      int      `json:"count"`      // Number of clarification requests detected
+	Iterations []int    `json:"iterations"` // Which iterations had clarification requests
+	Examples   []string `json:"examples"`   // Sample text from clarification requests (truncated)
+}
+
+
+// RateLimitStats tracks statistics about rate limiting and 429 handling
+type RateLimitStats struct {
+	// Proactive throttling stats
+	ThrottleCount      int   `json:"throttleCount"`      // Number of times request was throttled
+	ThrottleWaitTimeMs int64 `json:"throttleWaitTimeMs"` // Total time spent waiting due to throttling (ms)
+	// Reactive 429 handling stats
+	RateLimitHits     int   `json:"rateLimitHits"`     // Number of 429 errors received
+	RetryCount        int   `json:"retryCount"`        // Number of retry attempts made
+	RetryWaitTimeMs   int64 `json:"retryWaitTimeMs"`   // Total time spent waiting for retries (ms)
+	RetrySuccessCount int   `json:"retrySuccessCount"` // Number of successful retries
 }
 
 type Message struct {

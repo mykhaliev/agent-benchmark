@@ -46,14 +46,14 @@ const (
 )
 
 type AgentConfig struct {
-	MaxIterations                      int
-	AddNotFinalResponses               bool
-	Verbose                            bool
-	ToolTimeout                        time.Duration
-	ClarificationDetectionEnabled      bool
-	ClarificationDetectionLevel        ClarificationLevel
-	ClarificationUseBuiltinPatterns    bool
-	ClarificationCustomPatterns        []*regexp.Regexp
+	MaxIterations                   int
+	AddNotFinalResponses            bool
+	Verbose                         bool
+	ToolTimeout                     time.Duration
+	ClarificationDetectionEnabled   bool
+	ClarificationDetectionLevel     ClarificationLevel
+	ClarificationUseBuiltinPatterns bool
+	ClarificationCustomPatterns     []*regexp.Regexp
 }
 
 func NewMCPAgent(
@@ -313,7 +313,7 @@ func (m *MCPAgent) GenerateContentWithConfig(
 			response += assistantText
 			// Check if LLM is asking for clarification instead of acting
 			if config.ClarificationDetectionEnabled && IsClarificationRequest(assistantText, config.ClarificationUseBuiltinPatterns, config.ClarificationCustomPatterns) {
-				logClarificationRequest(config.ClarificationDetectionLevel, iteration, assistantText, &result)
+				recordClarificationRequest(config.ClarificationDetectionLevel, iteration, assistantText, &result)
 			}
 			if config.Verbose {
 				logger.Logger.Debug("LLM finished conversation:",
@@ -397,6 +397,9 @@ func (m *MCPAgent) GenerateContentWithConfig(
 	result.LatencyMs = time.Since(startTime).Milliseconds()
 	result.TokensUsed = tokens
 
+	// Collect rate limit stats if the LLM provides them
+	result.RateLimitStats = m.collectRateLimitStats()
+
 	if config.Verbose {
 		logger.Logger.Info("Execution completed",
 			"iterations", iteration,
@@ -405,6 +408,14 @@ func (m *MCPAgent) GenerateContentWithConfig(
 			"tool_calls", len(result.ToolCalls),
 			"errors", len(result.Errors),
 			"approx_tokens", result.TokensUsed)
+		if result.RateLimitStats != nil && (result.RateLimitStats.ThrottleCount > 0 || result.RateLimitStats.RateLimitHits > 0) {
+			logger.Logger.Info("Rate limit stats",
+				"throttle_count", result.RateLimitStats.ThrottleCount,
+				"throttle_wait_ms", result.RateLimitStats.ThrottleWaitTimeMs,
+				"rate_limit_hits", result.RateLimitStats.RateLimitHits,
+				"retry_count", result.RateLimitStats.RetryCount,
+				"retry_success", result.RateLimitStats.RetrySuccessCount)
+		}
 	}
 
 	return result
@@ -605,11 +616,22 @@ func (m *MCPAgent) GenerateContentAsStreaming(
 		result.LatencyMs = time.Since(startTime).Milliseconds()
 		result.TokensUsed = tokens
 
+		// Collect rate limit stats if the LLM provides them
+		result.RateLimitStats = m.collectRateLimitStats()
+
 		if config.Verbose {
 			logger.Logger.Info("Streaming execution completed",
 				"iterations", iteration,
 				"duration_ms", result.LatencyMs,
 				"tool_calls", len(result.ToolCalls))
+			if result.RateLimitStats != nil && (result.RateLimitStats.ThrottleCount > 0 || result.RateLimitStats.RateLimitHits > 0) {
+				logger.Logger.Info("Rate limit stats",
+					"throttle_count", result.RateLimitStats.ThrottleCount,
+					"throttle_wait_ms", result.RateLimitStats.ThrottleWaitTimeMs,
+					"rate_limit_hits", result.RateLimitStats.RateLimitHits,
+					"retry_count", result.RateLimitStats.RetryCount,
+					"retry_success", result.RateLimitStats.RetrySuccessCount)
+			}
 		}
 
 		resultChan <- result
@@ -808,6 +830,24 @@ func initializeExecutionResult(agentName, provider string, startTime time.Time) 
 	}
 }
 
+// RateLimitStatsProvider is an interface for LLMs that can provide rate limit statistics
+type RateLimitStatsProvider interface {
+	GetStats() model.RateLimitStats
+	ResetStats()
+}
+
+// collectRateLimitStats retrieves rate limit stats from the LLM if it supports them
+func (m *MCPAgent) collectRateLimitStats() *model.RateLimitStats {
+	if provider, ok := m.LLMModel.(RateLimitStatsProvider); ok {
+		stats := provider.GetStats()
+		// Only include if there's something to report
+		if stats.ThrottleCount > 0 || stats.RateLimitHits > 0 || stats.RetryCount > 0 {
+			return &stats
+		}
+	}
+	return nil
+}
+
 func recordUserMessages(msgs *[]llms.MessageContent, result *model.ExecutionResult, verbose bool) {
 	userMsgCount := 0
 	for _, msg := range *msgs {
@@ -978,6 +1018,47 @@ func logClarificationRequest(level ClarificationLevel, iteration int, text strin
 	preview := TruncateString(text, 200)
 	msg := fmt.Sprintf("LLM asked for clarification instead of acting (iteration %d): %s", iteration, preview)
 
+	switch level {
+	case ClarificationLevelInfo:
+		logger.Logger.Info("LLM asked for clarification instead of acting",
+			"iteration", iteration,
+			"response_preview", preview)
+		// Info level does not add to errors
+	case ClarificationLevelError:
+		logger.Logger.Error("LLM asked for clarification instead of acting",
+			"iteration", iteration,
+			"response_preview", preview)
+		result.Errors = append(result.Errors, msg)
+	default: // warning is the default
+		logger.Logger.Warn("LLM asked for clarification instead of acting",
+			"iteration", iteration,
+			"response_preview", preview)
+		result.Errors = append(result.Errors, msg)
+	}
+}
+
+// recordClarificationRequest logs, records stats, and optionally adds to errors
+func recordClarificationRequest(level ClarificationLevel, iteration int, text string, result *model.ExecutionResult) {
+	preview := TruncateString(text, 200)
+	msg := fmt.Sprintf("LLM asked for clarification instead of acting (iteration %d): %s", iteration, preview)
+
+	// Initialize stats if needed
+	if result.ClarificationStats == nil {
+		result.ClarificationStats = &model.ClarificationStats{
+			Iterations: []int{},
+			Examples:   []string{},
+		}
+	}
+
+	// Record the detection
+	result.ClarificationStats.Count++
+	result.ClarificationStats.Iterations = append(result.ClarificationStats.Iterations, iteration)
+	// Keep up to 3 examples
+	if len(result.ClarificationStats.Examples) < 3 {
+		result.ClarificationStats.Examples = append(result.ClarificationStats.Examples, preview)
+	}
+
+	// Log and optionally add to errors based on level
 	switch level {
 	case ClarificationLevelInfo:
 		logger.Logger.Info("LLM asked for clarification instead of acting",

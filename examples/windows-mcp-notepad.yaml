@@ -35,9 +35,11 @@ providers:
     baseUrl: "{{AZURE_OPENAI_ENDPOINT}}"
     version: 2025-01-01-preview
     rate_limits:
-      tpm: 150000  # Tokens per minute limit
-      rpm: 900     # Requests per minute limit
-      max_rate_limit_retries: 1  # Stop after 1 rate limit retry
+      tpm: 150000  # Tokens per minute limit (proactive throttling)
+      rpm: 900     # Requests per minute limit (proactive throttling)
+    # retry:       # Uncomment to enable 429 retry handling
+    #   retry_on_429: true
+    #   max_retries: 3
 
   - name: azure-openai-gpt4o
     type: AZURE
@@ -46,9 +48,11 @@ providers:
     baseUrl: "{{AZURE_OPENAI_ENDPOINT}}"
     version: 2025-01-01-preview
     rate_limits:
-      tpm: 150000  # Tokens per minute limit
-      rpm: 900     # Requests per minute limit
-      max_rate_limit_retries: 1  # Stop after 1 rate limit retry
+      tpm: 150000  # Tokens per minute limit (proactive throttling)
+      rpm: 900     # Requests per minute limit (proactive throttling)
+    # retry:       # Uncomment to enable 429 retry handling
+    #   retry_on_429: true
+    #   max_retries: 3
 
 servers:
   - name: windows-mcp

@@ -44,19 +44,21 @@ func buildTestRun(testName string, agent AgentConfig, passed bool, opts TestRunO
 
 	return model.TestRun{
 		Execution: &model.ExecutionResult{
-			TestName:     testName,
-			AgentName:    agent.Name,
-			ProviderType: agent.Provider,
-			SessionName:  opts.SessionName,
-			SourceFile:   opts.SourceFile,
-			StartTime:    startTime,
-			EndTime:      endTime,
-			Messages:     opts.Messages,
-			ToolCalls:    opts.ToolCalls,
-			FinalOutput:  opts.FinalOutput,
-			LatencyMs:    int64(opts.DurationMs),
-			TokensUsed:   opts.TokensUsed,
-			Errors:       opts.Errors,
+			TestName:           testName,
+			AgentName:          agent.Name,
+			ProviderType:       agent.Provider,
+			SessionName:        opts.SessionName,
+			SourceFile:         opts.SourceFile,
+			StartTime:          startTime,
+			EndTime:            endTime,
+			Messages:           opts.Messages,
+			ToolCalls:          opts.ToolCalls,
+			FinalOutput:        opts.FinalOutput,
+			LatencyMs:          int64(opts.DurationMs),
+			TokensUsed:         opts.TokensUsed,
+			Errors:             opts.Errors,
+			RateLimitStats:     opts.RateLimitStats,
+			ClarificationStats: opts.ClarificationStats,
 		},
 		Assertions: opts.Assertions,
 		Passed:     passed,
@@ -64,16 +66,18 @@ func buildTestRun(testName string, agent AgentConfig, passed bool, opts TestRunO
 }
 
 type TestRunOpts struct {
-	StartTime   time.Time
-	DurationMs  int
-	SessionName string
-	SourceFile  string
-	Messages    []model.Message
-	ToolCalls   []model.ToolCall
-	FinalOutput string
-	TokensUsed  int
-	Errors      []string
-	Assertions  []model.AssertionResult
+	StartTime          time.Time
+	DurationMs         int
+	SessionName        string
+	SourceFile         string
+	Messages           []model.Message
+	ToolCalls          []model.ToolCall
+	FinalOutput        string
+	TokensUsed         int
+	Errors             []string
+	Assertions         []model.AssertionResult
+	RateLimitStats     *model.RateLimitStats
+	ClarificationStats *model.ClarificationStats
 }
 
 // Common tool calls
@@ -528,11 +532,25 @@ func createFailedTest() []model.TestRun {
 			ToolCalls: []model.ToolCall{
 				{Name: "db_connect", Parameters: map[string]interface{}{"host": "prod-db.example.com"}, Timestamp: baseTime.Add(500 * time.Millisecond)},
 			},
-			FinalOutput: "Connection failed.",
-			Errors:      []string{"Connection refused", "Timeout after 5s"},
+			FinalOutput: "Would you like me to try a different connection method?",
+			Errors:      []string{"Connection refused", "Timeout after 5s", "LLM asked for clarification instead of acting (iteration 2): Would you like me to try a different connection method?"},
 			Assertions: []model.AssertionResult{
 				assertToolCalled("db_connect"),
 				{Type: "no_error_messages", Passed: false, Message: "Errors encountered"},
+			},
+			ClarificationStats: &model.ClarificationStats{
+				Count:      2,
+				Iterations: []int{2, 4},
+				Examples: []string{
+					"Would you like me to try a different connection method?",
+					"Should I proceed with the backup connection string instead?",
+				},
+			},
+			RateLimitStats: &model.RateLimitStats{
+				RateLimitHits:     3,
+				RetryCount:        3,
+				RetryWaitTimeMs:   6000,
+				RetrySuccessCount: 2,
 			},
 		}),
 	}
