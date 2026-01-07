@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/mykhaliev/agent-benchmark/logger"
@@ -20,47 +21,70 @@ const (
 	defaultMaxBackoff     = 60 * time.Second
 )
 
-// RateLimitedLLM wraps an llms.Model with rate limiting capabilities
+// RateLimitStats tracks statistics about rate limiting and 429 handling
+type RateLimitStats struct {
+	mu sync.Mutex
+	// Proactive throttling stats
+	ThrottleCount    int           `json:"throttleCount"`    // Number of times request was throttled
+	ThrottleWaitTime time.Duration `json:"throttleWaitTime"` // Total time spent waiting due to throttling
+	// Reactive 429 handling stats
+	RateLimitHits     int           `json:"rateLimitHits"`     // Number of 429 errors received
+	RetryCount        int           `json:"retryCount"`        // Number of retry attempts made
+	RetryWaitTime     time.Duration `json:"retryWaitTime"`     // Total time spent waiting for retries
+	RetrySuccessCount int           `json:"retrySuccessCount"` // Number of successful retries
+}
+
+// RateLimitedLLM wraps an llms.Model with rate limiting and optional 429 retry capabilities
 type RateLimitedLLM struct {
 	wrapped    llms.Model
-	tpmLimiter *rate.Limiter // Tokens per minute limiter
-	rpmLimiter *rate.Limiter // Requests per minute limiter
+	tpmLimiter *rate.Limiter // Tokens per minute limiter (proactive)
+	rpmLimiter *rate.Limiter // Requests per minute limiter (proactive)
 	tpmLimit   int
 	rpmLimit   int
-	maxRetries int // Max number of 429 retries before stopping
+	// 429 retry handling (reactive) - separate from rate limiting
+	retryOn429 bool // Whether to retry on 429 errors (default: false)
+	maxRetries int  // Max number of 429 retries (only used if retryOn429 is true)
+	// Statistics tracking
+	stats RateLimitStats
 }
 
 // NewRateLimitedLLM creates a new rate-limited wrapper around an LLM
-// tpm: tokens per minute limit (0 means no limit)
-// rpm: requests per minute limit (0 means no limit)
-func NewRateLimitedLLM(wrapped llms.Model, config model.RateLimitConfig) *RateLimitedLLM {
-	// Default to 1 retry if not specified
-	maxRetries := config.MaxRateLimitRetries
-	if maxRetries <= 0 {
-		maxRetries = 1
+// rateLimitConfig: proactive rate limiting (TPM/RPM throttling)
+// retryConfig: reactive error handling (429 retry behavior)
+func NewRateLimitedLLM(wrapped llms.Model, rateLimitConfig model.RateLimitConfig, retryConfig model.RetryConfig) *RateLimitedLLM {
+	// Default max retries to 3 if retry is enabled but max not specified
+	maxRetries := retryConfig.MaxRetries
+	if retryConfig.RetryOn429 && maxRetries <= 0 {
+		maxRetries = 3
 	}
 
 	rl := &RateLimitedLLM{
 		wrapped:    wrapped,
-		tpmLimit:   config.TPM,
-		rpmLimit:   config.RPM,
+		tpmLimit:   rateLimitConfig.TPM,
+		rpmLimit:   rateLimitConfig.RPM,
+		retryOn429: retryConfig.RetryOn429,
 		maxRetries: maxRetries,
 	}
 
-	// Create TPM limiter if configured
+	// Create TPM limiter if configured (proactive rate limiting)
 	// Rate is tokens per second, burst is the full minute's worth
-	if config.TPM > 0 {
-		tokensPerSecond := float64(config.TPM) / 60.0
-		rl.tpmLimiter = rate.NewLimiter(rate.Limit(tokensPerSecond), config.TPM)
-		logger.Logger.Info("Rate limiter configured", "type", "TPM", "limit", config.TPM, "tokens_per_second", tokensPerSecond)
+	if rateLimitConfig.TPM > 0 {
+		tokensPerSecond := float64(rateLimitConfig.TPM) / 60.0
+		rl.tpmLimiter = rate.NewLimiter(rate.Limit(tokensPerSecond), rateLimitConfig.TPM)
+		logger.Logger.Info("Rate limiter configured", "type", "TPM", "limit", rateLimitConfig.TPM, "tokens_per_second", tokensPerSecond)
 	}
 
-	// Create RPM limiter if configured
+	// Create RPM limiter if configured (proactive rate limiting)
 	// Rate is requests per second, burst is the full minute's worth
-	if config.RPM > 0 {
-		requestsPerSecond := float64(config.RPM) / 60.0
-		rl.rpmLimiter = rate.NewLimiter(rate.Limit(requestsPerSecond), config.RPM)
-		logger.Logger.Info("Rate limiter configured", "type", "RPM", "limit", config.RPM, "requests_per_second", requestsPerSecond)
+	if rateLimitConfig.RPM > 0 {
+		requestsPerSecond := float64(rateLimitConfig.RPM) / 60.0
+		rl.rpmLimiter = rate.NewLimiter(rate.Limit(requestsPerSecond), rateLimitConfig.RPM)
+		logger.Logger.Info("Rate limiter configured", "type", "RPM", "limit", rateLimitConfig.RPM, "requests_per_second", requestsPerSecond)
+	}
+
+	// Log 429 retry configuration if enabled
+	if retryConfig.RetryOn429 {
+		logger.Logger.Info("429 retry handling enabled", "max_retries", maxRetries)
 	}
 
 	return rl
@@ -68,11 +92,16 @@ func NewRateLimitedLLM(wrapped llms.Model, config model.RateLimitConfig) *RateLi
 
 // GenerateContent implements llms.Model interface with rate limiting and retry logic
 func (rl *RateLimitedLLM) GenerateContent(ctx context.Context, messages []llms.MessageContent, options ...llms.CallOption) (*llms.ContentResponse, error) {
-	// Wait for RPM limit (one request)
+	// Wait for RPM limit (one request) - track throttle time
 	if rl.rpmLimiter != nil {
 		logger.Logger.Debug("Waiting for RPM rate limit")
+		throttleStart := time.Now()
 		if err := rl.rpmLimiter.Wait(ctx); err != nil {
 			return nil, err
+		}
+		throttleTime := time.Since(throttleStart)
+		if throttleTime > 10*time.Millisecond { // Only count significant waits
+			rl.recordThrottle(throttleTime)
 		}
 	}
 
@@ -83,50 +112,59 @@ func (rl *RateLimitedLLM) GenerateContent(ctx context.Context, messages []llms.M
 
 	if rl.tpmLimiter != nil && estimatedInputTokens > 0 {
 		logger.Logger.Debug("Waiting for TPM rate limit", "estimated_tokens", estimatedInputTokens)
+		throttleStart := time.Now()
 		if err := rl.tpmLimiter.WaitN(ctx, estimatedInputTokens); err != nil {
 			return nil, err
 		}
+		throttleTime := time.Since(throttleStart)
+		if throttleTime > 10*time.Millisecond { // Only count significant waits
+			rl.recordThrottle(throttleTime)
+		}
 	}
 
-	// Retry loop with exponential backoff for 429 errors
-	var response *llms.ContentResponse
-	var err error
-	backoff := defaultInitialBackoff
+	// Make the API call
+	start := time.Now()
+	response, err := rl.wrapped.GenerateContent(ctx, messages, options...)
+	elapsed := time.Since(start)
 
-	for attempt := 0; attempt <= rl.maxRetries; attempt++ {
-		start := time.Now()
-		response, err = rl.wrapped.GenerateContent(ctx, messages, options...)
-		elapsed := time.Since(start)
-
-		if err == nil {
-			// Success - adjust token limiter and return
-			if response != nil && rl.tpmLimiter != nil {
-				actualTokens := rl.getActualTokens(response)
-				if actualTokens > estimatedInputTokens {
-					additional := actualTokens - estimatedInputTokens
-					reservation := rl.tpmLimiter.ReserveN(time.Now(), additional)
-					if reservation.OK() {
-						logger.Logger.Debug("Reserved additional tokens",
-							"estimated", estimatedInputTokens,
-							"actual", actualTokens,
-							"additional", additional,
-							"delay", reservation.Delay())
-					}
+	if err == nil {
+		// Success - adjust token limiter and return
+		if response != nil && rl.tpmLimiter != nil {
+			actualTokens := rl.getActualTokens(response)
+			if actualTokens > estimatedInputTokens {
+				additional := actualTokens - estimatedInputTokens
+				reservation := rl.tpmLimiter.ReserveN(time.Now(), additional)
+				if reservation.OK() {
+					logger.Logger.Debug("Reserved additional tokens",
+						"estimated", estimatedInputTokens,
+						"actual", actualTokens,
+						"additional", additional,
+						"delay", reservation.Delay())
 				}
-				logger.Logger.Debug("Request completed",
-					"estimated_tokens", estimatedInputTokens,
-					"actual_tokens", rl.getActualTokens(response),
-					"duration", elapsed)
 			}
-			return response, nil
+			logger.Logger.Debug("Request completed",
+				"estimated_tokens", estimatedInputTokens,
+				"actual_tokens", rl.getActualTokens(response),
+				"duration", elapsed)
 		}
+		return response, nil
+	}
 
-		// Check if this is a rate limit error (429)
-		if !rl.isRateLimitError(err) {
-			// Not a rate limit error, return immediately
-			return nil, err
+	// Check if this is a 429 error and if retry is enabled
+	if !rl.retryOn429 || !rl.isRateLimitError(err) {
+		// Track 429 hit even if retry is disabled
+		if rl.isRateLimitError(err) {
+			rl.recordRateLimitHit()
 		}
+		// 429 retry not enabled or not a rate limit error - return immediately
+		return nil, err
+	}
 
+	// 429 retry handling is enabled - record the hit and attempt retries
+	rl.recordRateLimitHit()
+
+	backoff := defaultInitialBackoff
+	for attempt := 1; attempt <= rl.maxRetries; attempt++ {
 		// Extract retry-after duration from error message
 		retryAfter := rl.extractRetryAfter(err)
 		if retryAfter > 0 {
@@ -138,30 +176,108 @@ func (rl *RateLimitedLLM) GenerateContent(ctx context.Context, messages []llms.M
 			backoff = defaultMaxBackoff
 		}
 
-		if attempt < rl.maxRetries {
-			logger.Logger.Warn("Rate limit hit, waiting before retry",
-				"attempt", attempt+1,
-				"max_retries", rl.maxRetries,
-				"wait_seconds", backoff.Seconds(),
-				"error", err.Error())
+		logger.Logger.Warn("429 rate limit hit, retrying",
+			"attempt", attempt,
+			"max_retries", rl.maxRetries,
+			"wait_seconds", backoff.Seconds(),
+			"error", err.Error())
 
-			// Wait before retry
-			select {
-			case <-ctx.Done():
-				return nil, ctx.Err()
-			case <-time.After(backoff):
-			}
+		// Wait before retry - track retry wait time
+		retryWaitStart := time.Now()
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-time.After(backoff):
+		}
+		retryWaitTime := time.Since(retryWaitStart)
+		rl.recordRetry(retryWaitTime)
 
-			// Exponential backoff for next attempt (if retry-after wasn't specified)
-			if retryAfter == 0 {
-				backoff *= 2
-			}
+		// Retry the request
+		response, err = rl.wrapped.GenerateContent(ctx, messages, options...)
+		if err == nil {
+			logger.Logger.Info("Request succeeded after 429 retry", "attempt", attempt)
+			rl.recordRetrySuccess()
+			return response, nil
+		}
+
+		// If not a rate limit error anymore, return immediately
+		if !rl.isRateLimitError(err) {
+			return nil, err
+		}
+
+		// Record another 429 hit
+		rl.recordRateLimitHit()
+
+		// Exponential backoff for next attempt (if retry-after wasn't specified)
+		if retryAfter == 0 {
+			backoff *= 2
 		}
 	}
 
 	// All retries exhausted
-	logger.Logger.Error("Rate limit retries exhausted", "max_retries", rl.maxRetries, "error", err.Error())
+	logger.Logger.Error("429 retries exhausted", "max_retries", rl.maxRetries, "error", err.Error())
 	return nil, err
+}
+
+// Stats tracking methods
+func (rl *RateLimitedLLM) recordThrottle(waitTime time.Duration) {
+	rl.stats.mu.Lock()
+	defer rl.stats.mu.Unlock()
+	rl.stats.ThrottleCount++
+	rl.stats.ThrottleWaitTime += waitTime
+	logger.Logger.Debug("Throttle recorded", "count", rl.stats.ThrottleCount, "wait_time", waitTime)
+}
+
+func (rl *RateLimitedLLM) recordRateLimitHit() {
+	rl.stats.mu.Lock()
+	defer rl.stats.mu.Unlock()
+	rl.stats.RateLimitHits++
+	logger.Logger.Debug("429 hit recorded", "total_hits", rl.stats.RateLimitHits)
+}
+
+func (rl *RateLimitedLLM) recordRetry(waitTime time.Duration) {
+	rl.stats.mu.Lock()
+	defer rl.stats.mu.Unlock()
+	rl.stats.RetryCount++
+	rl.stats.RetryWaitTime += waitTime
+}
+
+func (rl *RateLimitedLLM) recordRetrySuccess() {
+	rl.stats.mu.Lock()
+	defer rl.stats.mu.Unlock()
+	rl.stats.RetrySuccessCount++
+}
+
+// GetStats returns a copy of the current rate limit statistics
+func (rl *RateLimitedLLM) GetStats() model.RateLimitStats {
+	rl.stats.mu.Lock()
+	defer rl.stats.mu.Unlock()
+	return model.RateLimitStats{
+		ThrottleCount:      rl.stats.ThrottleCount,
+		ThrottleWaitTimeMs: rl.stats.ThrottleWaitTime.Milliseconds(),
+		RateLimitHits:      rl.stats.RateLimitHits,
+		RetryCount:         rl.stats.RetryCount,
+		RetryWaitTimeMs:    rl.stats.RetryWaitTime.Milliseconds(),
+		RetrySuccessCount:  rl.stats.RetrySuccessCount,
+	}
+}
+
+// ResetStats clears all statistics
+func (rl *RateLimitedLLM) ResetStats() {
+	rl.stats.mu.Lock()
+	defer rl.stats.mu.Unlock()
+	rl.stats.ThrottleCount = 0
+	rl.stats.ThrottleWaitTime = 0
+	rl.stats.RateLimitHits = 0
+	rl.stats.RetryCount = 0
+	rl.stats.RetryWaitTime = 0
+	rl.stats.RetrySuccessCount = 0
+}
+
+// RateLimitStatsProvider is an interface for LLMs that can provide rate limit statistics
+type RateLimitStatsProvider interface {
+	GetStats() model.RateLimitStats
+	ResetStats()
 }
 
 // isRateLimitError checks if the error is a 429 rate limit error
@@ -279,7 +395,17 @@ func (rl *RateLimitedLLM) Call(ctx context.Context, prompt string, options ...ll
 	return response.Choices[0].Content, nil
 }
 
-// HasRateLimiting returns true if any rate limiting is configured
+// HasRateLimiting returns true if any proactive rate limiting is configured
 func HasRateLimiting(config model.RateLimitConfig) bool {
 	return config.TPM > 0 || config.RPM > 0
+}
+
+// HasRetryOn429 returns true if 429 retry handling is enabled
+func HasRetryOn429(config model.RetryConfig) bool {
+	return config.RetryOn429
+}
+
+// NeedsLLMWrapper returns true if the LLM needs to be wrapped for rate limiting or retry handling
+func NeedsLLMWrapper(rateLimits model.RateLimitConfig, retry model.RetryConfig) bool {
+	return HasRateLimiting(rateLimits) || HasRetryOn429(retry)
 }

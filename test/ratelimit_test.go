@@ -77,8 +77,9 @@ func TestRateLimitedLLM_GenerateContent_NoLimits(t *testing.T) {
 	mockLLM.On("GenerateContent", mock.Anything, mock.Anything, mock.Anything).Return(expectedResponse, nil)
 
 	// No rate limits configured
-	config := model.RateLimitConfig{}
-	rateLimitedLLM := engine.NewRateLimitedLLM(mockLLM, config)
+	rateLimitConfig := model.RateLimitConfig{}
+	retryConfig := model.RetryConfig{}
+	rateLimitedLLM := engine.NewRateLimitedLLM(mockLLM, rateLimitConfig, retryConfig)
 
 	messages := []llms.MessageContent{
 		{
@@ -108,8 +109,9 @@ func TestRateLimitedLLM_GenerateContent_WithRPMLimit(t *testing.T) {
 	mockLLM.On("GenerateContent", mock.Anything, mock.Anything, mock.Anything).Return(expectedResponse, nil)
 
 	// Configure RPM limit: 60 requests per minute = 1 per second
-	config := model.RateLimitConfig{RPM: 60}
-	rateLimitedLLM := engine.NewRateLimitedLLM(mockLLM, config)
+	rateLimitConfig := model.RateLimitConfig{RPM: 60}
+	retryConfig := model.RetryConfig{}
+	rateLimitedLLM := engine.NewRateLimitedLLM(mockLLM, rateLimitConfig, retryConfig)
 
 	messages := []llms.MessageContent{
 		{
@@ -147,8 +149,9 @@ func TestRateLimitedLLM_GenerateContent_RPMBlocking(t *testing.T) {
 	// Very low RPM limit: 6 requests per minute = 0.1 per second
 	// This means after burst is exhausted, we wait ~10 seconds per request
 	// But with burst=6, we can make 6 requests immediately, then we wait
-	config := model.RateLimitConfig{RPM: 6}
-	rateLimitedLLM := engine.NewRateLimitedLLM(mockLLM, config)
+	rateLimitConfig := model.RateLimitConfig{RPM: 6}
+	retryConfig := model.RetryConfig{}
+	rateLimitedLLM := engine.NewRateLimitedLLM(mockLLM, rateLimitConfig, retryConfig)
 
 	messages := []llms.MessageContent{
 		{
@@ -196,8 +199,9 @@ func TestRateLimitedLLM_GenerateContent_WithTPMLimit(t *testing.T) {
 	mockLLM.On("GenerateContent", mock.Anything, mock.Anything, mock.Anything).Return(expectedResponse, nil)
 
 	// Configure TPM limit: 600 tokens per minute = 10 per second
-	config := model.RateLimitConfig{TPM: 600}
-	rateLimitedLLM := engine.NewRateLimitedLLM(mockLLM, config)
+	rateLimitConfig := model.RateLimitConfig{TPM: 600}
+	retryConfig := model.RetryConfig{}
+	rateLimitedLLM := engine.NewRateLimitedLLM(mockLLM, rateLimitConfig, retryConfig)
 
 	messages := []llms.MessageContent{
 		{
@@ -225,8 +229,9 @@ func TestRateLimitedLLM_Call(t *testing.T) {
 	}
 	mockLLM.On("GenerateContent", mock.Anything, mock.Anything, mock.Anything).Return(expectedResponse, nil)
 
-	config := model.RateLimitConfig{RPM: 60}
-	rateLimitedLLM := engine.NewRateLimitedLLM(mockLLM, config)
+	rateLimitConfig := model.RateLimitConfig{RPM: 60}
+	retryConfig := model.RetryConfig{}
+	rateLimitedLLM := engine.NewRateLimitedLLM(mockLLM, rateLimitConfig, retryConfig)
 
 	ctx := context.Background()
 	result, err := rateLimitedLLM.Call(ctx, "Hello")
@@ -248,8 +253,9 @@ func TestRateLimitedLLM_ContextCancellation(t *testing.T) {
 	mockLLM.On("GenerateContent", mock.Anything, mock.Anything, mock.Anything).Return(expectedResponse, nil).Maybe()
 
 	// Very low RPM to force waiting
-	config := model.RateLimitConfig{RPM: 1}
-	rateLimitedLLM := engine.NewRateLimitedLLM(mockLLM, config)
+	rateLimitConfig := model.RateLimitConfig{RPM: 1}
+	retryConfig := model.RetryConfig{}
+	rateLimitedLLM := engine.NewRateLimitedLLM(mockLLM, rateLimitConfig, retryConfig)
 
 	messages := []llms.MessageContent{
 		{
@@ -289,8 +295,9 @@ func TestRateLimitedLLM_ConcurrentAccess(t *testing.T) {
 		Return(expectedResponse, nil)
 
 	// High limits to allow all concurrent requests
-	config := model.RateLimitConfig{RPM: 1000, TPM: 100000}
-	rateLimitedLLM := engine.NewRateLimitedLLM(mockLLM, config)
+	rateLimitConfig := model.RateLimitConfig{RPM: 1000, TPM: 100000}
+	retryConfig := model.RetryConfig{}
+	rateLimitedLLM := engine.NewRateLimitedLLM(mockLLM, rateLimitConfig, retryConfig)
 
 	messages := []llms.MessageContent{
 		{
@@ -331,38 +338,47 @@ func TestRateLimitedLLM_ConcurrentAccess(t *testing.T) {
 // ============================================================================
 
 func TestRateLimitConfig_YAMLParsing(t *testing.T) {
-	// Test that RateLimitConfig is properly parsed from YAML
-	config := model.RateLimitConfig{
-		TPM:                 30000,
-		RPM:                 60,
-		MaxRateLimitRetries: 3,
+	// Test that RateLimitConfig and RetryConfig are properly parsed from YAML
+	rateLimitConfig := model.RateLimitConfig{
+		TPM: 30000,
+		RPM: 60,
 	}
 
-	assert.Equal(t, 30000, config.TPM)
-	assert.Equal(t, 60, config.RPM)
-	assert.Equal(t, 3, config.MaxRateLimitRetries)
+	retryConfig := model.RetryConfig{
+		RetryOn429: true,
+		MaxRetries: 3,
+	}
+
+	assert.Equal(t, 30000, rateLimitConfig.TPM)
+	assert.Equal(t, 60, rateLimitConfig.RPM)
+	assert.True(t, retryConfig.RetryOn429)
+	assert.Equal(t, 3, retryConfig.MaxRetries)
 }
 
-func TestRateLimitConfig_MaxRateLimitRetries(t *testing.T) {
+func TestRetryConfig_RetryOn429(t *testing.T) {
 	tests := []struct {
-		name          string
-		config        model.RateLimitConfig
-		expectedCalls int // Number of times GenerateContent should be called before giving up
+		name            string
+		rateLimitConfig model.RateLimitConfig
+		retryConfig     model.RetryConfig
+		expectedCalls   int // Number of times GenerateContent should be called before giving up
 	}{
 		{
-			name:          "Default retries (0 means 1)",
-			config:        model.RateLimitConfig{RPM: 60, MaxRateLimitRetries: 0},
-			expectedCalls: 2, // Initial call + 1 retry = 2 calls
+			name:            "429 retry disabled (default) - no retries",
+			rateLimitConfig: model.RateLimitConfig{RPM: 60},
+			retryConfig:     model.RetryConfig{RetryOn429: false},
+			expectedCalls:   1, // Only initial call, no retries
 		},
 		{
-			name:          "Explicit 1 retry",
-			config:        model.RateLimitConfig{RPM: 60, MaxRateLimitRetries: 1},
-			expectedCalls: 2, // Initial call + 1 retry = 2 calls
+			name:            "429 retry enabled with default max retries",
+			rateLimitConfig: model.RateLimitConfig{RPM: 60},
+			retryConfig:     model.RetryConfig{RetryOn429: true}, // MaxRetries defaults to 3
+			expectedCalls:   4,                                   // Initial call + 3 retries = 4 calls
 		},
 		{
-			name:          "3 retries",
-			config:        model.RateLimitConfig{RPM: 60, MaxRateLimitRetries: 3},
-			expectedCalls: 4, // Initial call + 3 retries = 4 calls
+			name:            "429 retry enabled with explicit max retries",
+			rateLimitConfig: model.RateLimitConfig{RPM: 60},
+			retryConfig:     model.RetryConfig{RetryOn429: true, MaxRetries: 2},
+			expectedCalls:   3, // Initial call + 2 retries = 3 calls
 		},
 	}
 
@@ -380,7 +396,7 @@ func TestRateLimitConfig_MaxRateLimitRetries(t *testing.T) {
 				}).
 				Return((*llms.ContentResponse)(nil), rateLimitErr)
 
-			rateLimitedLLM := engine.NewRateLimitedLLM(mockLLM, tt.config)
+			rateLimitedLLM := engine.NewRateLimitedLLM(mockLLM, tt.rateLimitConfig, tt.retryConfig)
 
 			messages := []llms.MessageContent{
 				{
@@ -399,21 +415,26 @@ func TestRateLimitConfig_MaxRateLimitRetries(t *testing.T) {
 }
 
 func TestProvider_WithRateLimits(t *testing.T) {
-	// Test that Provider struct properly holds RateLimitConfig
+	// Test that Provider struct properly holds RateLimitConfig and RetryConfig
 	provider := model.Provider{
 		Name:  "test-provider",
 		Type:  model.ProviderOpenAI,
 		Token: "test-token",
 		Model: "gpt-4",
 		RateLimits: model.RateLimitConfig{
-			TPM:                 50000,
-			RPM:                 100,
-			MaxRateLimitRetries: 5,
+			TPM: 50000,
+			RPM: 100,
+		},
+		Retry: model.RetryConfig{
+			RetryOn429: true,
+			MaxRetries: 5,
 		},
 	}
 
 	assert.Equal(t, 50000, provider.RateLimits.TPM)
 	assert.Equal(t, 100, provider.RateLimits.RPM)
-	assert.Equal(t, 5, provider.RateLimits.MaxRateLimitRetries)
+	assert.True(t, provider.Retry.RetryOn429)
+	assert.Equal(t, 5, provider.Retry.MaxRetries)
 	assert.True(t, engine.HasRateLimiting(provider.RateLimits))
+	assert.True(t, engine.HasRetryOn429(provider.Retry))
 }

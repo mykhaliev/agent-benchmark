@@ -574,13 +574,14 @@ func CreateProvider(ctx context.Context, p model.Provider) (llms.Model, error) {
 		return nil, fmt.Errorf("provider created but model is nil")
 	}
 
-	// Wrap with rate limiter if configured
-	if HasRateLimiting(p.RateLimits) {
-		logger.Logger.Info("Wrapping provider with rate limiter",
+	// Wrap with rate limiter and/or retry handler if configured
+	if NeedsLLMWrapper(p.RateLimits, p.Retry) {
+		logger.Logger.Info("Wrapping provider with rate limiter/retry handler",
 			"name", p.Name,
 			"tpm", p.RateLimits.TPM,
-			"rpm", p.RateLimits.RPM)
-		llmModel = NewRateLimitedLLM(llmModel, p.RateLimits)
+			"rpm", p.RateLimits.RPM,
+			"retry_on_429", p.Retry.RetryOn429)
+		llmModel = NewRateLimitedLLM(llmModel, p.RateLimits, p.Retry)
 	}
 
 	return llmModel, nil
@@ -782,6 +783,12 @@ func runTests(
 		agentDefMap[a.Name] = a
 	}
 
+	// Build a map of provider configurations for quick lookup
+	providerDefMap := make(map[string]model.Provider)
+	for _, p := range testConfig.Providers {
+		providerDefMap[p.Name] = p
+	}
+
 	for _, agentConfig := range agents {
 		ag, ok := agents[agentConfig.Name]
 		if !ok {
@@ -918,6 +925,8 @@ func runTests(
 				executionResult.SourceFile = sourceFile
 				executionResult.SuiteName = suiteName
 				executionResult.SessionName = session.Name
+
+
 				duration := time.Since(startTime)
 
 				logger.Logger.Info("Test execution completed",
