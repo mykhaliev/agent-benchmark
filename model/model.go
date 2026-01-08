@@ -899,7 +899,7 @@ func (e *AssertionEvaluator) evalNoHallucinatedTools(a Assertion) AssertionResul
 	return AssertionResult{
 		Type:    a.Type,
 		Passed:  true,
-		Message: fmt.Sprintf("No hallucinated tools"),
+		Message: "No hallucinated tools",
 	}
 }
 

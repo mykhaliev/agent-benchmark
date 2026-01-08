@@ -69,6 +69,10 @@ type AdaptiveFlags struct {
 	SingleTestMode  bool // len(tests) == 1 (show details directly)
 	SingleAgentMode bool // len(agents) == 1 (no comparison needed)
 
+	// Single agent info (when SingleAgentMode is true)
+	SingleAgentName     string
+	SingleAgentProvider string
+
 	// Counts for display
 	FileCount    int
 	SessionCount int
@@ -231,6 +235,8 @@ type FileGroupView struct {
 	FailedTests      int
 	SuccessRate      float64
 	SuccessRateClass string
+	TotalDuration    float64 // Total duration in seconds
+	TotalTokens      int
 	TestGroups       []TestGroupView
 	SessionGroups    []SessionGroupView // Sessions within this file
 }
@@ -244,8 +250,11 @@ type SessionGroupView struct {
 	FailedTests      int
 	SuccessRate      float64
 	SuccessRateClass string
+	TotalDuration    float64 // Total duration in seconds
+	TotalTokens      int
+	AgentCount       int     // Number of distinct agents in this session
 	TestGroups       []TestGroupView
-	SequenceDiagram  string // Mermaid diagram showing all tests in session
+	SequenceDiagram  string // Mermaid diagram showing all tests in session (only for single-agent)
 }
 
 // TestRunView is a view model for individual test runs
@@ -317,6 +326,7 @@ type Generator struct {
 func NewGenerator() (*Generator, error) {
 	funcMap := template.FuncMap{
 		"formatNumber": formatNumber,
+		"lower": strings.ToLower,
 		"getMatrixCell": func(cells map[string]map[string]MatrixCell, testKey, agentName string) MatrixCell {
 			if row, ok := cells[testKey]; ok {
 				if cell, ok := row[agentName]; ok {
@@ -761,19 +771,35 @@ func buildAdaptiveView(results []model.TestRun) AdaptiveView {
 	// Only show session headers if multiple sessions OR single named session (not "default")
 	showSessionHeaders := sessionCount > 1 || (sessionCount == 1 && !sessionSet["default"])
 
+	// Get single agent info if applicable
+	singleAgentName := ""
+	singleAgentProvider := ""
+	if agentCount == 1 {
+		for agent := range agentSet {
+			singleAgentName = agent
+			break
+		}
+		// Get provider from first result
+		if len(results) > 0 {
+			singleAgentProvider = string(results[0].Execution.ProviderType)
+		}
+	}
+
 	flags := AdaptiveFlags{
-		ShowMatrix:         agentCount > 1,
-		ShowLeaderboard:    agentCount > 1,
-		ShowTestOverview:   testCount > 1 && agentCount == 1,
-		ShowFileHeaders:    showFileHeaders,
-		ShowSessionHeaders: showSessionHeaders,
-		ShowInlineAgents:   agentCount > 1,
-		SingleTestMode:     testCount == 1,
-		SingleAgentMode:    agentCount == 1,
-		FileCount:          fileCount,
-		SessionCount:       sessionCount,
-		TestCount:          testCount,
-		AgentCount:         agentCount,
+		ShowMatrix:          agentCount > 1,
+		ShowLeaderboard:     agentCount > 1,
+		ShowTestOverview:    testCount > 1 && agentCount == 1,
+		ShowFileHeaders:     showFileHeaders,
+		ShowSessionHeaders:  showSessionHeaders,
+		ShowInlineAgents:    agentCount > 1,
+		SingleTestMode:      testCount == 1,
+		SingleAgentMode:     agentCount == 1,
+		SingleAgentName:     singleAgentName,
+		SingleAgentProvider: singleAgentProvider,
+		FileCount:           fileCount,
+		SessionCount:        sessionCount,
+		TestCount:           testCount,
+		AgentCount:          agentCount,
 	}
 
 	return AdaptiveView{
@@ -1199,6 +1225,10 @@ func buildFileGroups(results []model.TestRun) []FileGroupView {
 		// Build test run view (same logic as buildTestGroups)
 		duration := run.Execution.EndTime.Sub(run.Execution.StartTime)
 
+		// Accumulate duration and tokens
+		fileGroup.TotalDuration += duration.Seconds()
+		fileGroup.TotalTokens += run.Execution.TokensUsed
+
 		assertions := make([]AssertionView, len(run.Assertions))
 		for i, a := range run.Assertions {
 			detailsJSON := ""
@@ -1276,6 +1306,7 @@ func buildSessionGroups(results []model.TestRun) []SessionGroupView {
 	sessionMap := make(map[string]*SessionGroupView)
 	sessionTestMap := make(map[string]map[string]*TestGroupView) // [sessionName][testName]
 	sessionRuns := make(map[string][]model.TestRun)              // Collect runs for sequence diagrams
+	sessionAgents := make(map[string]map[string]bool)            // Track agents per session
 
 	for _, run := range results {
 		sessionName := run.Execution.SessionName
@@ -1285,6 +1316,12 @@ func buildSessionGroups(results []model.TestRun) []SessionGroupView {
 
 		// Collect runs for sequence diagram
 		sessionRuns[sessionName] = append(sessionRuns[sessionName], run)
+
+		// Track agents per session
+		if sessionAgents[sessionName] == nil {
+			sessionAgents[sessionName] = make(map[string]bool)
+		}
+		sessionAgents[sessionName][run.Execution.AgentName] = true
 
 		// Initialize session group if needed
 		if _, exists := sessionMap[sessionName]; !exists {
@@ -1308,6 +1345,9 @@ func buildSessionGroups(results []model.TestRun) []SessionGroupView {
 			}
 		}
 
+		// Build test run view
+		duration := run.Execution.EndTime.Sub(run.Execution.StartTime)
+
 		// Update session-level stats
 		sessionGroup.TotalTests++
 		if run.Passed {
@@ -1315,9 +1355,8 @@ func buildSessionGroups(results []model.TestRun) []SessionGroupView {
 		} else {
 			sessionGroup.FailedTests++
 		}
-
-		// Build test run view
-		duration := run.Execution.EndTime.Sub(run.Execution.StartTime)
+		sessionGroup.TotalDuration += duration.Seconds()
+		sessionGroup.TotalTokens += run.Execution.TokensUsed
 
 		assertions := make([]AssertionView, len(run.Assertions))
 		for i, a := range run.Assertions {
@@ -1370,8 +1409,11 @@ func buildSessionGroups(results []model.TestRun) []SessionGroupView {
 			sessionGroup.SuccessRateClass = getSuccessRateClass(sessionGroup.SuccessRate)
 		}
 
-		// Build session-level sequence diagram
-		if runs, ok := sessionRuns[sessionName]; ok {
+		// Set agent count for this session
+		sessionGroup.AgentCount = len(sessionAgents[sessionName])
+
+		// Build session-level sequence diagram only for single-agent sessions
+		if runs, ok := sessionRuns[sessionName]; ok && sessionGroup.AgentCount == 1 {
 			sessionGroup.SequenceDiagram = buildSessionSequenceDiagram(runs)
 		}
 
@@ -1621,7 +1663,7 @@ func buildSequenceDiagram(run model.TestRun) string {
 		}
 
 		// Check if there was a result
-		if tc.Result.Content != nil && len(tc.Result.Content) > 0 {
+		if len(tc.Result.Content) > 0 {
 			sb.WriteString("    M-->>A: result\n")
 		}
 	}
@@ -1696,7 +1738,7 @@ func buildSessionSequenceDiagram(runs []model.TestRun) string {
 		// Tool calls
 		for _, tc := range run.Execution.ToolCalls {
 			sb.WriteString(fmt.Sprintf("    A->>M: %s()\n", tc.Name))
-			if tc.Result.Content != nil && len(tc.Result.Content) > 0 {
+			if len(tc.Result.Content) > 0 {
 				sb.WriteString("    M-->>A: result\n")
 			}
 		}

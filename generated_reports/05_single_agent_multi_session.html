@@ -97,6 +97,7 @@ body {
 .summary-card.passed { border-top: 4px solid var(--color-pass); }
 .summary-card.failed { border-top: 4px solid var(--color-fail); }
 .summary-card.agents { border-top: 4px solid var(--color-primary); }
+.summary-card.agent-info { border-top: 4px solid var(--color-primary); }
 .summary-card.rate { border-top: 4px solid #9b59b6; }
 .summary-card.tokens { border-top: 4px solid var(--color-warning); }
 .summary-card.duration { border-top: 4px solid #3498db; }
@@ -111,6 +112,11 @@ body {
 .summary-card.passed .summary-value { color: var(--color-pass); }
 .summary-card.failed .summary-value { color: var(--color-fail); }
 .summary-card.agents .summary-value { color: var(--color-primary); }
+.summary-card.agent-info .summary-value { 
+    color: var(--color-primary);
+    font-size: 18px;
+    word-break: break-word;
+}
 .summary-card.rate .summary-value { color: #9b59b6; }
 .summary-card.tokens .summary-value { color: var(--color-warning); }
 .summary-card.duration .summary-value { color: #3498db; }
@@ -182,9 +188,27 @@ body {
     font-size: 13px;
 }
 
+.session-source-file {
+    font-weight: 400;
+    color: var(--color-text-light);
+    font-size: 12px;
+}
+
 .file-stats {
     font-size: 14px;
     color: var(--color-text-light);
+}
+
+.file-stats .summary-metric {
+    margin-left: 12px;
+    color: var(--color-text-light);
+    font-size: 13px;
+}
+
+.file-stats .summary-metric .tok-suffix {
+    font-size: 10px;
+    opacity: 0.7;
+    margin-left: 1px;
 }
 
 /* Comparison Matrix */
@@ -1770,8 +1794,10 @@ body {
             <h1>🧪 Agent Benchmark Report</h1>
             <div class="report-meta">
                 <span>📦 Version: 0.0.0-SNAPSHOT</span>
-                <span>📅 Generated: 2026-01-08T08:53:08&#43;01:00</span>
+                <span>📅 Generated: 2026-01-08T10:10:11&#43;01:00</span>
                 
+                
+                <span>📄 Files: 1</span>
                 
             </div>
         </header>
@@ -1779,29 +1805,35 @@ body {
         
         
 <div class="summary-grid">
+    
+    <div class="summary-card agent-info">
+        <div class="summary-value">gemini-agent</div>
+        <div class="summary-label"><span class="provider-badge provider-GOOGLE">GOOGLE</span></div>
+    </div>
+    
     <div class="summary-card total">
-        <div class="summary-value">1</div>
+        <div class="summary-value">4</div>
         <div class="summary-label">Total Tests</div>
     </div>
     <div class="summary-card passed">
-        <div class="summary-value">0</div>
+        <div class="summary-value">4</div>
         <div class="summary-label">Passed</div>
     </div>
     <div class="summary-card failed">
-        <div class="summary-value">1</div>
+        <div class="summary-value">0</div>
         <div class="summary-label">Failed</div>
     </div>
     
     <div class="summary-card rate">
-        <div class="summary-value">0%</div>
+        <div class="summary-value">100%</div>
         <div class="summary-label">Pass Rate</div>
     </div>
     <div class="summary-card tokens">
-        <div class="summary-value">0</div>
+        <div class="summary-value">256</div>
         <div class="summary-label">Avg Tokens ✓</div>
     </div>
     <div class="summary-card duration">
-        <div class="summary-value">5.0s</div>
+        <div class="summary-value">1.5s</div>
         <div class="summary-label">Avg Duration</div>
     </div>
 </div>
@@ -1809,6 +1841,85 @@ body {
 
         
         
+        
+<section class="section">
+    <div class="section-header">
+        <h2 class="section-title">📋 Test Overview</h2>
+    </div>
+    <div class="section-body">
+        <div class="matrix-container">
+            <table class="comparison-matrix test-overview-table">
+                <thead>
+                    <tr>
+                        <th>Test Name</th>
+                        <th>Status</th>
+                        <th>Duration</th>
+                        <th>Tokens</th>
+                        <th>Tools</th>
+                        <th>Assertions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+                    <tr class="row-passed">
+                        <td>Create config file</td>
+                        <td>
+                            
+                            <span class="status-badge status-passed">✓ Passed</span>
+                            
+                        </td>
+                        <td>1.5s</td>
+                        <td>245</td>
+                        <td>1</td>
+                        <td>1</td>
+                    </tr>
+                    
+                    <tr class="row-passed">
+                        <td>Read config file</td>
+                        <td>
+                            
+                            <span class="status-badge status-passed">✓ Passed</span>
+                            
+                        </td>
+                        <td>1.5s</td>
+                        <td>189</td>
+                        <td>1</td>
+                        <td>1</td>
+                    </tr>
+                    
+                    <tr class="row-passed">
+                        <td>Connect to database</td>
+                        <td>
+                            
+                            <span class="status-badge status-passed">✓ Passed</span>
+                            
+                        </td>
+                        <td>2.0s</td>
+                        <td>312</td>
+                        <td>1</td>
+                        <td>1</td>
+                    </tr>
+                    
+                    <tr class="row-passed">
+                        <td>Query users table</td>
+                        <td>
+                            
+                            <span class="status-badge status-passed">✓ Passed</span>
+                            
+                        </td>
+                        <td>1.0s</td>
+                        <td>278</td>
+                        <td>1</td>
+                        <td>1</td>
+                    </tr>
+                    
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+        
 
         
         
@@ -1817,6 +1928,111 @@ body {
         
 
         
+        
+<section class="section">
+    <div class="section-header">
+        <h2 class="section-title">📁 Test Files Summary</h2>
+    </div>
+    <div class="section-body">
+        <div class="file-summary-list">
+            
+            <div class="file-summary-item file-perfect">
+                <div class="file-summary-header">
+                    <span class="file-name">📄 tests/workflow.yaml</span>
+                    <span class="success-bar"><span class="success-bar-fill success-high" style="width: 100%"></span></span>
+                    <span class="file-stats">
+                        4/4 tests
+                        <span class="text-pass">
+                            (100%)
+                        </span>
+                        <span class="summary-metric">⏱ 6.0s</span>
+                        <span class="summary-metric">🔢 1,024<span class="tok-suffix">tok</span></span>
+                    </span>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+</section>
+
+        
+
+        
+        
+<section class="section">
+    <div class="section-header">
+        <h2 class="section-title">🔄 Sessions Summary</h2>
+    </div>
+    <div class="section-body">
+        <div class="file-summary-list">
+            
+            <div class="file-summary-item file-perfect">
+                <div class="file-summary-header">
+                    <span class="file-name">🔄 Database Operations</span>
+                    <span class="success-bar"><span class="success-bar-fill success-high" style="width: 100%"></span></span>
+                    <span class="file-stats">
+                        2/2 tests
+                        <span class="text-pass">
+                            (100%)
+                        </span>
+                        <span class="summary-metric">⏱ 3.0s</span>
+                        <span class="summary-metric">🔢 590<span class="tok-suffix">tok</span></span>
+                        
+                    </span>
+                </div>
+                
+                <details class="session-diagram-details">
+                    <summary class="session-diagram-summary">📊 View Session Flow</summary>
+                    <div class="mermaid">sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    note over U,M: Test 1 - Connect to database
+    A-&gt;&gt;M: db_connect()
+    A--&gt;&gt;U: ✓ Database connection establi...
+    note over U,M: Test 2 - Query users table
+    A-&gt;&gt;M: db_query()
+    A--&gt;&gt;U: ✓ Found 42 users in the datab...
+</div>
+                </details>
+                
+            </div>
+            
+            <div class="file-summary-item file-perfect">
+                <div class="file-summary-header">
+                    <span class="file-name">🔄 File Operations</span>
+                    <span class="success-bar"><span class="success-bar-fill success-high" style="width: 100%"></span></span>
+                    <span class="file-stats">
+                        2/2 tests
+                        <span class="text-pass">
+                            (100%)
+                        </span>
+                        <span class="summary-metric">⏱ 3.0s</span>
+                        <span class="summary-metric">🔢 434<span class="tok-suffix">tok</span></span>
+                        
+                    </span>
+                </div>
+                
+                <details class="session-diagram-details">
+                    <summary class="session-diagram-summary">📊 View Session Flow</summary>
+                    <div class="mermaid">sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    note over U,M: Test 1 - Create config file
+    A-&gt;&gt;M: write_file()
+    A--&gt;&gt;U: ✓ Config file created!
+    note over U,M: Test 2 - Read config file
+    A-&gt;&gt;M: read_file()
+    A--&gt;&gt;U: ✓ Config content - key - value
+</div>
+                </details>
+                
+            </div>
+            
+        </div>
+    </div>
+</section>
 
         
 
@@ -1844,16 +2060,16 @@ body {
 
 
 
-<details class="test-item failed" open>
+<details class="test-item passed" open>
     <summary class="test-header">
         <div class="test-info">
-            <span class="test-status-icon">❌</span>
+            <span class="test-status-icon">✅</span>
             <span class="test-agent">gemini-agent</span>
             <span class="provider-badge">GOOGLE</span>
         </div>
         <div class="test-meta">
-            <span class="duration">5.00s</span>
-            <span class="tokens">0 tokens</span>
+            <span class="duration">2.00s</span>
+            <span class="tokens">312 tokens</span>
             <span class="expand-icon">▼</span>
         </div>
     </summary>
@@ -1873,90 +2089,17 @@ body {
             </div>
         </div>
         
-        <div class="assertion-item failed">
-            <span class="assertion-icon">✗</span>
-            <div class="assertion-content">
-                <span class="assertion-type">no_error_messages</span>
-                <span class="assertion-message">Errors encountered</span>
-                
-            </div>
-        </div>
-        
     </div>
 </div>
 
 
         
 
-<div class="errors-box">
-    <div class="errors-title">❌ Errors</div>
-    
-    <div class="error-item">• Connection refused</div>
-    
-    <div class="error-item">• Timeout after 5s</div>
-    
-    <div class="error-item">• LLM asked for clarification instead of acting (iteration 2): Would you like me to try a different connection method?</div>
-    
-</div>
-
 
         
 
-<div class="clarification-stats-section">
-    <h4 class="subsection-title">🤔 Clarification Requests</h4>
-    <div class="clarification-stats-content">
-        <div class="clarification-count">
-            <span class="stat-icon">❓</span>
-            <div class="stat-content">
-                <span class="stat-value">2</span>
-                <span class="stat-label">Clarifications Detected</span>
-                <span class="stat-detail">Iterations: #2, #4</span>
-            </div>
-        </div>
-        
-        <div class="clarification-examples">
-            
-            <div class="clarification-example">
-                <span class="example-quote">"Would you like me to try a different connection method?"</span>
-            </div>
-            
-            <div class="clarification-example">
-                <span class="example-quote">"Should I proceed with the backup connection string instead?"</span>
-            </div>
-            
-        </div>
-        
-    </div>
-</div>
-
 
         
-
-<div class="rate-limit-stats-section">
-    <h4 class="subsection-title">⏱️ Rate Limit Stats</h4>
-    <div class="rate-limit-stats-grid">
-        
-        
-        <div class="rate-limit-stat hits">
-            <span class="stat-icon">⚠️</span>
-            <div class="stat-content">
-                <span class="stat-value">3</span>
-                <span class="stat-label">429 Hits</span>
-            </div>
-        </div>
-        
-        
-        <div class="rate-limit-stat retries">
-            <span class="stat-icon">🔄</span>
-            <div class="stat-content">
-                <span class="stat-value">3</span>
-                <span class="stat-label">Retries</span>
-                <span class="stat-detail">2 succeeded, 6.0s wait</span>
-            </div>
-        </div>
-        
-    </div>
-</div>
 
 
         
@@ -1968,8 +2111,8 @@ sequenceDiagram
     participant U as User
     participant A as Agent
     participant M as MCP Server
-    A-&gt;&gt;M: db_connect()
-    A--&gt;&gt;U: Would you like me to try a different ...
+    A-&gt;&gt;M: db_connect() [150ms]
+    A--&gt;&gt;U: Database connection established. [312 tokens]
 
     </div>
 </div>
@@ -1985,7 +2128,7 @@ sequenceDiagram
             <div class="timeline-header">
                 <span class="tool-name">🔧 db_connect</span>
                 <span class="timeline-meta">
-                    
+                    <span class="tool-duration">150ms</span>
                     <span class="timeline-time">&#43;0.50s</span>
                 </span>
             </div>
@@ -1993,7 +2136,8 @@ sequenceDiagram
             <details class="tool-params-toggle">
                 <summary>Parameters</summary>
                 <pre class="tool-params">{
-  "host": "prod-db.example.com"
+  "host": "localhost",
+  "port": 5432
 }</pre>
             </details>
             
@@ -2011,7 +2155,371 @@ sequenceDiagram
 
 <details class="final-output-section">
     <summary class="subsection-title">📤 Final Output</summary>
-    <div class="final-output-content">Would you like me to try a different connection method?</div>
+    <div class="final-output-content">Database connection established.</div>
+</details>
+
+
+    </div>
+</details>
+
+
+
+
+            </div>
+            
+            <div class="test-group-section">
+                
+<div class="test-group-header">
+    <h3 class="test-group-title">Create config file</h3>
+    
+    
+    
+    
+    
+</div>
+
+
+
+
+
+<details class="test-item passed" open>
+    <summary class="test-header">
+        <div class="test-info">
+            <span class="test-status-icon">✅</span>
+            <span class="test-agent">gemini-agent</span>
+            <span class="provider-badge">GOOGLE</span>
+        </div>
+        <div class="test-meta">
+            <span class="duration">1.50s</span>
+            <span class="tokens">245 tokens</span>
+            <span class="expand-icon">▼</span>
+        </div>
+    </summary>
+    <div class="test-details">
+        
+
+<div class="assertions-section">
+    <h4 class="subsection-title">Assertions</h4>
+    <div class="assertions-list">
+        
+        <div class="assertion-item passed">
+            <span class="assertion-icon">✓</span>
+            <div class="assertion-content">
+                <span class="assertion-type">tool_called</span>
+                <span class="assertion-message">Tool &#39;write_file&#39; was called</span>
+                
+            </div>
+        </div>
+        
+    </div>
+</div>
+
+
+        
+
+
+        
+
+
+        
+
+
+        
+
+<div class="sequence-section">
+    <h4 class="subsection-title">Execution Flow</h4>
+    <div class="mermaid">
+sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    A-&gt;&gt;M: write_file()
+    A--&gt;&gt;U: Config file created! [245 tokens]
+
+    </div>
+</div>
+
+
+        
+
+<div class="toolcalls-section">
+    <h4 class="subsection-title">Tool Calls (1)</h4>
+    <div class="timeline">
+        
+        <div class="timeline-item tool-call">
+            <div class="timeline-header">
+                <span class="tool-name">🔧 write_file</span>
+                <span class="timeline-meta">
+                    
+                    <span class="timeline-time">&#43;0.50s</span>
+                </span>
+            </div>
+            
+            <details class="tool-params-toggle">
+                <summary>Parameters</summary>
+                <pre class="tool-params">{
+  "content": "key: value",
+  "path": "/etc/config.yaml"
+}</pre>
+            </details>
+            
+            
+        </div>
+        
+    </div>
+</div>
+
+
+        
+
+
+        
+
+<details class="final-output-section">
+    <summary class="subsection-title">📤 Final Output</summary>
+    <div class="final-output-content">Config file created!</div>
+</details>
+
+
+    </div>
+</details>
+
+
+
+
+            </div>
+            
+            <div class="test-group-section">
+                
+<div class="test-group-header">
+    <h3 class="test-group-title">Query users table</h3>
+    
+    
+    
+    
+    
+</div>
+
+
+
+
+
+<details class="test-item passed" open>
+    <summary class="test-header">
+        <div class="test-info">
+            <span class="test-status-icon">✅</span>
+            <span class="test-agent">gemini-agent</span>
+            <span class="provider-badge">GOOGLE</span>
+        </div>
+        <div class="test-meta">
+            <span class="duration">1.00s</span>
+            <span class="tokens">278 tokens</span>
+            <span class="expand-icon">▼</span>
+        </div>
+    </summary>
+    <div class="test-details">
+        
+
+<div class="assertions-section">
+    <h4 class="subsection-title">Assertions</h4>
+    <div class="assertions-list">
+        
+        <div class="assertion-item passed">
+            <span class="assertion-icon">✓</span>
+            <div class="assertion-content">
+                <span class="assertion-type">output_contains</span>
+                <span class="assertion-message">Output contains &#39;42 users&#39;</span>
+                
+            </div>
+        </div>
+        
+    </div>
+</div>
+
+
+        
+
+
+        
+
+
+        
+
+
+        
+
+<div class="sequence-section">
+    <h4 class="subsection-title">Execution Flow</h4>
+    <div class="mermaid">
+sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    A-&gt;&gt;M: db_query() [85ms]
+    A--&gt;&gt;U: Found 42 users in the database. [278 tokens]
+
+    </div>
+</div>
+
+
+        
+
+<div class="toolcalls-section">
+    <h4 class="subsection-title">Tool Calls (1)</h4>
+    <div class="timeline">
+        
+        <div class="timeline-item tool-call">
+            <div class="timeline-header">
+                <span class="tool-name">🔧 db_query</span>
+                <span class="timeline-meta">
+                    <span class="tool-duration">85ms</span>
+                    <span class="timeline-time">&#43;0.20s</span>
+                </span>
+            </div>
+            
+            <details class="tool-params-toggle">
+                <summary>Parameters</summary>
+                <pre class="tool-params">{
+  "sql": "SELECT * FROM users"
+}</pre>
+            </details>
+            
+            
+        </div>
+        
+    </div>
+</div>
+
+
+        
+
+
+        
+
+<details class="final-output-section">
+    <summary class="subsection-title">📤 Final Output</summary>
+    <div class="final-output-content">Found 42 users in the database.</div>
+</details>
+
+
+    </div>
+</details>
+
+
+
+
+            </div>
+            
+            <div class="test-group-section">
+                
+<div class="test-group-header">
+    <h3 class="test-group-title">Read config file</h3>
+    
+    
+    
+    
+    
+</div>
+
+
+
+
+
+<details class="test-item passed" open>
+    <summary class="test-header">
+        <div class="test-info">
+            <span class="test-status-icon">✅</span>
+            <span class="test-agent">gemini-agent</span>
+            <span class="provider-badge">GOOGLE</span>
+        </div>
+        <div class="test-meta">
+            <span class="duration">1.50s</span>
+            <span class="tokens">189 tokens</span>
+            <span class="expand-icon">▼</span>
+        </div>
+    </summary>
+    <div class="test-details">
+        
+
+<div class="assertions-section">
+    <h4 class="subsection-title">Assertions</h4>
+    <div class="assertions-list">
+        
+        <div class="assertion-item passed">
+            <span class="assertion-icon">✓</span>
+            <div class="assertion-content">
+                <span class="assertion-type">output_contains</span>
+                <span class="assertion-message">Output contains &#39;key: value&#39;</span>
+                
+            </div>
+        </div>
+        
+    </div>
+</div>
+
+
+        
+
+
+        
+
+
+        
+
+
+        
+
+<div class="sequence-section">
+    <h4 class="subsection-title">Execution Flow</h4>
+    <div class="mermaid">
+sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    A-&gt;&gt;M: read_file() [45ms]
+    A--&gt;&gt;U: Config content - key - value [189 tokens]
+
+    </div>
+</div>
+
+
+        
+
+<div class="toolcalls-section">
+    <h4 class="subsection-title">Tool Calls (1)</h4>
+    <div class="timeline">
+        
+        <div class="timeline-item tool-call">
+            <div class="timeline-header">
+                <span class="tool-name">🔧 read_file</span>
+                <span class="timeline-meta">
+                    <span class="tool-duration">45ms</span>
+                    <span class="timeline-time">&#43;0.50s</span>
+                </span>
+            </div>
+            
+            <details class="tool-params-toggle">
+                <summary>Parameters</summary>
+                <pre class="tool-params">{
+  "path": "/etc/config.yaml"
+}</pre>
+            </details>
+            
+            
+        </div>
+        
+    </div>
+</div>
+
+
+        
+
+
+        
+
+<details class="final-output-section">
+    <summary class="subsection-title">📤 Final Output</summary>
+    <div class="final-output-content">Config content: key: value</div>
 </details>
 
 

@@ -221,9 +221,11 @@ func main() {
 	// Hierarchical test reports - from simple to complex:
 	// Level 1: Single agent, single test (simplest case)
 	// Level 2: Single agent, multiple tests (test overview table)
-	// Level 3: Multiple agents, same test (agent comparison)
-	// Level 4: Single agent, multiple sessions (session grouping)
-	// Level 5: Full suite (multiple agents, sessions, tests)
+	// Level 3: Multiple agents, single test (leaderboard focus)
+	// Level 4: Multiple agents, multiple tests (full matrix)
+	// Level 5: Single agent, multiple sessions (session grouping with flow diagrams)
+	// Level 6: Multiple agents, multiple sessions (session grouping, no flow diagrams)
+	// Level 7: Full suite (multiple agents, sessions, files)
 	// Bonus: Failed test with errors
 	fixtures := []struct {
 		name    string
@@ -232,10 +234,13 @@ func main() {
 	}{
 		{"01_single_agent_single_test", 1, createSingleAgentOneTest()},
 		{"02_single_agent_multi_test", 2, createSingleAgentTwoTests()},
-		{"03_multi_agent", 3, createMultiAgent()},
-		{"04_multi_session", 4, createMultiSession()},
-		{"05_full_suite", 5, createFullSuite()},
-		{"06_failed_with_errors", 0, createFailedTest()},
+		{"03_multi_agent_single_test", 3, createMultiAgentSingleTest()},
+		{"04_multi_agent_multi_test", 4, createMultiAgent()},
+		{"05_single_agent_multi_session", 5, createSingleAgentMultiSession()},
+		{"06_multi_agent_multi_session", 6, createMultiAgentMultiSession()},
+		{"07_single_agent_multi_file", 7, createSingleAgentMultiFile()},
+		{"08_multi_agent_multi_file", 8, createFullSuite()},
+		{"09_failed_with_errors", 0, createFailedTest()},
 	}
 
 	fmt.Println("Generating hierarchical test reports...")
@@ -529,6 +534,7 @@ func createFailedTest() []model.TestRun {
 	return []model.TestRun{
 		buildTestRun("Connect to database", agentGemini, false, TestRunOpts{
 			DurationMs: 5000,
+			TokensUsed: 423,
 			ToolCalls: []model.ToolCall{
 				{Name: "db_connect", Parameters: map[string]interface{}{"host": "prod-db.example.com"}, Timestamp: baseTime.Add(500 * time.Millisecond)},
 			},
@@ -556,12 +562,49 @@ func createFailedTest() []model.TestRun {
 	}
 }
 
-func createMultiSession() []model.TestRun {
+// createMultiAgentSingleTest creates a single test run by multiple agents
+func createMultiAgentSingleTest() []model.TestRun {
+	prompt := "Create a test file at /tmp/test.txt with the content 'Hello World'"
 	return []model.TestRun{
-		// Session 1: File Operations
+		buildTestRun("Create test file", agentClaude, true, TestRunOpts{
+			DurationMs:  3500,
+			Messages:    []model.Message{{Role: "user", Content: prompt}},
+			ToolCalls:   []model.ToolCall{toolWriteFile(500*time.Millisecond, 45)},
+			FinalOutput: "File created successfully!",
+			TokensUsed:  289,
+			Assertions:  []model.AssertionResult{assertToolCalled("write_file")},
+		}),
+		buildTestRun("Create test file", agentGemini, true, TestRunOpts{
+			DurationMs:  4200,
+			Messages:    []model.Message{{Role: "user", Content: prompt}},
+			ToolCalls:   []model.ToolCall{toolWriteFile(600*time.Millisecond, 52)},
+			FinalOutput: "Done! File created at /tmp/test.txt",
+			TokensUsed:  312,
+			Assertions:  []model.AssertionResult{assertToolCalled("write_file")},
+		}),
+		buildTestRun("Create test file", agentGPT, false, TestRunOpts{
+			DurationMs:  5100,
+			Messages:    []model.Message{{Role: "user", Content: prompt}},
+			ToolCalls:   []model.ToolCall{toolWriteFile(800*time.Millisecond, 68)},
+			FinalOutput: "I wrote 'hello world' to the file.",
+			TokensUsed:  345,
+			Errors:      []string{"Content mismatch: expected 'Hello World', got 'hello world'"},
+			Assertions: []model.AssertionResult{
+				assertToolCalled("write_file"),
+				assertParamEquals(false, "Content case mismatch", map[string]interface{}{"expected": "Hello World", "actual": "hello world"}),
+			},
+		}),
+	}
+}
+
+func createSingleAgentMultiSession() []model.TestRun {
+	return []model.TestRun{
+		// Session 1: File Operations (same file)
 		buildTestRun("Create config file", agentGemini, true, TestRunOpts{
 			SessionName: "File Operations",
+			SourceFile:  "tests/workflow.yaml",
 			DurationMs:  1500,
+			TokensUsed:  245,
 			ToolCalls: []model.ToolCall{
 				{Name: "write_file", Parameters: map[string]interface{}{"path": "/etc/config.yaml", "content": "key: value"}, Timestamp: baseTime.Add(500 * time.Millisecond)},
 			},
@@ -570,25 +613,31 @@ func createMultiSession() []model.TestRun {
 		}),
 		buildTestRun("Read config file", agentGemini, true, TestRunOpts{
 			SessionName: "File Operations",
+			SourceFile:  "tests/workflow.yaml",
 			StartTime:   baseTime.Add(2 * time.Second),
 			DurationMs:  1500,
+			TokensUsed:  189,
 			ToolCalls:   []model.ToolCall{toolReadFile(2500*time.Millisecond, 45)},
 			FinalOutput: "Config content: key: value",
 			Assertions:  []model.AssertionResult{assertOutputContains("key: value")},
 		}),
-		// Session 2: Database Operations
+		// Session 2: Database Operations (same file)
 		buildTestRun("Connect to database", agentGemini, true, TestRunOpts{
 			SessionName: "Database Operations",
+			SourceFile:  "tests/workflow.yaml",
 			StartTime:   baseTime.Add(5 * time.Second),
 			DurationMs:  2000,
+			TokensUsed:  312,
 			ToolCalls:   []model.ToolCall{toolDBConnect(5500*time.Millisecond, 150, "localhost", 5432)},
 			FinalOutput: "Database connection established.",
 			Assertions:  []model.AssertionResult{assertToolCalled("db_connect")},
 		}),
 		buildTestRun("Query users table", agentGemini, true, TestRunOpts{
 			SessionName: "Database Operations",
+			SourceFile:  "tests/workflow.yaml",
 			StartTime:   baseTime.Add(8 * time.Second),
 			DurationMs:  1000,
+			TokensUsed:  278,
 			ToolCalls:   []model.ToolCall{toolDBQuery(8200*time.Millisecond, 85, "SELECT * FROM users")},
 			FinalOutput: "Found 42 users in the database.",
 			Assertions:  []model.AssertionResult{assertOutputContains("42 users")},
@@ -596,7 +645,150 @@ func createMultiSession() []model.TestRun {
 	}
 }
 
-// createFullSuite creates a comprehensive multi-agent, multi-session suite run
+// createMultiAgentMultiSession creates multiple agents running tests across multiple sessions (no multi-file)
+func createMultiAgentMultiSession() []model.TestRun {
+	agents := []AgentConfig{agentClaude, agentGemini, agentGPT}
+	var runs []model.TestRun
+
+	// Session 1: Setup
+	for i, agent := range agents {
+		passed := i != 2 // GPT fails
+		runs = append(runs, buildTestRun("Initialize workspace", agent, passed, TestRunOpts{
+			SessionName: "Setup",
+			SourceFile:  "tests/multi_session.yaml",
+			StartTime:   baseTime.Add(time.Duration(i) * 500 * time.Millisecond),
+			DurationMs:  2000,
+			TokensUsed:  200 + i*30,
+			ToolCalls:   []model.ToolCall{toolWriteFile(500*time.Millisecond, 45)},
+			FinalOutput: func() string {
+				if passed {
+					return "Workspace initialized successfully."
+				}
+				return "Failed to initialize workspace."
+			}(),
+			Assertions: []model.AssertionResult{assertToolCalled("write_file")},
+		}))
+	}
+
+	// Session 2: Processing
+	for i, agent := range agents {
+		passed := true
+		runs = append(runs, buildTestRun("Process data", agent, passed, TestRunOpts{
+			SessionName: "Processing",
+			SourceFile:  "tests/multi_session.yaml",
+			StartTime:   baseTime.Add(5*time.Second + time.Duration(i)*500*time.Millisecond),
+			DurationMs:  3000,
+			TokensUsed:  350 + i*25,
+			ToolCalls:   []model.ToolCall{toolDBQuery(5500*time.Millisecond, 120, "SELECT * FROM data")},
+			FinalOutput: "Data processed successfully.",
+			Assertions:  []model.AssertionResult{assertToolCalled("db_query")},
+		}))
+	}
+
+	// Session 3: Cleanup
+	for i, agent := range agents {
+		passed := i == 0 // Only Claude succeeds
+		runs = append(runs, buildTestRun("Cleanup resources", agent, passed, TestRunOpts{
+			SessionName: "Cleanup",
+			SourceFile:  "tests/multi_session.yaml",
+			StartTime:   baseTime.Add(10*time.Second + time.Duration(i)*500*time.Millisecond),
+			DurationMs:  1500,
+			TokensUsed:  150 + i*20,
+			ToolCalls:   []model.ToolCall{toolGeneric(10500*time.Millisecond, 30, "delete_file", map[string]interface{}{"path": "/tmp/data"})},
+			FinalOutput: func() string {
+				if passed {
+					return "Cleanup completed."
+				}
+				return "Partial cleanup - some files remain."
+			}(),
+			Assertions: []model.AssertionResult{
+				assertToolCalled("delete_file"),
+				{Type: "output_contains", Passed: passed, Message: func() string {
+					if passed {
+						return "Output contains 'completed'"
+					}
+					return "Output does not contain 'completed'"
+				}()},
+			},
+		}))
+	}
+
+	return runs
+}
+
+// createSingleAgentMultiFile creates a single agent running tests across multiple files with multiple sessions
+func createSingleAgentMultiFile() []model.TestRun {
+	return []model.TestRun{
+		// File 1: config_tests.yaml - Session: Configuration
+		buildTestRun("Create config file", agentClaude, true, TestRunOpts{
+			SessionName: "Configuration",
+			SourceFile:  "tests/config_tests.yaml",
+			DurationMs:  1800,
+			TokensUsed:  256,
+			ToolCalls:   []model.ToolCall{toolWriteFile(500*time.Millisecond, 60)},
+			FinalOutput: "Config file created at /etc/app/config.yaml",
+			Assertions:  []model.AssertionResult{assertToolCalled("write_file")},
+		}),
+		buildTestRun("Validate config syntax", agentClaude, true, TestRunOpts{
+			SessionName: "Configuration",
+			SourceFile:  "tests/config_tests.yaml",
+			StartTime:   baseTime.Add(2 * time.Second),
+			DurationMs:  1200,
+			TokensUsed:  189,
+			ToolCalls:   []model.ToolCall{toolReadFile(2300*time.Millisecond, 40)},
+			FinalOutput: "Config syntax is valid YAML",
+			Assertions:  []model.AssertionResult{assertOutputContains("valid")},
+		}),
+		// File 2: database_tests.yaml - Session: Database
+		buildTestRun("Connect to database", agentClaude, true, TestRunOpts{
+			SessionName: "Database",
+			SourceFile:  "tests/database_tests.yaml",
+			StartTime:   baseTime.Add(5 * time.Second),
+			DurationMs:  2500,
+			TokensUsed:  312,
+			ToolCalls:   []model.ToolCall{toolDBConnect(5500*time.Millisecond, 180, "localhost", 5432)},
+			FinalOutput: "Connected to PostgreSQL at localhost:5432",
+			Assertions:  []model.AssertionResult{assertToolCalled("db_connect")},
+		}),
+		buildTestRun("Query users table", agentClaude, true, TestRunOpts{
+			SessionName: "Database",
+			SourceFile:  "tests/database_tests.yaml",
+			StartTime:   baseTime.Add(8 * time.Second),
+			DurationMs:  1100,
+			TokensUsed:  245,
+			ToolCalls:   []model.ToolCall{toolDBQuery(8200*time.Millisecond, 75, "SELECT COUNT(*) FROM users")},
+			FinalOutput: "Query returned 156 users",
+			Assertions:  []model.AssertionResult{assertOutputContains("users")},
+		}),
+		// File 3: api_tests.yaml - Session: API Validation
+		buildTestRun("Test health endpoint", agentClaude, true, TestRunOpts{
+			SessionName: "API Validation",
+			SourceFile:  "tests/api_tests.yaml",
+			StartTime:   baseTime.Add(12 * time.Second),
+			DurationMs:  800,
+			TokensUsed:  178,
+			ToolCalls:   []model.ToolCall{toolGeneric(12300*time.Millisecond, 50, "http_get", map[string]interface{}{"url": "/health"})},
+			FinalOutput: "Health endpoint returned 200 OK",
+			Assertions:  []model.AssertionResult{assertOutputContains("200")},
+		}),
+		buildTestRun("Test users endpoint", agentClaude, false, TestRunOpts{
+			SessionName: "API Validation",
+			SourceFile:  "tests/api_tests.yaml",
+			StartTime:   baseTime.Add(14 * time.Second),
+			DurationMs:  1500,
+			TokensUsed:  298,
+			Errors:      []string{"Response timeout after 1000ms"},
+			ToolCalls:   []model.ToolCall{toolGeneric(14200*time.Millisecond, 1200, "http_get", map[string]interface{}{"url": "/api/users"})},
+			FinalOutput: "Request timed out",
+			Assertions: []model.AssertionResult{
+				assertOutputContainsFailed("200"),
+				assertNoErrorsFailed("Response timeout after 1000ms"),
+			},
+		}),
+	}
+}
+
+// createFullSuite creates a comprehensive multi-agent, multi-session suite run (renamed to multi_agent_multi_file)
 func createFullSuite() []model.TestRun {
 	fileOpsPrompt := "Create a configuration file at /etc/app/config.yaml"
 	readConfigPrompt := "Read the config file and verify its contents"

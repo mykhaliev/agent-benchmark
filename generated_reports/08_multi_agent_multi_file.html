@@ -97,6 +97,7 @@ body {
 .summary-card.passed { border-top: 4px solid var(--color-pass); }
 .summary-card.failed { border-top: 4px solid var(--color-fail); }
 .summary-card.agents { border-top: 4px solid var(--color-primary); }
+.summary-card.agent-info { border-top: 4px solid var(--color-primary); }
 .summary-card.rate { border-top: 4px solid #9b59b6; }
 .summary-card.tokens { border-top: 4px solid var(--color-warning); }
 .summary-card.duration { border-top: 4px solid #3498db; }
@@ -111,6 +112,11 @@ body {
 .summary-card.passed .summary-value { color: var(--color-pass); }
 .summary-card.failed .summary-value { color: var(--color-fail); }
 .summary-card.agents .summary-value { color: var(--color-primary); }
+.summary-card.agent-info .summary-value { 
+    color: var(--color-primary);
+    font-size: 18px;
+    word-break: break-word;
+}
 .summary-card.rate .summary-value { color: #9b59b6; }
 .summary-card.tokens .summary-value { color: var(--color-warning); }
 .summary-card.duration .summary-value { color: #3498db; }
@@ -182,9 +188,27 @@ body {
     font-size: 13px;
 }
 
+.session-source-file {
+    font-weight: 400;
+    color: var(--color-text-light);
+    font-size: 12px;
+}
+
 .file-stats {
     font-size: 14px;
     color: var(--color-text-light);
+}
+
+.file-stats .summary-metric {
+    margin-left: 12px;
+    color: var(--color-text-light);
+    font-size: 13px;
+}
+
+.file-stats .summary-metric .tok-suffix {
+    font-size: 10px;
+    opacity: 0.7;
+    margin-left: 1px;
 }
 
 /* Comparison Matrix */
@@ -1770,7 +1794,7 @@ body {
             <h1>🧪 Agent Benchmark Report</h1>
             <div class="report-meta">
                 <span>📦 Version: 0.0.0-SNAPSHOT</span>
-                <span>📅 Generated: 2026-01-08T08:53:07&#43;01:00</span>
+                <span>📅 Generated: 2026-01-08T10:10:11&#43;01:00</span>
                 
                 
                 <span>📄 Files: 4</span>
@@ -1781,6 +1805,7 @@ body {
         
         
 <div class="summary-grid">
+    
     <div class="summary-card total">
         <div class="summary-value">24</div>
         <div class="summary-label">Total Tests</div>
@@ -2376,6 +2401,8 @@ body {
                         <span class="text-muted">
                             (75%)
                         </span>
+                        <span class="summary-metric">⏱ 3.2s</span>
+                        <span class="summary-metric">🔢 388<span class="tok-suffix">tok</span></span>
                     </span>
                 </div>
             </div>
@@ -2389,6 +2416,8 @@ body {
                         <span class="text-muted">
                             (50%)
                         </span>
+                        <span class="summary-metric">⏱ 4.8s</span>
+                        <span class="summary-metric">🔢 610<span class="tok-suffix">tok</span></span>
                     </span>
                 </div>
             </div>
@@ -2402,6 +2431,8 @@ body {
                         <span class="text-muted">
                             (62%)
                         </span>
+                        <span class="summary-metric">⏱ 12.0s</span>
+                        <span class="summary-metric">🔢 1,212<span class="tok-suffix">tok</span></span>
                     </span>
                 </div>
             </div>
@@ -2415,6 +2446,8 @@ body {
                         <span class="text-muted">
                             (62%)
                         </span>
+                        <span class="summary-metric">⏱ 10.8s</span>
+                        <span class="summary-metric">🔢 1,010<span class="tok-suffix">tok</span></span>
                     </span>
                 </div>
             </div>
@@ -2436,193 +2469,69 @@ body {
             
             <div class="file-summary-item ">
                 <div class="file-summary-header">
-                    <span class="file-name">🔄 API Testing</span>
+                    <span class="file-name">🔄 API Testing <span class="session-source-file">(📄 tests/api_tests.yaml)</span></span>
                     <span class="success-bar"><span class="success-bar-fill success-medium" style="width: 75%"></span></span>
                     <span class="file-stats">
                         3/4 tests
                         <span class="text-muted">
                             (75%)
                         </span>
+                        <span class="summary-metric">⏱ 3.2s</span>
+                        <span class="summary-metric">🔢 388<span class="tok-suffix">tok</span></span>
+                        <span class="summary-metric">🤖 4 agents</span>
                     </span>
                 </div>
-                
-                <details class="session-diagram-details">
-                    <summary class="session-diagram-summary">📊 View Session Flow</summary>
-                    <div class="mermaid">sequenceDiagram
-    participant U as User
-    participant A as Agent
-    participant M as MCP Server
-    note over U,M: Test 1 - Health check API
-    U-&gt;&gt;A: Call the /api/health endpoint and ver...
-    A-&gt;&gt;M: http_get()
-    A--&gt;&gt;U: ✓ API health check passed - {...
-    note over U,M: Test 2 - Health check API
-    U-&gt;&gt;A: Call the /api/health endpoint and ver...
-    A-&gt;&gt;M: http_get()
-    A--&gt;&gt;U: ✓ API health check passed - {...
-    note over U,M: Test 3 - Health check API
-    U-&gt;&gt;A: Call the /api/health endpoint and ver...
-    A-&gt;&gt;M: http_get()
-    A--&gt;&gt;U: ✓ API health check passed - {...
-    note over U,M: Test 4 - Health check API
-    U-&gt;&gt;A: Call the /api/health endpoint and ver...
-    A-&gt;&gt;M: http_get()
-    A--&gt;&gt;U: ✗ Error - Connection refused
-</div>
-                </details>
                 
             </div>
             
             <div class="file-summary-item ">
                 <div class="file-summary-header">
-                    <span class="file-name">🔄 Cleanup</span>
+                    <span class="file-name">🔄 Cleanup <span class="session-source-file">(📄 tests/cleanup.yaml)</span></span>
                     <span class="success-bar"><span class="success-bar-fill success-medium" style="width: 50%"></span></span>
                     <span class="file-stats">
                         2/4 tests
                         <span class="text-muted">
                             (50%)
                         </span>
+                        <span class="summary-metric">⏱ 4.8s</span>
+                        <span class="summary-metric">🔢 610<span class="tok-suffix">tok</span></span>
+                        <span class="summary-metric">🤖 4 agents</span>
                     </span>
                 </div>
-                
-                <details class="session-diagram-details">
-                    <summary class="session-diagram-summary">📊 View Session Flow</summary>
-                    <div class="mermaid">sequenceDiagram
-    participant U as User
-    participant A as Agent
-    participant M as MCP Server
-    note over U,M: Test 1 - Cleanup temp files
-    U-&gt;&gt;A: Delete all temporary files created du...
-    A-&gt;&gt;M: delete_file()
-    A-&gt;&gt;M: list_files()
-    A--&gt;&gt;U: ✗ Cleanup completed but 1 fil...
-    note over U,M: Test 2 - Cleanup temp files
-    U-&gt;&gt;A: Delete all temporary files created du...
-    A-&gt;&gt;M: delete_file()
-    A-&gt;&gt;M: list_files()
-    A--&gt;&gt;U: ✓ All temporary files deleted...
-    note over U,M: Test 3 - Cleanup temp files
-    U-&gt;&gt;A: Delete all temporary files created du...
-    A-&gt;&gt;M: delete_file()
-    A-&gt;&gt;M: list_files()
-    A--&gt;&gt;U: ✓ All temporary files deleted...
-    note over U,M: Test 4 - Cleanup temp files
-    U-&gt;&gt;A: Delete all temporary files created du...
-    A-&gt;&gt;M: delete_file()
-    A-&gt;&gt;M: list_files()
-    A--&gt;&gt;U: ✗ Error - Path not found, cle...
-</div>
-                </details>
                 
             </div>
             
             <div class="file-summary-item ">
                 <div class="file-summary-header">
-                    <span class="file-name">🔄 Database Operations</span>
+                    <span class="file-name">🔄 Database Operations <span class="session-source-file">(📄 tests/db_ops.yaml)</span></span>
                     <span class="success-bar"><span class="success-bar-fill success-medium" style="width: 62%"></span></span>
                     <span class="file-stats">
                         5/8 tests
                         <span class="text-muted">
                             (62%)
                         </span>
+                        <span class="summary-metric">⏱ 12.0s</span>
+                        <span class="summary-metric">🔢 1,212<span class="tok-suffix">tok</span></span>
+                        <span class="summary-metric">🤖 4 agents</span>
                     </span>
                 </div>
-                
-                <details class="session-diagram-details">
-                    <summary class="session-diagram-summary">📊 View Session Flow</summary>
-                    <div class="mermaid">sequenceDiagram
-    participant U as User
-    participant A as Agent
-    participant M as MCP Server
-    note over U,M: Test 1 - Connect to database
-    U-&gt;&gt;A: Connect to the PostgreSQL database at...
-    A-&gt;&gt;M: db_connect()
-    A--&gt;&gt;U: ✓ Connected to PostgreSQL dat...
-    note over U,M: Test 2 - Query users table
-    U-&gt;&gt;A: Query the users table and return the ...
-    A-&gt;&gt;M: db_query()
-    A--&gt;&gt;U: ✓ Found 42 users in the datab...
-    note over U,M: Test 3 - Connect to database
-    U-&gt;&gt;A: Connect to the PostgreSQL database at...
-    A-&gt;&gt;M: db_connect()
-    A--&gt;&gt;U: ✗ Connection timeout after 30s
-    note over U,M: Test 4 - Query users table
-    U-&gt;&gt;A: Query the users table and return the ...
-    A-&gt;&gt;M: db_query()
-    A--&gt;&gt;U: ✓ Found 42 users in the datab...
-    note over U,M: Test 5 - Connect to database
-    U-&gt;&gt;A: Connect to the PostgreSQL database at...
-    A-&gt;&gt;M: db_connect()
-    A--&gt;&gt;U: ✓ Connected to PostgreSQL dat...
-    note over U,M: Test 6 - Query users table
-    U-&gt;&gt;A: Query the users table and return the ...
-    A-&gt;&gt;M: db_query()
-    A--&gt;&gt;U: ✓ Found 42 users in the datab...
-    note over U,M: Test 7 - Connect to database
-    U-&gt;&gt;A: Connect to the PostgreSQL database at...
-    A-&gt;&gt;M: db_connect()
-    A--&gt;&gt;U: ✗ Database connection failed ...
-    note over U,M: Test 8 - Query users table
-    U-&gt;&gt;A: Query the users table and return the ...
-    A-&gt;&gt;M: db_query()
-    A--&gt;&gt;U: ✗ SQL syntax error near &#39;SELEC&#39;
-</div>
-                </details>
                 
             </div>
             
             <div class="file-summary-item ">
                 <div class="file-summary-header">
-                    <span class="file-name">🔄 File Operations</span>
+                    <span class="file-name">🔄 File Operations <span class="session-source-file">(📄 tests/file_ops.yaml)</span></span>
                     <span class="success-bar"><span class="success-bar-fill success-medium" style="width: 62%"></span></span>
                     <span class="file-stats">
                         5/8 tests
                         <span class="text-muted">
                             (62%)
                         </span>
+                        <span class="summary-metric">⏱ 10.8s</span>
+                        <span class="summary-metric">🔢 1,010<span class="tok-suffix">tok</span></span>
+                        <span class="summary-metric">🤖 4 agents</span>
                     </span>
                 </div>
-                
-                <details class="session-diagram-details">
-                    <summary class="session-diagram-summary">📊 View Session Flow</summary>
-                    <div class="mermaid">sequenceDiagram
-    participant U as User
-    participant A as Agent
-    participant M as MCP Server
-    note over U,M: Test 1 - Create config file
-    U-&gt;&gt;A: Create a configuration file at /etc/a...
-    A-&gt;&gt;M: write_file()
-    A--&gt;&gt;U: ✓ Configuration file created ...
-    note over U,M: Test 2 - Read and verify config
-    U-&gt;&gt;A: Read the config file and verify its c...
-    A-&gt;&gt;M: read_file()
-    A--&gt;&gt;U: ✓ Config verified - port=8080...
-    note over U,M: Test 3 - Create config file
-    U-&gt;&gt;A: Create a configuration file at /etc/a...
-    A-&gt;&gt;M: write_file()
-    A--&gt;&gt;U: ✓ Configuration file created ...
-    note over U,M: Test 4 - Read and verify config
-    U-&gt;&gt;A: Read the config file and verify its c...
-    A-&gt;&gt;M: read_file()
-    A--&gt;&gt;U: ✓ Config verified - port=8080...
-    note over U,M: Test 5 - Create config file
-    U-&gt;&gt;A: Create a configuration file at /etc/a...
-    A-&gt;&gt;M: write_file()
-    A--&gt;&gt;U: ✓ Configuration file created ...
-    note over U,M: Test 6 - Read and verify config
-    U-&gt;&gt;A: Read the config file and verify its c...
-    A-&gt;&gt;M: read_file()
-    A--&gt;&gt;U: ✗ Config file found but forma...
-    note over U,M: Test 7 - Create config file
-    U-&gt;&gt;A: Create a configuration file at /etc/a...
-    A-&gt;&gt;M: write_file()
-    A--&gt;&gt;U: ✗ Failed to create configurat...
-    note over U,M: Test 8 - Read and verify config
-    U-&gt;&gt;A: Read the config file and verify its c...
-    A-&gt;&gt;M: read_file()
-    A--&gt;&gt;U: ✗ Failed to read config file
-</div>
-                </details>
                 
             </div>
             

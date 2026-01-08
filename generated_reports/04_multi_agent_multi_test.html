@@ -1,0 +1,4956 @@
+
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Test Results - Agent Benchmark</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+/* Agent Benchmark Report Styles - Enhanced Version */
+
+:root {
+    --color-pass: #4CAF50;
+    --color-fail: #f44336;
+    --color-warning: #ff9800;
+    --color-info: #2196F3;
+    --color-primary: #667eea;
+    --color-secondary: #764ba2;
+    --color-bg: #f5f5f5;
+    --color-card: #ffffff;
+    --color-border: #e0e0e0;
+    --color-text: #333333;
+    --color-text-light: #666666;
+    --color-text-muted: #999999;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.1);
+    --shadow-md: 0 2px 8px rgba(0,0,0,0.12);
+    --shadow-lg: 0 4px 16px rgba(0,0,0,0.15);
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    margin: 0;
+    padding: 20px;
+    background: var(--color-bg);
+    color: var(--color-text);
+    line-height: 1.5;
+}
+
+.container {
+    max-width: 1600px;
+    margin: 0 auto;
+}
+
+/* Report Header */
+.report-header {
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+    color: white;
+    padding: 30px 40px;
+    border-radius: var(--radius-lg);
+    margin-bottom: 30px;
+    box-shadow: var(--shadow-lg);
+}
+
+.report-header h1 {
+    margin: 0 0 10px 0;
+    font-size: 28px;
+    font-weight: 600;
+    border: none;
+    padding: 0;
+}
+
+.report-meta {
+    display: flex;
+    gap: 30px;
+    font-size: 14px;
+    opacity: 0.9;
+}
+
+/* Summary Cards */
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.summary-card {
+    background: var(--color-card);
+    padding: 24px;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    text-align: center;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.summary-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.summary-card.total { border-top: 4px solid var(--color-info); }
+.summary-card.passed { border-top: 4px solid var(--color-pass); }
+.summary-card.failed { border-top: 4px solid var(--color-fail); }
+.summary-card.agents { border-top: 4px solid var(--color-primary); }
+.summary-card.agent-info { border-top: 4px solid var(--color-primary); }
+.summary-card.rate { border-top: 4px solid #9b59b6; }
+.summary-card.tokens { border-top: 4px solid var(--color-warning); }
+.summary-card.duration { border-top: 4px solid #3498db; }
+
+.summary-value {
+    font-size: 32px;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.summary-card.total .summary-value { color: var(--color-info); }
+.summary-card.passed .summary-value { color: var(--color-pass); }
+.summary-card.failed .summary-value { color: var(--color-fail); }
+.summary-card.agents .summary-value { color: var(--color-primary); }
+.summary-card.agent-info .summary-value { 
+    color: var(--color-primary);
+    font-size: 18px;
+    word-break: break-word;
+}
+.summary-card.rate .summary-value { color: #9b59b6; }
+.summary-card.tokens .summary-value { color: var(--color-warning); }
+.summary-card.duration .summary-value { color: #3498db; }
+
+.summary-label {
+    font-size: 13px;
+    color: var(--color-text-light);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Section */
+.section {
+    background: var(--color-card);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 30px;
+    overflow: hidden;
+}
+
+.section-header {
+    background: #fafafa;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.section-title {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0;
+    color: var(--color-text);
+    border: none;
+    padding: 0;
+}
+
+.section-body { padding: 24px; }
+
+/* File Summary (Suite Runs) */
+.file-summary-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.file-summary-item {
+    background: #f8f9fa;
+    border-radius: var(--radius-sm);
+    padding: 16px 20px;
+    border-left: 4px solid var(--color-primary);
+}
+
+.file-summary-header {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.file-summary-item.file-perfect {
+    background: rgba(46, 204, 113, 0.08);
+    border-left: 4px solid var(--color-pass);
+}
+
+.file-name {
+    font-weight: 600;
+    color: var(--color-text);
+    min-width: 250px;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 13px;
+}
+
+.session-source-file {
+    font-weight: 400;
+    color: var(--color-text-light);
+    font-size: 12px;
+}
+
+.file-stats {
+    font-size: 14px;
+    color: var(--color-text-light);
+}
+
+.file-stats .summary-metric {
+    margin-left: 12px;
+    color: var(--color-text-light);
+    font-size: 13px;
+}
+
+.file-stats .summary-metric .tok-suffix {
+    font-size: 10px;
+    opacity: 0.7;
+    margin-left: 1px;
+}
+
+/* Comparison Matrix */
+.matrix-container { overflow-x: auto; }
+
+.comparison-matrix {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.comparison-matrix th,
+.comparison-matrix td {
+    padding: 14px 16px;
+    text-align: center;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.comparison-matrix th {
+    background: #f8f9fa;
+    font-weight: 600;
+    color: var(--color-text-light);
+    text-transform: uppercase;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    position: sticky;
+    top: 0;
+}
+
+.comparison-matrix th:first-child,
+.comparison-matrix td:first-child {
+    text-align: left;
+    min-width: 200px;
+    font-weight: 500;
+}
+
+.comparison-matrix tbody tr:hover { background: #f8f9fa; }
+
+/* Grouped Matrix - File and Session Headers */
+.matrix-file-header td {
+    background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+    font-weight: 600;
+    text-align: left !important;
+    padding: 12px 16px;
+    border-bottom: 2px solid var(--color-primary);
+    color: var(--color-primary);
+}
+
+.matrix-session-header td {
+    background: #f8f9fa;
+    font-weight: 500;
+    text-align: left !important;
+    padding: 10px 16px 10px 32px;
+    border-bottom: 1px solid var(--color-border);
+    color: var(--color-text-light);
+    font-size: 13px;
+}
+
+.matrix-test-indented td:first-child {
+    padding-left: 48px;
+}
+
+.matrix-group-icon {
+    margin-right: 8px;
+}
+
+/* Provider badge colors */
+.provider-badge.provider-AZURE { background: #0078d4; color: white; }
+.provider-badge.provider-OPENAI { background: #10a37f; color: white; }
+.provider-badge.provider-ANTHROPIC { background: #d4a574; color: white; }
+.provider-badge.provider-GOOGLE { background: #4285f4; color: white; }
+.provider-badge.provider-AWS { background: #ff9900; color: white; }
+.provider-badge.provider-OLLAMA { background: #333; color: white; }
+
+/* Test Overview Table (Single Agent) */
+.test-overview-table .row-passed { background: rgba(46, 204, 113, 0.05); }
+.test-overview-table .row-failed { background: rgba(231, 76, 60, 0.05); }
+.test-overview-table .row-passed:hover { background: rgba(46, 204, 113, 0.1); }
+.test-overview-table .row-failed:hover { background: rgba(231, 76, 60, 0.1); }
+.test-overview-table .error-count {
+    color: var(--color-failed);
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.matrix-cell {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.matrix-status { font-size: 18px; }
+.matrix-duration {
+    font-size: 11px;
+    color: var(--color-text-muted);
+    font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+}
+.matrix-tokens {
+    font-size: 10px;
+    color: var(--color-text-muted);
+}
+.matrix-tokens::after {
+    content: ' tok';
+}
+
+/* Leaderboard */
+.leaderboard {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.leaderboard th,
+.leaderboard td {
+    padding: 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.leaderboard th {
+    background: #f8f9fa;
+    font-weight: 600;
+    color: var(--color-text-light);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.leaderboard tbody tr:hover { background: #f8f9fa; }
+
+.leaderboard .rank-col { width: 70px; text-align: center; }
+
+/* Leaderboard row state styling */
+.leaderboard-row-perfect { background: rgba(76, 175, 80, 0.08); }
+.leaderboard-row-perfect:hover { background: rgba(76, 175, 80, 0.15) !important; }
+.leaderboard-row-good { background: rgba(255, 193, 7, 0.06); }
+.leaderboard-row-good:hover { background: rgba(255, 193, 7, 0.12) !important; }
+.leaderboard-row-poor { background: rgba(244, 67, 54, 0.06); }
+.leaderboard-row-poor:hover { background: rgba(244, 67, 54, 0.12) !important; }
+.leaderboard-row-dq { 
+    background: #f5f5f5; 
+    color: #999;
+}
+.leaderboard-row-dq:hover { background: #eeeeee !important; }
+.leaderboard-row-dq .agent-name { color: #999; }
+.leaderboard-row-dq .success-bar-fill { background: #ccc !important; }
+
+.rank-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    font-weight: 700;
+    font-size: 16px;
+}
+
+.rank-1 { background: transparent; font-size: 24px; }
+.rank-2 { background: transparent; font-size: 24px; }
+.rank-3 { background: transparent; font-size: 24px; }
+.rank-other { background: #e0e0e0; color: #666; font-size: 14px; }
+.rank-dq { 
+    background: #f44336; 
+    color: white; 
+    font-size: 11px; 
+    font-weight: 700;
+    border-radius: 4px;
+    padding: 4px 8px;
+}
+
+/* Results cell with pass/fail/error counts */
+.results-cell {
+    display: flex;
+    gap: 12px;
+    font-weight: 500;
+    font-size: 14px;
+}
+.result-pass { color: var(--color-pass); }
+.result-fail { color: var(--color-fail); }
+.result-error { color: #ff9800; }
+
+/* Success rate cell */
+.success-rate-cell {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* Legend */
+.leaderboard-legend {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--color-border);
+    display: flex;
+    gap: 24px;
+    font-size: 12px;
+    color: var(--color-text-light);
+}
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.legend-item .rank-badge {
+    min-width: 24px;
+    height: 20px;
+    font-size: 9px;
+    padding: 2px 6px;
+}
+
+.text-muted { color: #999; }
+
+.agent-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.agent-name {
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.provider-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 500;
+    background: #e3f2fd;
+    color: #1976d2;
+}
+
+.success-bar {
+    width: 100px;
+    height: 8px;
+    background: #e0e0e0;
+    border-radius: 4px;
+    overflow: hidden;
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: 8px;
+}
+
+.success-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+}
+
+.success-bar-fill.success-high { background: var(--color-pass); }
+.success-bar-fill.success-medium { background: var(--color-warning); }
+.success-bar-fill.success-low { background: var(--color-fail); }
+
+.stat-value {
+    font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+    font-size: 14px;
+}
+
+.text-pass { color: var(--color-pass); }
+.text-fail { color: var(--color-fail); }
+.text-muted { color: var(--color-text-muted); }
+
+/* Test List */
+.test-list {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.test-group-section { margin-bottom: 16px; }
+
+.test-group-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--color-text);
+    margin: 0 0 16px 0;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--color-primary);
+}
+
+/* Test Item (Collapsible) */
+.test-item {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    margin-bottom: 12px;
+}
+
+.test-item.passed { border-left: 4px solid var(--color-pass); }
+.test-item.failed { border-left: 4px solid var(--color-fail); }
+
+.test-item > summary {
+    list-style: none;
+}
+
+.test-item > summary::-webkit-details-marker {
+    display: none;
+}
+
+.test-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    background: #fafafa;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.2s;
+}
+
+.test-header:hover { background: #f0f0f0; }
+
+.test-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.test-status-icon { font-size: 18px; }
+
+.test-agent {
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--color-text);
+}
+
+.test-meta {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 13px;
+    color: var(--color-text-light);
+}
+
+.test-meta .duration,
+.test-meta .tokens {
+    font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+}
+
+.expand-icon {
+    transition: transform 0.2s;
+    font-size: 12px;
+    color: var(--color-text-muted);
+}
+
+.test-item[open] .expand-icon { transform: rotate(180deg); }
+
+.test-details {
+    padding: 20px;
+    background: white;
+    border-top: 1px solid var(--color-border);
+}
+
+/* Prompt Section (always visible at top of test details) */
+.prompt-section {
+    background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    margin-bottom: 20px;
+    border-left: 4px solid var(--color-primary);
+}
+
+.prompt-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+}
+
+.prompt-content {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--color-text);
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+/* Subsections */
+.subsection-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-text-light);
+    margin: 0 0 12px 0;
+    cursor: pointer;
+}
+
+.assertions-section,
+.sequence-section,
+.toolcalls-section,
+.messages-section,
+.final-output-section {
+    margin-bottom: 20px;
+}
+
+/* Assertions */
+.assertions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.assertion-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 12px;
+    background: #f8f9fa;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+}
+
+.assertion-item.passed { background: #e8f5e9; }
+.assertion-item.failed { background: #ffebee; }
+
+.assertion-icon { font-size: 14px; flex-shrink: 0; }
+.assertion-item.passed .assertion-icon { color: var(--color-pass); }
+.assertion-item.failed .assertion-icon { color: var(--color-fail); }
+
+.assertion-content { flex: 1; }
+.assertion-type { font-weight: 500; color: var(--color-text); }
+.assertion-message { color: var(--color-text-light); margin-left: 8px; }
+
+.assertion-details {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(0,0,0,0.1);
+}
+
+.assertion-details-content {
+    font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+    font-size: 12px;
+    background: rgba(255,255,255,0.5);
+    padding: 10px;
+    border-radius: var(--radius-sm);
+    margin: 0;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+/* Session Diagram */
+.session-diagram-details {
+    margin-top: 12px;
+    border-top: 1px solid rgba(0,0,0,0.08);
+    padding-top: 12px;
+}
+
+.session-diagram-summary {
+    cursor: pointer;
+    color: var(--color-primary);
+    font-size: 13px;
+    padding: 6px 0;
+    user-select: none;
+}
+
+.session-diagram-summary:hover {
+    color: var(--color-primary-dark);
+}
+
+.session-diagram-details[open] .mermaid {
+    margin-top: 16px;
+    padding: 20px;
+    background: rgba(255,255,255,0.6);
+    border-radius: var(--radius-md);
+    overflow-x: auto;
+}
+
+/* Errors */
+.errors-box {
+    background: #ffebee;
+    border: 1px solid #ffcdd2;
+    border-radius: var(--radius-md);
+    padding: 16px;
+    margin-bottom: 20px;
+}
+
+.errors-title {
+    font-weight: 600;
+    color: #c62828;
+    font-size: 14px;
+    margin-bottom: 10px;
+}
+
+.error-item {
+    color: #c62828;
+    font-size: 13px;
+    margin-bottom: 6px;
+}
+
+/* Rate Limit Stats */
+.rate-limit-stats-section {
+    background: #fff3e0;
+    border: 1px solid #ffe0b2;
+    border-radius: var(--radius-md);
+    padding: 16px;
+    margin-bottom: 20px;
+}
+
+.rate-limit-stats-section .subsection-title {
+    margin: 0 0 12px 0;
+    color: #e65100;
+}
+
+.rate-limit-stats-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.rate-limit-stat {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    border-radius: var(--radius-sm);
+    background: rgba(255, 255, 255, 0.8);
+    min-width: 150px;
+}
+
+.rate-limit-stat.throttle {
+    border-left: 3px solid #ff9800;
+}
+
+.rate-limit-stat.hits {
+    border-left: 3px solid #f44336;
+}
+
+.rate-limit-stat.retries {
+    border-left: 3px solid #2196F3;
+}
+
+.rate-limit-stat .stat-icon {
+    font-size: 24px;
+}
+
+.rate-limit-stat .stat-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.rate-limit-stat .stat-value {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+.rate-limit-stat .stat-label {
+    font-size: 12px;
+    color: var(--color-text-light);
+    font-weight: 500;
+}
+
+.rate-limit-stat .stat-detail {
+    font-size: 11px;
+    color: var(--color-text-muted);
+}
+
+/* Clarification Stats */
+.clarification-stats-section {
+    background: #fce4ec;
+    border: 1px solid #f8bbd9;
+    border-radius: var(--radius-md);
+    padding: 16px;
+    margin-bottom: 20px;
+}
+
+.clarification-stats-section .subsection-title {
+    margin: 0 0 12px 0;
+    color: #c2185b;
+}
+
+.clarification-stats-content {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.clarification-count {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    border-radius: var(--radius-sm);
+    background: rgba(255, 255, 255, 0.8);
+    border-left: 3px solid #e91e63;
+}
+
+.clarification-count .stat-icon {
+    font-size: 24px;
+}
+
+.clarification-count .stat-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.clarification-count .stat-value {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+.clarification-count .stat-label {
+    font-size: 12px;
+    color: var(--color-text-light);
+    font-weight: 500;
+}
+
+.clarification-count .stat-detail {
+    font-size: 11px;
+    color: var(--color-text-muted);
+}
+
+.clarification-examples {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.clarification-example {
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.6);
+    border-radius: var(--radius-sm);
+    border-left: 2px solid #f48fb1;
+}
+
+.clarification-example .example-quote {
+    font-style: italic;
+    font-size: 12px;
+    color: var(--color-text-light);
+    display: block;
+    max-height: 60px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Mermaid Diagram */
+.mermaid {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: var(--radius-md);
+    overflow-x: auto;
+}
+
+/* Timeline / Tool Calls */
+.timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.timeline-item {
+    padding: 16px;
+    background: #f8f9fa;
+    border-radius: var(--radius-md);
+    border-left: 3px solid var(--color-info);
+}
+
+.timeline-item.tool-call { border-left-color: var(--color-warning); }
+.timeline-item.user { border-left-color: var(--color-pass); }
+.timeline-item.assistant { border-left-color: var(--color-info); }
+
+.timeline-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.tool-name {
+    font-weight: 600;
+    color: #f57c00;
+    font-size: 14px;
+}
+
+.timeline-meta {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.tool-duration {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--color-info);
+    background: rgba(33, 150, 243, 0.1);
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+}
+
+.timeline-role {
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.timeline-time {
+    font-size: 12px;
+    color: var(--color-text-muted);
+    font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+}
+
+.timeline-content {
+    font-size: 14px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+/* Tool Params/Result Toggle */
+.tool-params-toggle,
+.tool-result-toggle {
+    margin-top: 8px;
+}
+
+.tool-params-toggle > summary,
+.tool-result-toggle > summary {
+    font-size: 12px;
+    color: var(--color-text-light);
+    cursor: pointer;
+    padding: 4px 0;
+}
+
+.tool-params,
+.tool-result-content {
+    font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+    font-size: 12px;
+    background: white;
+    padding: 12px;
+    border-radius: var(--radius-sm);
+    overflow-x: auto;
+    margin-top: 8px;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
+/* Conversation Timeline */
+.conversation-timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 12px;
+}
+
+/* Final Output */
+.final-output-content {
+    background: #f8f9fa;
+    padding: 16px;
+    border-radius: var(--radius-md);
+    font-size: 14px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    margin-top: 12px;
+}
+
+/* Test Group Header with Prompt */
+.test-group-header {
+    margin-bottom: 16px;
+}
+
+.test-group-prompt {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-left: 4px solid var(--color-primary);
+    padding: 12px 16px;
+    border-radius: 0 var(--radius-md) var(--radius-md) 0;
+    margin-top: 12px;
+    font-size: 14px;
+}
+
+.test-group-prompt .prompt-label {
+    font-weight: 600;
+    color: var(--color-primary);
+    margin-right: 8px;
+}
+
+.test-group-prompt .prompt-text {
+    color: var(--color-text);
+}
+
+/* Agent Comparison Table (horizontal layout) */
+.comparison-table-wrapper {
+    overflow-x: auto;
+    margin-bottom: 12px;
+}
+
+.agent-comparison-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    background: var(--color-card);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+}
+
+.agent-comparison-table thead {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.agent-comparison-table th,
+.agent-comparison-table td {
+    padding: 10px 14px;
+    text-align: center;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.agent-comparison-table th.attribute-col,
+.agent-comparison-table td.metric-label {
+    text-align: left;
+    font-weight: 600;
+    background: #f8f9fa;
+    white-space: nowrap;
+    width: 120px;
+    min-width: 120px;
+}
+
+.agent-comparison-table th.agent-col {
+    background: linear-gradient(180deg, #f8f9fa 0%, #fff 100%);
+    font-weight: 600;
+    vertical-align: middle;
+    min-width: 140px;
+}
+
+.agent-comparison-table th.agent-col.passed {
+    border-top: 3px solid var(--color-pass);
+}
+
+.agent-comparison-table th.agent-col.failed {
+    border-top: 3px solid var(--color-fail);
+}
+
+.agent-comparison-table th .agent-status {
+    font-size: 16px;
+    margin-right: 6px;
+}
+
+.agent-comparison-table th .agent-name {
+    font-size: 13px;
+    display: block;
+    margin-bottom: 4px;
+}
+
+.agent-comparison-table th .provider-badge {
+    font-size: 10px;
+    padding: 2px 6px;
+}
+
+.agent-comparison-table .metric-row:nth-child(even) {
+    background: #fafbfc;
+}
+
+.agent-comparison-table .metric-row:hover {
+    background: #f0f4f8;
+}
+
+.agent-comparison-table .metric-value {
+    font-family: 'SF Mono', Monaco, monospace;
+    font-size: 13px;
+    color: var(--color-text);
+}
+
+/* Details toggle button in comparison table */
+.details-toggle-btn {
+    background: transparent;
+    color: var(--color-primary);
+    border: 1px solid var(--color-primary);
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.details-toggle-btn:hover {
+    background: var(--color-primary);
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+}
+
+/* Agent detail panels (hidden by default in multi-agent view) */
+.agent-details-section {
+    margin-top: 15px;
+}
+
+.agent-detail-panel {
+    margin-bottom: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+/* Inline assertions badges */
+.inline-assertions {
+    display: flex;
+    gap: 4px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.mini-badge {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    line-height: 20px;
+    border-radius: 50%;
+    font-size: 11px;
+    font-weight: bold;
+    text-align: center;
+    cursor: help;
+}
+
+.mini-badge.pass {
+    background: #d4edda;
+    color: #155724;
+}
+
+.mini-badge.fail {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+/* Error count styling */
+.error-count {
+    color: var(--color-fail);
+    font-weight: 600;
+    cursor: help;
+    padding: 2px 8px;
+    background: #fee;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+.no-errors {
+    color: #aaa;
+}
+
+.has-errors {
+    background: #fff5f5;
+}
+
+/* Output cell */
+.output-cell {
+    max-width: 200px;
+    cursor: help;
+}
+
+.truncated-output {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12px;
+    color: #666;
+}
+
+/* Tool Comparison Section */
+.tool-comparison-section {
+    margin-top: 8px;
+    background: var(--color-card);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+}
+
+.tool-comparison-header {
+    padding: 10px 16px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    background: #f8f9fa;
+    border-radius: var(--radius-md);
+    transition: background 0.2s;
+}
+
+.tool-comparison-header:hover {
+    background: #eef1f5;
+}
+
+.tool-comparison-section[open] .tool-comparison-header {
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.tool-comparison-content {
+    padding: 12px;
+}
+
+.tool-lists-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+}
+
+.agent-tool-list {
+    background: #fafbfc;
+    border-radius: var(--radius-sm);
+    padding: 12px;
+}
+
+.agent-tool-header {
+    font-weight: 600;
+    font-size: 13px;
+    color: #333;
+    margin-bottom: 8px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.tool-sequence {
+    margin: 0;
+    padding-left: 20px;
+    font-size: 12px;
+}
+
+.tool-sequence .tool-item {
+    font-family: 'SF Mono', Monaco, monospace;
+    color: #0066cc;
+    padding: 3px 0;
+}
+
+.tool-sequence .no-tools {
+    color: #999;
+    font-style: italic;
+    list-style: none;
+    margin-left: -16px;
+}
+
+/* Errors Comparison Section */
+.errors-comparison-section,
+.sequence-comparison-section,
+.outputs-comparison-section {
+    margin-top: 8px;
+    background: var(--color-card);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+}
+
+.errors-comparison-header,
+.sequence-comparison-header,
+.outputs-comparison-header {
+    padding: 10px 16px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    background: #f8f9fa;
+    border-radius: var(--radius-md);
+    transition: background 0.2s;
+}
+
+.errors-comparison-header:hover,
+.sequence-comparison-header:hover,
+.outputs-comparison-header:hover {
+    background: #eef1f5;
+}
+
+.errors-comparison-section[open] .errors-comparison-header,
+.sequence-comparison-section[open] .sequence-comparison-header,
+.outputs-comparison-section[open] .outputs-comparison-header {
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.errors-comparison-content,
+.sequence-comparison-content,
+.outputs-comparison-content {
+    padding: 12px;
+}
+
+.errors-grid,
+.sequence-grid,
+.outputs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 16px;
+}
+
+.agent-errors-box,
+.agent-sequence-box,
+.agent-output-box {
+    background: #fafbfc;
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    overflow: hidden;
+}
+
+.agent-errors-header,
+.agent-sequence-header,
+.agent-output-header {
+    font-weight: 600;
+    font-size: 13px;
+    color: #333;
+    margin-bottom: 8px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.agent-errors-header.failed,
+.agent-output-header.failed {
+    color: var(--color-fail);
+}
+
+.agent-errors-header.passed,
+.agent-output-header.passed {
+    color: var(--color-pass);
+}
+
+.error-list {
+    margin: 0;
+    padding-left: 16px;
+    font-size: 12px;
+    color: var(--color-fail);
+}
+
+.error-detail {
+    padding: 2px 0;
+}
+
+.agent-output-content {
+    font-size: 12px;
+    color: #666;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 150px;
+    overflow-y: auto;
+}
+
+.agent-sequence-box .mermaid {
+    font-size: 11px;
+}
+
+/* Sequence diagram click-to-fullscreen overlay */
+.agent-sequence-box {
+    position: relative;
+    cursor: pointer;
+    transition: box-shadow 0.2s ease;
+}
+
+.agent-sequence-box:hover {
+    box-shadow: var(--shadow-md);
+}
+
+.agent-sequence-box::after {
+    content: "🔍 Click to enlarge";
+    position: absolute;
+    bottom: 4px;
+    right: 8px;
+    font-size: 10px;
+    color: #999;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.agent-sequence-box:hover::after {
+    opacity: 1;
+}
+
+/* Fullscreen overlay for sequence diagrams */
+.sequence-fullscreen-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.85);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+    cursor: zoom-out;
+}
+
+.sequence-fullscreen-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.sequence-fullscreen-content {
+    background: white;
+    border-radius: var(--radius-lg);
+    padding: 32px;
+    max-width: 95vw;
+    max-height: 95vh;
+    overflow: auto;
+    box-shadow: var(--shadow-lg);
+}
+
+.sequence-fullscreen-content .mermaid {
+    font-size: 14px;
+}
+
+.sequence-fullscreen-header {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--color-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.sequence-fullscreen-close {
+    font-size: 24px;
+    cursor: pointer;
+    color: #666;
+    padding: 4px 12px;
+    border-radius: var(--radius-sm);
+    transition: background 0.2s ease;
+}
+
+.sequence-fullscreen-close:hover {
+    background: #f0f0f0;
+    color: #333;
+}
+
+/* Fullscreen overlay for agent details */
+.details-fullscreen-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.9);
+    z-index: 9999;
+    display: flex;
+    align-items: stretch;
+    justify-content: stretch;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.details-fullscreen-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.details-fullscreen-content {
+    background: white;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    cursor: default;
+}
+
+.details-fullscreen-header {
+    font-size: 20px;
+    font-weight: 600;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--color-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    flex-shrink: 0;
+}
+
+.details-fullscreen-close {
+    font-size: 28px;
+    cursor: pointer;
+    color: white;
+    padding: 4px 16px;
+    border-radius: var(--radius-sm);
+    transition: background 0.2s ease;
+}
+
+.details-fullscreen-close:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.details-overlay-body {
+    padding: 24px 48px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.details-overlay-body .test-item {
+    border: none;
+    box-shadow: none;
+    margin: 0;
+    max-width: 1400px;
+}
+
+.details-overlay-body .test-header {
+    display: none;
+}
+
+.details-overlay-body .test-details {
+    display: block;
+    padding: 0;
+}
+
+/* Keep other boxes from overlapping */
+.sequence-grid {
+    position: relative;
+}
+
+/* Legacy card styles (kept for fallback/single agent) */
+.agent-comparison-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 16px;
+}
+
+.agent-card {
+    background: var(--color-card);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.agent-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.agent-card.passed {
+    border-top: 4px solid var(--color-pass);
+}
+
+.agent-card.failed {
+    border-top: 4px solid var(--color-fail);
+}
+
+.agent-card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 16px;
+    background: #f8f9fa;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.agent-card-header .agent-name {
+    font-weight: 600;
+    font-size: 15px;
+    flex: 1;
+}
+
+.agent-card-header .test-status-icon {
+    font-size: 18px;
+}
+
+.agent-card-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.stat-row {
+    text-align: center;
+}
+
+.stat-row .stat-label {
+    display: block;
+    font-size: 11px;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 2px;
+}
+
+.stat-row .stat-value {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.agent-card-assertions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.assertion-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    border-radius: var(--radius-sm);
+    font-size: 11px;
+    font-weight: 500;
+    cursor: help;
+}
+
+.assertion-badge.passed {
+    background: #e8f5e9;
+    color: var(--color-pass);
+}
+
+.assertion-badge.failed {
+    background: #ffebee;
+    color: var(--color-fail);
+}
+
+.agent-card-errors {
+    padding: 12px 16px;
+    background: #fff5f5;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.agent-card-errors .error-item {
+    font-size: 12px;
+    color: var(--color-fail);
+    margin-bottom: 4px;
+}
+
+.agent-card-errors .error-item:last-child {
+    margin-bottom: 0;
+}
+
+.agent-card-details {
+    border-top: none;
+}
+
+.agent-card-details > summary {
+    padding: 12px 16px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--color-primary);
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.agent-card-details > summary:hover {
+    background: #f8f9fa;
+}
+
+.agent-card-details > summary::before {
+    content: '▶';
+    font-size: 10px;
+    transition: transform 0.2s;
+}
+
+.agent-card-details[open] > summary::before {
+    transform: rotate(90deg);
+}
+
+.agent-details-content {
+    padding: 0 16px 16px 16px;
+}
+
+/* Compact Tool Calls */
+.compact-toolcalls {
+    margin-bottom: 12px;
+}
+
+.compact-section-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-text-light);
+    margin-bottom: 8px;
+}
+
+.compact-tool {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 10px;
+    background: #f8f9fa;
+    border-radius: var(--radius-sm);
+    margin-bottom: 4px;
+    font-size: 12px;
+}
+
+.compact-tool .tool-name {
+    font-weight: 500;
+    color: var(--color-text);
+}
+
+.compact-tool .tool-time {
+    color: var(--color-text-muted);
+    font-size: 11px;
+}
+
+/* Compact Output */
+.compact-output {
+    margin-bottom: 12px;
+}
+
+.compact-output .output-text {
+    background: #f8f9fa;
+    padding: 10px;
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--color-text);
+}
+
+/* Compact Messages */
+.compact-messages {
+    margin-top: 8px;
+}
+
+.compact-message {
+    display: flex;
+    gap: 8px;
+    padding: 6px 10px;
+    border-radius: var(--radius-sm);
+    margin-bottom: 4px;
+    font-size: 12px;
+}
+
+.compact-message.user {
+    background: #e3f2fd;
+}
+
+.compact-message.assistant {
+    background: #f5f5f5;
+}
+
+.compact-message .msg-role {
+    font-weight: 600;
+    min-width: 60px;
+    color: var(--color-text-light);
+}
+
+.compact-message .msg-content {
+    color: var(--color-text);
+    flex: 1;
+}
+
+/* Sequence & Messages toggles in cards */
+.sequence-toggle,
+.messages-toggle {
+    margin-top: 8px;
+}
+
+.sequence-toggle > summary,
+.messages-toggle > summary {
+    font-size: 12px;
+    color: var(--color-text-light);
+    cursor: pointer;
+    padding: 6px 0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    body { padding: 10px; }
+    .report-header { padding: 20px; }
+    .report-meta { flex-direction: column; gap: 8px; }
+    .summary-grid { grid-template-columns: repeat(2, 1fr); }
+    .test-header { flex-direction: column; align-items: flex-start; gap: 12px; }
+    .agent-comparison-grid { grid-template-columns: 1fr; }
+    .agent-card-stats { grid-template-columns: 1fr; gap: 4px; }
+}
+
+/* Print */
+@media print {
+    body { background: white; }
+    .section { box-shadow: none; border: 1px solid #ddd; }
+    .test-item[open] .test-details { display: block; }
+    .agent-card-details[open] .agent-details-content { display: block; }
+}
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="report-header">
+            <h1>🧪 Agent Benchmark Report</h1>
+            <div class="report-meta">
+                <span>📦 Version: 0.0.0-SNAPSHOT</span>
+                <span>📅 Generated: 2026-01-08T10:10:11&#43;01:00</span>
+                
+                
+            </div>
+        </header>
+        
+        
+        
+<div class="summary-grid">
+    
+    <div class="summary-card total">
+        <div class="summary-value">8</div>
+        <div class="summary-label">Total Tests</div>
+    </div>
+    <div class="summary-card passed">
+        <div class="summary-value">5</div>
+        <div class="summary-label">Passed</div>
+    </div>
+    <div class="summary-card failed">
+        <div class="summary-value">3</div>
+        <div class="summary-label">Failed</div>
+    </div>
+    
+    <div class="summary-card agents">
+        <div class="summary-value">4</div>
+        <div class="summary-label">Agents</div>
+    </div>
+    
+    <div class="summary-card rate">
+        <div class="summary-value">62%</div>
+        <div class="summary-label">Pass Rate</div>
+    </div>
+    <div class="summary-card tokens">
+        <div class="summary-value">247</div>
+        <div class="summary-label">Avg Tokens ✓</div>
+    </div>
+    <div class="summary-card duration">
+        <div class="summary-value">9.3s</div>
+        <div class="summary-label">Avg Duration</div>
+    </div>
+</div>
+
+
+        
+        
+
+        
+        
+        
+<section class="section">
+    <div class="section-header">
+        <h2 class="section-title">📊 Comparison Matrix</h2>
+    </div>
+    <div class="section-body">
+        <div class="matrix-container">
+            <table class="comparison-matrix">
+                <thead>
+                    <tr>
+                        <th>Test</th>
+                        
+                        <th>claude-agent</th>
+                        
+                        <th>gemini-agent</th>
+                        
+                        <th>gpt-agent</th>
+                        
+                        <th>phoenix-agent</th>
+                        
+                    </tr>
+                </thead>
+                <tbody>
+                    
+                    
+                    
+                    <tr>
+                        <td>Create test file</td>
+                        
+                        
+                        <td>
+                            
+                            <div class="matrix-cell">
+                                <span class="matrix-status">✅</span>
+                                <span class="matrix-duration">8.0s</span>
+                                <span class="matrix-tokens">325</span>
+                            </div>
+                            
+                        </td>
+                        
+                        
+                        <td>
+                            
+                            <div class="matrix-cell">
+                                <span class="matrix-status">✅</span>
+                                <span class="matrix-duration">6.5s</span>
+                                <span class="matrix-tokens">256</span>
+                            </div>
+                            
+                        </td>
+                        
+                        
+                        <td>
+                            
+                            <div class="matrix-cell">
+                                <span class="matrix-status">❌</span>
+                                <span class="matrix-duration">7.0s</span>
+                                <span class="matrix-tokens">234</span>
+                            </div>
+                            
+                        </td>
+                        
+                        
+                        <td>
+                            
+                            <div class="matrix-cell">
+                                <span class="matrix-status">❌</span>
+                                <span class="matrix-duration">15.0s</span>
+                                <span class="matrix-tokens">567</span>
+                            </div>
+                            
+                        </td>
+                        
+                    </tr>
+                    
+                    <tr>
+                        <td>Read config</td>
+                        
+                        
+                        <td>
+                            
+                            <div class="matrix-cell">
+                                <span class="matrix-status">✅</span>
+                                <span class="matrix-duration">8.0s</span>
+                                <span class="matrix-tokens">198</span>
+                            </div>
+                            
+                        </td>
+                        
+                        
+                        <td>
+                            
+                            <div class="matrix-cell">
+                                <span class="matrix-status">✅</span>
+                                <span class="matrix-duration">7.0s</span>
+                                <span class="matrix-tokens">212</span>
+                            </div>
+                            
+                        </td>
+                        
+                        
+                        <td>
+                            
+                            <div class="matrix-cell">
+                                <span class="matrix-status">✅</span>
+                                <span class="matrix-duration">8.0s</span>
+                                <span class="matrix-tokens">245</span>
+                            </div>
+                            
+                        </td>
+                        
+                        
+                        <td>
+                            
+                            <div class="matrix-cell">
+                                <span class="matrix-status">❌</span>
+                                <span class="matrix-duration">15.0s</span>
+                                <span class="matrix-tokens">489</span>
+                            </div>
+                            
+                        </td>
+                        
+                    </tr>
+                    
+                    
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+        
+        
+        
+        
+        
+<section class="section">
+    <div class="section-header">
+        <h2 class="section-title">🏆 Agent Leaderboard</h2>
+    </div>
+    <div class="section-body">
+        <table class="leaderboard">
+            <thead>
+                <tr>
+                    <th class="rank-col">Rank</th>
+                    <th>Agent</th>
+                    <th>Success Rate</th>
+                    <th>Results</th>
+                    <th>Efficiency</th>
+                    <th>Avg Time</th>
+                </tr>
+            </thead>
+            <tbody>
+            
+                <tr class="leaderboard-row-perfect">
+                    <td class="rank-col">
+                        <span class="rank-badge rank-1">🥇</span>
+                        
+                    </td>
+                    <td>
+                        <div class="agent-info">
+                            <span class="agent-name">gemini-agent</span>
+                            <span class="provider-badge provider-GOOGLE">GOOGLE</span>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="success-rate-cell">
+                            <span class="success-bar"><span class="success-bar-fill success-high" style="width: 100%"></span></span>
+                            <span class="stat-value">100%</span>
+                        </div>
+                    </td>
+                    <td class="results-cell">
+                        <span class="result-pass">✓2</span>
+                        <span class="result-fail">✗0</span>
+                        
+                    </td>
+                    <td class="stat-value ">234 tok/✓</td>
+                    <td class="stat-value">6.75s</td>
+                </tr>
+            
+                <tr class="leaderboard-row-perfect">
+                    <td class="rank-col">
+                        <span class="rank-badge rank-2">🥈</span>
+                        
+                    </td>
+                    <td>
+                        <div class="agent-info">
+                            <span class="agent-name">claude-agent</span>
+                            <span class="provider-badge provider-ANTHROPIC">ANTHROPIC</span>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="success-rate-cell">
+                            <span class="success-bar"><span class="success-bar-fill success-high" style="width: 100%"></span></span>
+                            <span class="stat-value">100%</span>
+                        </div>
+                    </td>
+                    <td class="results-cell">
+                        <span class="result-pass">✓2</span>
+                        <span class="result-fail">✗0</span>
+                        
+                    </td>
+                    <td class="stat-value ">261 tok/✓</td>
+                    <td class="stat-value">8.00s</td>
+                </tr>
+            
+                <tr class="leaderboard-row-good">
+                    <td class="rank-col">
+                        <span class="rank-badge rank-3">🥉</span>
+                        
+                    </td>
+                    <td>
+                        <div class="agent-info">
+                            <span class="agent-name">gpt-agent</span>
+                            <span class="provider-badge provider-OPENAI">OPENAI</span>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="success-rate-cell">
+                            <span class="success-bar"><span class="success-bar-fill success-medium" style="width: 50%"></span></span>
+                            <span class="stat-value">50%</span>
+                        </div>
+                    </td>
+                    <td class="results-cell">
+                        <span class="result-pass">✓1</span>
+                        <span class="result-fail">✗1</span>
+                        
+                    </td>
+                    <td class="stat-value ">479 tok/✓</td>
+                    <td class="stat-value">7.50s</td>
+                </tr>
+            
+                <tr class="leaderboard-row-dq">
+                    <td class="rank-col">
+                        <span class="rank-badge rank-dq">DQ</span>
+                        
+                    </td>
+                    <td>
+                        <div class="agent-info">
+                            <span class="agent-name">phoenix-agent</span>
+                            <span class="provider-badge provider-AZURE">AZURE</span>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="success-rate-cell">
+                            <span class="success-bar"><span class="success-bar-fill success-low" style="width: 0%"></span></span>
+                            <span class="stat-value">0%</span>
+                        </div>
+                    </td>
+                    <td class="results-cell">
+                        <span class="result-pass">✓0</span>
+                        <span class="result-fail">✗2</span>
+                        <span class="result-error">⚠2</span>
+                    </td>
+                    <td class="stat-value text-muted">—</td>
+                    <td class="stat-value">15.00s</td>
+                </tr>
+            
+            </tbody>
+        </table>
+        <div class="leaderboard-legend">
+            <span class="legend-item"><span class="result-pass">✓</span> Passed</span>
+            <span class="legend-item"><span class="result-fail">✗</span> Failed</span>
+            <span class="legend-item"><span class="result-error">⚠</span> Errors</span>
+            <span class="legend-item"><span class="rank-badge rank-dq">DQ</span> Disqualified (0% success)</span>
+        </div>
+    </div>
+</section>
+
+        
+
+        
+
+        
+
+        
+        
+<section class="section">
+    <div class="section-header">
+        <h2 class="section-title">📋 Detailed Test Results</h2>
+    </div>
+    <div class="section-body">
+        <div class="test-list">
+            
+            <div class="test-group-section">
+                
+<div class="test-group-header">
+    <h3 class="test-group-title">Create test file</h3>
+    
+    
+    
+    <div class="test-group-prompt">
+        <span class="prompt-label">📝 Prompt:</span>
+        <span class="prompt-text">Create a test file at /tmp/test.txt with the content &#39;Hello World&#39;</span>
+    </div>
+    
+    
+    
+</div>
+
+
+
+
+
+<div class="comparison-table-wrapper">
+    <table class="agent-comparison-table">
+        <thead>
+            <tr>
+                <th class="attribute-col">Metric</th>
+                
+                <th class="agent-col passed">
+                    <span class="agent-status">✅</span>
+                    <span class="agent-name">claude-agent</span>
+                    <span class="provider-badge provider-ANTHROPIC">ANTHROPIC</span>
+                </th>
+                
+                <th class="agent-col passed">
+                    <span class="agent-status">✅</span>
+                    <span class="agent-name">gemini-agent</span>
+                    <span class="provider-badge provider-GOOGLE">GOOGLE</span>
+                </th>
+                
+                <th class="agent-col failed">
+                    <span class="agent-status">❌</span>
+                    <span class="agent-name">gpt-agent</span>
+                    <span class="provider-badge provider-OPENAI">OPENAI</span>
+                </th>
+                
+                <th class="agent-col failed">
+                    <span class="agent-status">❌</span>
+                    <span class="agent-name">phoenix-agent</span>
+                    <span class="provider-badge provider-AZURE">AZURE</span>
+                </th>
+                
+            </tr>
+        </thead>
+        <tbody>
+            <tr class="metric-row">
+                <td class="metric-label">⏱️ Duration</td>
+                
+                <td class="metric-value">8.00s</td>
+                
+                <td class="metric-value">6.50s</td>
+                
+                <td class="metric-value">7.00s</td>
+                
+                <td class="metric-value">15.00s</td>
+                
+            </tr>
+            <tr class="metric-row">
+                <td class="metric-label">🎯 Tokens</td>
+                
+                <td class="metric-value">325</td>
+                
+                <td class="metric-value">256</td>
+                
+                <td class="metric-value">234</td>
+                
+                <td class="metric-value">567</td>
+                
+            </tr>
+            <tr class="metric-row">
+                <td class="metric-label">🔧 Tool Calls</td>
+                
+                <td class="metric-value">5</td>
+                
+                <td class="metric-value">5</td>
+                
+                <td class="metric-value">5</td>
+                
+                <td class="metric-value">5</td>
+                
+            </tr>
+            <tr class="metric-row details-row">
+                <td class="metric-label">📋 Details</td>
+                
+                <td class="metric-value">
+                    <button class="details-toggle-btn" onclick="openAgentDetails( 0 , this)" title="Click to view full details">
+                        🔍 View
+                    </button>
+                </td>
+                
+                <td class="metric-value">
+                    <button class="details-toggle-btn" onclick="openAgentDetails( 1 , this)" title="Click to view full details">
+                        🔍 View
+                    </button>
+                </td>
+                
+                <td class="metric-value">
+                    <button class="details-toggle-btn" onclick="openAgentDetails( 2 , this)" title="Click to view full details">
+                        🔍 View
+                    </button>
+                </td>
+                
+                <td class="metric-value">
+                    <button class="details-toggle-btn" onclick="openAgentDetails( 3 , this)" title="Click to view full details">
+                        🔍 View
+                    </button>
+                </td>
+                
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+
+
+<details class="tool-comparison-section">
+    <summary class="tool-comparison-header">🔧 Compare Tool Calls</summary>
+    <div class="tool-comparison-content">
+        <div class="tool-lists-grid">
+            
+            <div class="agent-tool-list">
+                <div class="agent-tool-header">claude-agent</div>
+                <ol class="tool-sequence">
+                    
+                    <li class="tool-item">stat</li>
+                    
+                    <li class="tool-item">mkdir</li>
+                    
+                    <li class="tool-item">write_file</li>
+                    
+                    <li class="tool-item">cat</li>
+                    
+                    <li class="tool-item">ls</li>
+                    
+                    
+                </ol>
+            </div>
+            
+            <div class="agent-tool-list">
+                <div class="agent-tool-header">gemini-agent</div>
+                <ol class="tool-sequence">
+                    
+                    <li class="tool-item">bash</li>
+                    
+                    <li class="tool-item">bash</li>
+                    
+                    <li class="tool-item">bash</li>
+                    
+                    <li class="tool-item">bash</li>
+                    
+                    <li class="tool-item">bash</li>
+                    
+                    
+                </ol>
+            </div>
+            
+            <div class="agent-tool-list">
+                <div class="agent-tool-header">gpt-agent</div>
+                <ol class="tool-sequence">
+                    
+                    <li class="tool-item">python</li>
+                    
+                    <li class="tool-item">python</li>
+                    
+                    <li class="tool-item">python</li>
+                    
+                    <li class="tool-item">python</li>
+                    
+                    <li class="tool-item">python</li>
+                    
+                    
+                </ol>
+            </div>
+            
+            <div class="agent-tool-list">
+                <div class="agent-tool-header">phoenix-agent</div>
+                <ol class="tool-sequence">
+                    
+                    <li class="tool-item">http_post</li>
+                    
+                    <li class="tool-item">graphql</li>
+                    
+                    <li class="tool-item">database_insert</li>
+                    
+                    <li class="tool-item">send_email</li>
+                    
+                    <li class="tool-item">web_search</li>
+                    
+                    
+                </ol>
+            </div>
+            
+        </div>
+    </div>
+</details>
+
+
+<details class="sequence-comparison-section">
+    <summary class="sequence-comparison-header">📊 Execution Flow</summary>
+    <div class="sequence-comparison-content">
+        <div class="sequence-grid">
+            
+            
+            <div class="agent-sequence-box">
+                <div class="agent-sequence-header">claude-agent</div>
+                <div class="mermaid">sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    U-&gt;&gt;A: Create a test file at /tmp/test.txt with the co...
+    A-&gt;&gt;M: stat() [45ms]
+    A-&gt;&gt;M: mkdir() [82ms]
+    A-&gt;&gt;M: write_file() [156ms]
+    A-&gt;&gt;M: cat() [38ms]
+    A-&gt;&gt;M: ls() [52ms]
+    A--&gt;&gt;U: File created successfully at /tmp/tes... [325 tokens]
+</div>
+            </div>
+            
+            
+            
+            <div class="agent-sequence-box">
+                <div class="agent-sequence-header">gemini-agent</div>
+                <div class="mermaid">sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    U-&gt;&gt;A: Create a test file at /tmp/test.txt with the co...
+    A-&gt;&gt;M: bash() [25ms]
+    A-&gt;&gt;M: bash() [68ms]
+    A-&gt;&gt;M: bash() [32ms]
+    A-&gt;&gt;M: bash() [41ms]
+    A-&gt;&gt;M: bash() [35ms]
+    A--&gt;&gt;U: Done! File created using bash. [256 tokens]
+</div>
+            </div>
+            
+            
+            
+            <div class="agent-sequence-box">
+                <div class="agent-sequence-header">gpt-agent</div>
+                <div class="mermaid">sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    U-&gt;&gt;A: Create a test file at /tmp/test.txt with the co...
+    A-&gt;&gt;M: python() [185ms]
+    A-&gt;&gt;M: python() [142ms]
+    A-&gt;&gt;M: python() [198ms]
+    A-&gt;&gt;M: python() [95ms]
+    A-&gt;&gt;M: python() [78ms]
+    A--&gt;&gt;U: File created via Python. [234 tokens]
+</div>
+            </div>
+            
+            
+            
+            <div class="agent-sequence-box">
+                <div class="agent-sequence-header">phoenix-agent</div>
+                <div class="mermaid">sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    U-&gt;&gt;A: Create a test file at /tmp/test.txt with the co...
+    A-&gt;&gt;M: http_post() [2500ms]
+    A-&gt;&gt;M: graphql() [3200ms]
+    A-&gt;&gt;M: database_insert() [1800ms]
+    A-&gt;&gt;M: send_email() [950ms]
+    A-&gt;&gt;M: web_search() [1250ms]
+    A--&gt;&gt;U: Failed to create file. I don&#39;t have t... [567 tokens]
+</div>
+            </div>
+            
+            
+        </div>
+    </div>
+</details>
+
+
+
+<div class="agent-details-source" style="display: none;">
+    
+    <div class="agent-detail-panel" data-agent-idx="0" data-agent-name="claude-agent">
+        
+<details class="test-item passed" open>
+    <summary class="test-header">
+        <div class="test-info">
+            <span class="test-status-icon">✅</span>
+            <span class="test-agent">claude-agent</span>
+            <span class="provider-badge">ANTHROPIC</span>
+        </div>
+        <div class="test-meta">
+            <span class="duration">8.00s</span>
+            <span class="tokens">325 tokens</span>
+            <span class="expand-icon">▼</span>
+        </div>
+    </summary>
+    <div class="test-details">
+        
+
+<div class="assertions-section">
+    <h4 class="subsection-title">Assertions</h4>
+    <div class="assertions-list">
+        
+        <div class="assertion-item passed">
+            <span class="assertion-icon">✓</span>
+            <div class="assertion-content">
+                <span class="assertion-type">tool_called</span>
+                <span class="assertion-message">Tool &#39;write_file&#39; was called</span>
+                
+            </div>
+        </div>
+        
+        <div class="assertion-item passed">
+            <span class="assertion-icon">✓</span>
+            <div class="assertion-content">
+                <span class="assertion-type">tool_param_equals</span>
+                <span class="assertion-message">Parameters match</span>
+                
+            </div>
+        </div>
+        
+    </div>
+</div>
+
+
+        
+
+
+        
+
+
+        
+
+
+        
+
+<div class="sequence-section">
+    <h4 class="subsection-title">Execution Flow</h4>
+    <div class="mermaid">
+sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    U-&gt;&gt;A: Create a test file at /tmp/test.txt with the co...
+    A-&gt;&gt;M: stat() [45ms]
+    A-&gt;&gt;M: mkdir() [82ms]
+    A-&gt;&gt;M: write_file() [156ms]
+    A-&gt;&gt;M: cat() [38ms]
+    A-&gt;&gt;M: ls() [52ms]
+    A--&gt;&gt;U: File created successfully at /tmp/tes... [325 tokens]
+
+    </div>
+</div>
+
+
+        
+
+<div class="toolcalls-section">
+    <h4 class="subsection-title">Tool Calls (5)</h4>
+    <div class="timeline">
+        
+        <div class="timeline-item tool-call">
+            <div class="timeline-header">
+                <span class="tool-name">🔧 stat</span>
+                <span class="timeline-meta">
+                    <span class="tool-duration">45ms</span>
+                    <span class="timeline-time">&#43;1.00s</span>
+                </span>
+            </div>
+            
+            <details class="tool-params-toggle">
+                <summary>Parameters</summary>
+                <pre class="tool-params">{
+  "path": "/tmp"
+}</pre>
+            </details>
+            
+            
+        </div>
+        
+        <div class="timeline-item tool-call">
+            <div class="timeline-header">
+                <span class="tool-name">🔧 mkdir</span>
+                <span class="timeline-meta">
+                    <span class="tool-duration">82ms</span>
+                    <span class="timeline-time">&#43;2.50s</span>
+                </span>
+            </div>
+            
+            <details class="tool-params-toggle">
+                <summary>Parameters</summary>
+                <pre class="tool-params">{
+  "path": "/tmp",
+  "recursive": true
+}</pre>
+            </details>
+            
+            
+        </div>
+        
+        <div class="timeline-item tool-call">
+            <div class="timeline-header">
+                <span class="tool-name">🔧 write_file</span>
+                <span class="timeline-meta">
+                    <span class="tool-duration">156ms</span>
+                    <span class="timeline-time">&#43;4.50s</span>
+                </span>
+            </div>
+            
+            <details class="tool-params-toggle">
+                <summary>Parameters</summary>
+                <pre class="tool-params">{
+  "content": "Hello World",
+  "path": "/tmp/test.txt"
+}</pre>
+            </details>
+            
+            
+        </div>
+        
+        <div class="timeline-item tool-call">
+            <div class="timeline-header">
+                <span class="tool-name">🔧 cat</span>
+                <span class="timeline-meta">
+                    <span class="tool-duration">38ms</span>
+                    <span class="timeline-time">&#43;6.00s</span>
+                </span>
+            </div>
+            
+            <details class="tool-params-toggle">
+                <summary>Parameters</summary>
+                <pre class="tool-params">{
+  "path": "/tmp/test.txt"
+}</pre>
+            </details>
+            
+            
+        </div>
+        
+        <div class="timeline-item tool-call">
+            <div class="timeline-header">
+                <span class="tool-name">🔧 ls</span>
+                <span class="timeline-meta">
+                    <span class="tool-duration">52ms</span>
+                    <span class="timeline-time">&#43;7.00s</span>
+                </span>
+            </div>
+            
+            <details class="tool-params-toggle">
+                <summary>Parameters</summary>
+                <pre class="tool-params">{
+  "long": true,
+  "path": "/tmp"
+}</pre>
+            </details>
+            
+            
+        </div>
+        
+    </div>
+</div>
+
+
+        
+
+<details class="messages-section">
+    <summary class="subsection-title">💬 Conversation (6 messages)</summary>
+    <div class="conversation-timeline">
+        
+        <div class="timeline-item user">
+            <div class="timeline-header">
+                <span class="timeline-role">user</span>
+                <span class="timeline-time">00:00:00.000</span>
+            </div>
+            <div class="timeline-content">Create a test file at /tmp/test.txt with the content &#39;Hello World&#39;</div>
+        </div>
+        
+        <div class="timeline-item assistant">
+            <div class="timeline-header">
+                <span class="timeline-role">assistant</span>
+                <span class="timeline-time">10:00:00.500</span>
+            </div>
+            <div class="timeline-content">I&#39;ll create the file for you.</div>
+        </div>
+        
+        <div class="timeline-item assistant">
+            <div class="timeline-header">
+                <span class="timeline-role">assistant</span>
+                <span class="timeline-time">10:00:02.000</span>
+            </div>
+            <div class="timeline-content">Checking path exists.</div>
+        </div>
+        
+        <div class="timeline-item assistant">
+            <div class="timeline-header">
+                <span class="timeline-role">assistant</span>
+                <span class="timeline-time">10:00:04.000</span>
+            </div>
+            <div class="timeline-content">Writing content.</div>
+        </div>
+        
+        <div class="timeline-item assistant">
+            <div class="timeline-header">
+                <span class="timeline-role">assistant</span>
+                <span class="timeline-time">10:00:06.000</span>
+            </div>
+            <div class="timeline-content">Verifying file.</div>
+        </div>
+        
+        <div class="timeline-item assistant">
+            <div class="timeline-header">
+                <span class="timeline-role">assistant</span>
+                <span class="timeline-time">10:00:07.500</span>
+            </div>
+            <div class="timeline-content">Done!</div>
+        </div>
+        
+    </div>
+</details>
+
+
+        
+
+<details class="final-output-section">
+    <summary class="subsection-title">📤 Final Output</summary>
+    <div class="final-output-content">File created successfully at /tmp/test.txt with content &#39;Hello World&#39;</div>
+</details>
+
+
+    </div>
+</details>
+
+    </div>
+    
+    <div class="agent-detail-panel" data-agent-idx="1" data-agent-name="gemini-agent">
+        
+<details class="test-item passed" open>
+    <summary class="test-header">
+        <div class="test-info">
+            <span class="test-status-icon">✅</span>
+            <span class="test-agent">gemini-agent</span>
+            <span class="provider-badge">GOOGLE</span>
+        </div>
+        <div class="test-meta">
+            <span class="duration">6.50s</span>
+            <span class="tokens">256 tokens</span>
+            <span class="expand-icon">▼</span>
+        </div>
+    </summary>
+    <div class="test-details">
+        
+
+<div class="assertions-section">
+    <h4 class="subsection-title">Assertions</h4>
+    <div class="assertions-list">
+        
+        <div class="assertion-item passed">
+            <span class="assertion-icon">✓</span>
+            <div class="assertion-content">
+                <span class="assertion-type">tool_called</span>
+                <span class="assertion-message">Tool &#39;bash&#39; was called</span>
+                
+            </div>
+        </div>
+        
+        <div class="assertion-item passed">
+            <span class="assertion-icon">✓</span>
+            <div class="assertion-content">
+                <span class="assertion-type">output_contains</span>
+                <span class="assertion-message">Output contains &#39;file creation&#39;</span>
+                
+            </div>
+        </div>
+        
+    </div>
+</div>
+
+
+        
+
+
+        
+
+
+        
+
+
+        
+
+<div class="sequence-section">
+    <h4 class="subsection-title">Execution Flow</h4>
+    <div class="mermaid">
+sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    U-&gt;&gt;A: Create a test file at /tmp/test.txt with the co...
+    A-&gt;&gt;M: bash() [25ms]
+    A-&gt;&gt;M: bash() [68ms]
+    A-&gt;&gt;M: bash() [32ms]
+    A-&gt;&gt;M: bash() [41ms]
+    A-&gt;&gt;M: bash() [35ms]
+    A--&gt;&gt;U: Done! File created using bash. [256 tokens]
+
+    </div>
+</div>
+
+
+        
+
+<div class="toolcalls-section">
+    <h4 class="subsection-title">Tool Calls (5)</h4>
+    <div class="timeline">
+        
+        <div class="timeline-item tool-call">
+            <div class="timeline-header">
+                <span class="tool-name">🔧 bash</span>
+                <span class="timeline-meta">
+                    <span class="tool-duration">25ms</span>
+                    <span class="timeline-time">&#43;1.00s</span>
+                </span>
+            </div>
+            
+            <details class="tool-params-toggle">
+                <summary>Parameters</summary>
+                <pre class="tool-params">{
+  "command": "test -d /tmp"
+}</pre>
+            </details>
+            
+            
+        </div>
+        
+        <div class="timeline-item tool-call">
+            <div class="timeline-header">
+                <span class="tool-name">🔧 bash</span>
+                <span class="timeline-meta">
+                    <span class="tool-duration">68ms</span>
+                    <span class="timeline-time">&#43;3.00s</span>
+                </span>
+            </div>
+            
+            <details class="tool-params-toggle">
+                <summary>Parameters</summary>
+                <pre class="tool-params">{
+  "command": "echo 'Hello World' \u003e /tmp/test.txt"
+}</pre>
+            </details>
+            
+            
+        </div>
+        
+        <div class="timeline-item tool-call">
+            <div class="timeline-header">
+                <span class="tool-name">🔧 bash</span>
+                <span class="timeline-meta">
+                    <span class="tool-duration">32ms</span>
+                    <span class="timeline-time">&#43;4.50s</span>
+                </span>
+            </div>
+            
+            <details class="tool-params-toggle">
+                <summary>Parameters</summary>
+                <pre class="tool-params">{
+  "command": "cat /tmp/test.txt"
+}</pre>
+            </details>
+            
+            
+        </div>
+        
+        <div class="timeline-item tool-call">
+            <div class="timeline-header">
+                <span class="tool-name">🔧 bash</span>
+                <span class="timeline-meta">
+                    <span class="tool-duration">41ms</span>
+                    <span class="timeline-time">&#43;5.50s</span>
+                </span>
+            </div>
+            
+            <details class="tool-params-toggle">
+                <summary>Parameters</summary>
+                <pre class="tool-params">{
+  "command": "stat /tmp/test.txt"
+}</pre>
+            </details>
+            
+            
+        </div>
+        
+        <div class="timeline-item tool-call">
+            <div class="timeline-header">
+                <span class="tool-name">🔧 bash</span>
+                <span class="timeline-meta">
+                    <span class="tool-duration">35ms</span>
+                    <span class="timeline-time">&#43;6.00s</span>
+                </span>
+            </div>
+            
+            <details class="tool-params-toggle">
+                <summary>Parameters</summary>
+                <pre class="tool-params">{
+  "command": "ls -la /tmp/test.txt"
+}</pre>
+            </details>
+            
+            
+        </div>
+        
+    </div>
+</div>
+
+
+        
+
+<details class="messages-section">
+    <summary class="subsection-title">💬 Conversation (6 messages)</summary>
+    <div class="conversation-timeline">
+        
+        <div class="timeline-item user">
+            <div class="timeline-header">
+                <span class="timeline-role">user</span>
+                <span class="timeline-time">00:00:00.000</span>
+            </div>
+            <div class="timeline-content">Create a test file at /tmp/test.txt with the content &#39;Hello World&#39;</div>
+        </div>
+        
+        <div class="timeline-item assistant">
+            <div class="timeline-header">
+                <span class="timeline-role">assistant</span>
+                <span class="timeline-time">10:00:00.400</span>
+            </div>
+            <div class="timeline-content">Creating file now.</div>
+        </div>
+        
+        <div class="timeline-item assistant">
+            <div class="timeline-header">
+                <span class="timeline-role">assistant</span>
+                <span class="timeline-time">10:00:02.000</span>
+            </div>
+            <div class="timeline-content">Using bash to create.</div>
+        </div>
+        
+        <div class="timeline-item assistant">
+            <div class="timeline-header">
+                <span class="timeline-role">assistant</span>
+                <span class="timeline-time">10:00:04.000</span>
+            </div>
+            <div class="timeline-content">Verifying creation.</div>
+        </div>
+        
+        <div class="timeline-item assistant">
+            <div class="timeline-header">
+                <span class="timeline-role">assistant</span>
+                <span class="timeline-time">10:00:05.000</span>
+            </div>
+            <div class="timeline-content">Checking permissions.</div>
+        </div>
+        
+        <div class="timeline-item assistant">
+            <div class="timeline-header">
+                <span class="timeline-role">assistant</span>
+                <span class="timeline-time">10:00:06.000</span>
+            </div>
+            <div class="timeline-content">Complete.</div>
+        </div>
+        
+    </div>
+</details>
+
+
+        
+
+<details class="final-output-section">
+    <summary class="subsection-title">📤 Final Output</summary>
+    <div class="final-output-content">Done! File created using bash.</div>
+</details>
+
+
+    </div>
+</details>
+
+    </div>
+    
+    <div class="agent-detail-panel" data-agent-idx="2" data-agent-name="gpt-agent">
+        
+<details class="test-item failed" open>
+    <summary class="test-header">
+        <div class="test-info">
+            <span class="test-status-icon">❌</span>
+            <span class="test-agent">gpt-agent</span>
+            <span class="provider-badge">OPENAI</span>
+        </div>
+        <div class="test-meta">
+            <span class="duration">7.00s</span>
+            <span class="tokens">234 tokens</span>
+            <span class="expand-icon">▼</span>
+        </div>
+    </summary>
+    <div class="test-details">
+        
+
+<div class="assertions-section">
+    <h4 class="subsection-title">Assertions</h4>
+    <div class="assertions-list">
+        
+        <div class="assertion-item passed">
+            <span class="assertion-icon">✓</span>
+            <div class="assertion-content">
+                <span class="assertion-type">tool_called</span>
+                <span class="assertion-message">Tool &#39;python&#39; was called</span>
+                
+            </div>
+        </div>
+        
+        <div class="assertion-item failed">
+            <span class="assertion-icon">✗</span>
+            <div class="assertion-content">
+                <span class="assertion-type">tool_param_equals</span>
+                <span class="assertion-message">Parameter mismatch</span>
+                
+                <div class="assertion-details">
+                    <pre class="assertion-details-content">{
+  "actual": "hello world",
+  "expected": "Hello World"
+}</pre>
+                </div>
+                
+            </div>
+        </div>
+        
+    </div>
+</div>
+
+
+        
+
+
+        
+
+
+        
+
+
+        
+
+<div class="sequence-section">
+    <h4 class="subsection-title">Execution Flow</h4>
+    <div class="mermaid">
+sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    U-&gt;&gt;A: Create a test file at /tmp/test.txt with the co...
+    A-&gt;&gt;M: python() [185ms]
+    A-&gt;&gt;M: python() [142ms]
+    A-&gt;&gt;M: python() [198ms]
+    A-&gt;&gt;M: python() [95ms]
+    A-&gt;&gt;M: python() [78ms]
+    A--&gt;&gt;U: File created via Python. [234 tokens]
+
+    </div>
+</div>
+
+
+        
+
+<div class="toolcalls-section">
+    <h4 class="subsection-title">Tool Calls (5)</h4>
+    <div class="timeline">
+        
+        <div class="timeline-item tool-call">
+            <div class="timeline-header">
+                <span class="tool-name">🔧 python</span>
+                <span class="timeline-meta">
+                    <span class="tool-duration">185ms</span>
+                    <span class="timeline-time">&#43;1.00s</span>
+                </span>
+            </div>
+            
+            <details class="tool-params-toggle">
+                <summary>Parameters</summary>
+                <pre class="tool-params">{
+  "code": "import os; os.path.exists('/tmp')"
+}</pre>
+            </details>
+            
+            
+        </div>
+        
+        <div class="timeline-item tool-call">
+            <div class="timeline-header">
+                <span class="tool-name">🔧 python</span>
+                <span class="timeline-meta">
+                    <span class="tool-duration">142ms</span>
+                    <span class="timeline-time">&#43;2.50s</span>
+                </span>
+            </div>
+            
+            <details class="tool-params-toggle">
+                <summary>Parameters</summary>
+                <pre class="tool-params">{
+  "code": "os.makedirs('/tmp', exist_ok=True)"
+}</pre>
+            </details>
+            
+            
+        </div>
+        
+        <div class="timeline-item tool-call">
+            <div class="timeline-header">
+                <span class="tool-name">🔧 python</span>
+                <span class="timeline-meta">
+                    <span class="tool-duration">198ms</span>
+                    <span class="timeline-time">&#43;4.50s</span>
+                </span>
+            </div>
+            
+            <details class="tool-params-toggle">
+                <summary>Parameters</summary>
+                <pre class="tool-params">{
+  "code": "open('/tmp/test.txt', 'w').write('hello world')"
+}</pre>
+            </details>
+            
+            
+        </div>
+        
+        <div class="timeline-item tool-call">
+            <div class="timeline-header">
+                <span class="tool-name">🔧 python</span>
+                <span class="timeline-meta">
+                    <span class="tool-duration">95ms</span>
+                    <span class="timeline-time">&#43;5.00s</span>
+                </span>
+            </div>
+            
+            <details class="tool-params-toggle">
+                <summary>Parameters</summary>
+                <pre class="tool-params">{
+  "code": "open('/tmp/test.txt').read()"
+}</pre>
+            </details>
+            
+            
+        </div>
+        
+        <div class="timeline-item tool-call">
+            <div class="timeline-header">
+                <span class="tool-name">🔧 python</span>
+                <span class="timeline-meta">
+                    <span class="tool-duration">78ms</span>
+                    <span class="timeline-time">&#43;6.00s</span>
+                </span>
+            </div>
+            
+            <details class="tool-params-toggle">
+                <summary>Parameters</summary>
+                <pre class="tool-params">{
+  "code": "os.listdir('/tmp')"
+}</pre>
+            </details>
+            
+            
+        </div>
+        
+    </div>
+</div>
+
+
+        
+
+<details class="messages-section">
+    <summary class="subsection-title">💬 Conversation (6 messages)</summary>
+    <div class="conversation-timeline">
+        
+        <div class="timeline-item user">
+            <div class="timeline-header">
+                <span class="timeline-role">user</span>
+                <span class="timeline-time">00:00:00.000</span>
+            </div>
+            <div class="timeline-content">Create a test file at /tmp/test.txt with the content &#39;Hello World&#39;</div>
+        </div>
+        
+        <div class="timeline-item assistant">
+            <div class="timeline-header">
+                <span class="timeline-role">assistant</span>
+                <span class="timeline-time">10:00:00.500</span>
+            </div>
+            <div class="timeline-content">Setting up file.</div>
+        </div>
+        
+        <div class="timeline-item assistant">
+            <div class="timeline-header">
+                <span class="timeline-role">assistant</span>
+                <span class="timeline-time">10:00:02.000</span>
+            </div>
+            <div class="timeline-content">Using Python for reliability.</div>
+        </div>
+        
+        <div class="timeline-item assistant">
+            <div class="timeline-header">
+                <span class="timeline-role">assistant</span>
+                <span class="timeline-time">10:00:04.000</span>
+            </div>
+            <div class="timeline-content">Writing to disk.</div>
+        </div>
+        
+        <div class="timeline-item assistant">
+            <div class="timeline-header">
+                <span class="timeline-role">assistant</span>
+                <span class="timeline-time">10:00:05.500</span>
+            </div>
+            <div class="timeline-content">Checking result.</div>
+        </div>
+        
+        <div class="timeline-item assistant">
+            <div class="timeline-header">
+                <span class="timeline-role">assistant</span>
+                <span class="timeline-time">10:00:06.500</span>
+            </div>
+            <div class="timeline-content">File ready.</div>
+        </div>
+        
+    </div>
+</details>
+
+
+        
+
+<details class="final-output-section">
+    <summary class="subsection-title">📤 Final Output</summary>
+    <div class="final-output-content">File created via Python.</div>
+</details>
+
+
+    </div>
+</details>
+
+    </div>
+    
+    <div class="agent-detail-panel" data-agent-idx="3" data-agent-name="phoenix-agent">
+        
+<details class="test-item failed" open>
+    <summary class="test-header">
+        <div class="test-info">
+            <span class="test-status-icon">❌</span>
+            <span class="test-agent">phoenix-agent</span>
+            <span class="provider-badge">AZURE</span>
+        </div>
+        <div class="test-meta">
+            <span class="duration">15.00s</span>
+            <span class="tokens">567 tokens</span>
+            <span class="expand-icon">▼</span>
+        </div>
+    </summary>
+    <div class="test-details">
+        
+
+<div class="assertions-section">
+    <h4 class="subsection-title">Assertions</h4>
+    <div class="assertions-list">
+        
+        <div class="assertion-item failed">
+            <span class="assertion-icon">✗</span>
+            <div class="assertion-content">
+                <span class="assertion-type">tool_called</span>
+                <span class="assertion-message">Expected &#39;write_file&#39; but got &#39;API calls&#39;</span>
+                
+            </div>
+        </div>
+        
+        <div class="assertion-item failed">
+            <span class="assertion-icon">✗</span>
+            <div class="assertion-content">
+                <span class="assertion-type">tool_param_equals</span>
+                <span class="assertion-message">Path mismatch</span>
+                
+                <div class="assertion-details">
+                    <pre class="assertion-details-content">{
+  "actual": "http://files.api/create",
+  "expected": "/tmp/test.txt"
+}</pre>
+                </div>
+                
+            </div>
+        </div>
+        
+        <div class="assertion-item failed">
+            <span class="assertion-icon">✗</span>
+            <div class="assertion-content">
+                <span class="assertion-type">no_error_messages</span>
+                <span class="assertion-message">Multiple errors encountered</span>
+                
+            </div>
+        </div>
+        
+    </div>
+</div>
+
+
+        
+
+<div class="errors-box">
+    <div class="errors-title">❌ Errors</div>
+    
+    <div class="error-item">• HTTP POST failed: connection refused</div>
+    
+    <div class="error-item">• GraphQL error: unknown mutation</div>
+    
+    <div class="error-item">• Database error: table not found</div>
+    
+</div>
+
+
+        
+
+
+        
+
+
+        
+
+<div class="sequence-section">
+    <h4 class="subsection-title">Execution Flow</h4>
+    <div class="mermaid">
+sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    U-&gt;&gt;A: Create a test file at /tmp/test.txt with the co...
+    A-&gt;&gt;M: http_post() [2500ms]
+    A-&gt;&gt;M: graphql() [3200ms]
+    A-&gt;&gt;M: database_insert() [1800ms]
+    A-&gt;&gt;M: send_email() [950ms]
+    A-&gt;&gt;M: web_search() [1250ms]
+    A--&gt;&gt;U: Failed to create file. I don&#39;t have t... [567 tokens]
+
+    </div>
+</div>
+
+
+        
+
+<div class="toolcalls-section">
+    <h4 class="subsection-title">Tool Calls (5)</h4>
+    <div class="timeline">
+        
+        <div class="timeline-item tool-call">
+            <div class="timeline-header">
+                <span class="tool-name">🔧 http_post</span>
+                <span class="timeline-meta">
+                    <span class="tool-duration">2500ms</span>
+                    <span class="timeline-time">&#43;2.00s</span>
+                </span>
+            </div>
+            
+            <details class="tool-params-toggle">
+                <summary>Parameters</summary>
+                <pre class="tool-params">{
+  "url": "http://files.api/create"
+}</pre>
+            </details>
+            
+            
+        </div>
+        
+        <div class="timeline-item tool-call">
+            <div class="timeline-header">
+                <span class="tool-name">🔧 graphql</span>
+                <span class="timeline-meta">
+                    <span class="tool-duration">3200ms</span>
+                    <span class="timeline-time">&#43;5.00s</span>
+                </span>
+            </div>
+            
+            <details class="tool-params-toggle">
+                <summary>Parameters</summary>
+                <pre class="tool-params">{
+  "query": "mutation { createFile }"
+}</pre>
+            </details>
+            
+            
+        </div>
+        
+        <div class="timeline-item tool-call">
+            <div class="timeline-header">
+                <span class="tool-name">🔧 database_insert</span>
+                <span class="timeline-meta">
+                    <span class="tool-duration">1800ms</span>
+                    <span class="timeline-time">&#43;9.00s</span>
+                </span>
+            </div>
+            
+            <details class="tool-params-toggle">
+                <summary>Parameters</summary>
+                <pre class="tool-params">{
+  "data": "{}",
+  "table": "files"
+}</pre>
+            </details>
+            
+            
+        </div>
+        
+        <div class="timeline-item tool-call">
+            <div class="timeline-header">
+                <span class="tool-name">🔧 send_email</span>
+                <span class="timeline-meta">
+                    <span class="tool-duration">950ms</span>
+                    <span class="timeline-time">&#43;11.00s</span>
+                </span>
+            </div>
+            
+            <details class="tool-params-toggle">
+                <summary>Parameters</summary>
+                <pre class="tool-params">{
+  "subject": "help",
+  "to": "admin"
+}</pre>
+            </details>
+            
+            
+        </div>
+        
+        <div class="timeline-item tool-call">
+            <div class="timeline-header">
+                <span class="tool-name">🔧 web_search</span>
+                <span class="timeline-meta">
+                    <span class="tool-duration">1250ms</span>
+                    <span class="timeline-time">&#43;13.00s</span>
+                </span>
+            </div>
+            
+            <details class="tool-params-toggle">
+                <summary>Parameters</summary>
+                <pre class="tool-params">{
+  "query": "how to create file"
+}</pre>
+            </details>
+            
+            
+        </div>
+        
+    </div>
+</div>
+
+
+        
+
+<details class="messages-section">
+    <summary class="subsection-title">💬 Conversation (6 messages)</summary>
+    <div class="conversation-timeline">
+        
+        <div class="timeline-item user">
+            <div class="timeline-header">
+                <span class="timeline-role">user</span>
+                <span class="timeline-time">00:00:00.000</span>
+            </div>
+            <div class="timeline-content">Create a test file at /tmp/test.txt with the content &#39;Hello World&#39;</div>
+        </div>
+        
+        <div class="timeline-item assistant">
+            <div class="timeline-header">
+                <span class="timeline-role">assistant</span>
+                <span class="timeline-time">10:00:01.000</span>
+            </div>
+            <div class="timeline-content">I will try to create the file.</div>
+        </div>
+        
+        <div class="timeline-item assistant">
+            <div class="timeline-header">
+                <span class="timeline-role">assistant</span>
+                <span class="timeline-time">10:00:04.000</span>
+            </div>
+            <div class="timeline-content">Error encountered.</div>
+        </div>
+        
+        <div class="timeline-item assistant">
+            <div class="timeline-header">
+                <span class="timeline-role">assistant</span>
+                <span class="timeline-time">10:00:08.000</span>
+            </div>
+            <div class="timeline-content">Retrying...</div>
+        </div>
+        
+        <div class="timeline-item assistant">
+            <div class="timeline-header">
+                <span class="timeline-role">assistant</span>
+                <span class="timeline-time">10:00:12.000</span>
+            </div>
+            <div class="timeline-content">Still failing.</div>
+        </div>
+        
+        <div class="timeline-item assistant">
+            <div class="timeline-header">
+                <span class="timeline-role">assistant</span>
+                <span class="timeline-time">10:00:14.000</span>
+            </div>
+            <div class="timeline-content">Cannot complete task.</div>
+        </div>
+        
+    </div>
+</details>
+
+
+        
+
+<details class="final-output-section">
+    <summary class="subsection-title">📤 Final Output</summary>
+    <div class="final-output-content">Failed to create file. I don&#39;t have the right tools.</div>
+</details>
+
+
+    </div>
+</details>
+
+    </div>
+    
+</div>
+
+
+
+            </div>
+            
+            <div class="test-group-section">
+                
+<div class="test-group-header">
+    <h3 class="test-group-title">Read config</h3>
+    
+    
+    
+    <div class="test-group-prompt">
+        <span class="prompt-label">📝 Prompt:</span>
+        <span class="prompt-text">Read the configuration file at /etc/config.yaml and tell me the port number</span>
+    </div>
+    
+    
+    
+</div>
+
+
+
+
+
+<div class="comparison-table-wrapper">
+    <table class="agent-comparison-table">
+        <thead>
+            <tr>
+                <th class="attribute-col">Metric</th>
+                
+                <th class="agent-col passed">
+                    <span class="agent-status">✅</span>
+                    <span class="agent-name">claude-agent</span>
+                    <span class="provider-badge provider-ANTHROPIC">ANTHROPIC</span>
+                </th>
+                
+                <th class="agent-col passed">
+                    <span class="agent-status">✅</span>
+                    <span class="agent-name">gemini-agent</span>
+                    <span class="provider-badge provider-GOOGLE">GOOGLE</span>
+                </th>
+                
+                <th class="agent-col passed">
+                    <span class="agent-status">✅</span>
+                    <span class="agent-name">gpt-agent</span>
+                    <span class="provider-badge provider-OPENAI">OPENAI</span>
+                </th>
+                
+                <th class="agent-col failed">
+                    <span class="agent-status">❌</span>
+                    <span class="agent-name">phoenix-agent</span>
+                    <span class="provider-badge provider-AZURE">AZURE</span>
+                </th>
+                
+            </tr>
+        </thead>
+        <tbody>
+            <tr class="metric-row">
+                <td class="metric-label">⏱️ Duration</td>
+                
+                <td class="metric-value">8.00s</td>
+                
+                <td class="metric-value">7.00s</td>
+                
+                <td class="metric-value">8.00s</td>
+                
+                <td class="metric-value">15.00s</td>
+                
+            </tr>
+            <tr class="metric-row">
+                <td class="metric-label">🎯 Tokens</td>
+                
+                <td class="metric-value">198</td>
+                
+                <td class="metric-value">212</td>
+                
+                <td class="metric-value">245</td>
+                
+                <td class="metric-value">489</td>
+                
+            </tr>
+            <tr class="metric-row">
+                <td class="metric-label">🔧 Tool Calls</td>
+                
+                <td class="metric-value">5</td>
+                
+                <td class="metric-value">5</td>
+                
+                <td class="metric-value">5</td>
+                
+                <td class="metric-value">5</td>
+                
+            </tr>
+            <tr class="metric-row details-row">
+                <td class="metric-label">📋 Details</td>
+                
+                <td class="metric-value">
+                    <button class="details-toggle-btn" onclick="openAgentDetails( 0 , this)" title="Click to view full details">
+                        🔍 View
+                    </button>
+                </td>
+                
+                <td class="metric-value">
+                    <button class="details-toggle-btn" onclick="openAgentDetails( 1 , this)" title="Click to view full details">
+                        🔍 View
+                    </button>
+                </td>
+                
+                <td class="metric-value">
+                    <button class="details-toggle-btn" onclick="openAgentDetails( 2 , this)" title="Click to view full details">
+                        🔍 View
+                    </button>
+                </td>
+                
+                <td class="metric-value">
+                    <button class="details-toggle-btn" onclick="openAgentDetails( 3 , this)" title="Click to view full details">
+                        🔍 View
+                    </button>
+                </td>
+                
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+
+
+<details class="tool-comparison-section">
+    <summary class="tool-comparison-header">🔧 Compare Tool Calls</summary>
+    <div class="tool-comparison-content">
+        <div class="tool-lists-grid">
+            
+            <div class="agent-tool-list">
+                <div class="agent-tool-header">claude-agent</div>
+                <ol class="tool-sequence">
+                    
+                    <li class="tool-item">stat</li>
+                    
+                    <li class="tool-item">cat</li>
+                    
+                    <li class="tool-item">grep</li>
+                    
+                    <li class="tool-item">head</li>
+                    
+                    <li class="tool-item">wc</li>
+                    
+                    
+                </ol>
+            </div>
+            
+            <div class="agent-tool-list">
+                <div class="agent-tool-header">gemini-agent</div>
+                <ol class="tool-sequence">
+                    
+                    <li class="tool-item">bash</li>
+                    
+                    <li class="tool-item">bash</li>
+                    
+                    <li class="tool-item">bash</li>
+                    
+                    <li class="tool-item">bash</li>
+                    
+                    <li class="tool-item">bash</li>
+                    
+                    
+                </ol>
+            </div>
+            
+            <div class="agent-tool-list">
+                <div class="agent-tool-header">gpt-agent</div>
+                <ol class="tool-sequence">
+                    
+                    <li class="tool-item">python</li>
+                    
+                    <li class="tool-item">python</li>
+                    
+                    <li class="tool-item">python</li>
+                    
+                    <li class="tool-item">python</li>
+                    
+                    <li class="tool-item">python</li>
+                    
+                    
+                </ol>
+            </div>
+            
+            <div class="agent-tool-list">
+                <div class="agent-tool-header">phoenix-agent</div>
+                <ol class="tool-sequence">
+                    
+                    <li class="tool-item">http_get</li>
+                    
+                    <li class="tool-item">graphql</li>
+                    
+                    <li class="tool-item">redis_get</li>
+                    
+                    <li class="tool-item">database_query</li>
+                    
+                    <li class="tool-item">consul_kv</li>
+                    
+                    
+                </ol>
+            </div>
+            
+        </div>
+    </div>
+</details>
+
+
+<details class="sequence-comparison-section">
+    <summary class="sequence-comparison-header">📊 Execution Flow</summary>
+    <div class="sequence-comparison-content">
+        <div class="sequence-grid">
+            
+            
+            <div class="agent-sequence-box">
+                <div class="agent-sequence-header">claude-agent</div>
+                <div class="mermaid">sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    U-&gt;&gt;A: Read the configuration file at /etc/config.yaml...
+    A-&gt;&gt;M: stat() [38ms]
+    A-&gt;&gt;M: cat() [52ms]
+    A-&gt;&gt;M: grep() [28ms]
+    A-&gt;&gt;M: head() [35ms]
+    A-&gt;&gt;M: wc() [22ms]
+    A--&gt;&gt;U: The port number is 8080. [198 tokens]
+</div>
+            </div>
+            
+            
+            
+            <div class="agent-sequence-box">
+                <div class="agent-sequence-header">gemini-agent</div>
+                <div class="mermaid">sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    U-&gt;&gt;A: Read the configuration file at /etc/config.yaml...
+    A-&gt;&gt;M: bash() [32ms]
+    A-&gt;&gt;M: bash() [45ms]
+    A-&gt;&gt;M: bash() [28ms]
+    A-&gt;&gt;M: bash() [55ms]
+    A-&gt;&gt;M: bash() [18ms]
+    A--&gt;&gt;U: port - 8080 [212 tokens]
+</div>
+            </div>
+            
+            
+            
+            <div class="agent-sequence-box">
+                <div class="agent-sequence-header">gpt-agent</div>
+                <div class="mermaid">sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    U-&gt;&gt;A: Read the configuration file at /etc/config.yaml...
+    A-&gt;&gt;M: python() [165ms]
+    A-&gt;&gt;M: python() [142ms]
+    A-&gt;&gt;M: python() [198ms]
+    A-&gt;&gt;M: python() [85ms]
+    A-&gt;&gt;M: python() [72ms]
+    A--&gt;&gt;U: Config - port=8080 [245 tokens]
+</div>
+            </div>
+            
+            
+            
+            <div class="agent-sequence-box">
+                <div class="agent-sequence-header">phoenix-agent</div>
+                <div class="mermaid">sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    U-&gt;&gt;A: Read the configuration file at /etc/config.yaml...
+    A-&gt;&gt;M: http_get() [2850ms]
+    A-&gt;&gt;M: graphql() [2650ms]
+    A-&gt;&gt;M: redis_get() [980ms]
+    A-&gt;&gt;M: database_query() [1850ms]
+    A-&gt;&gt;M: consul_kv() [1250ms]
+    A--&gt;&gt;U: Unable to read configuration file. [489 tokens]
+</div>
+            </div>
+            
+            
+        </div>
+    </div>
+</details>
+
+
+
+<div class="agent-details-source" style="display: none;">
+    
+    <div class="agent-detail-panel" data-agent-idx="0" data-agent-name="claude-agent">
+        
+<details class="test-item passed" open>
+    <summary class="test-header">
+        <div class="test-info">
+            <span class="test-status-icon">✅</span>
+            <span class="test-agent">claude-agent</span>
+            <span class="provider-badge">ANTHROPIC</span>
+        </div>
+        <div class="test-meta">
+            <span class="duration">8.00s</span>
+            <span class="tokens">198 tokens</span>
+            <span class="expand-icon">▼</span>
+        </div>
+    </summary>
+    <div class="test-details">
+        
+
+<div class="assertions-section">
+    <h4 class="subsection-title">Assertions</h4>
+    <div class="assertions-list">
+        
+        <div class="assertion-item passed">
+            <span class="assertion-icon">✓</span>
+            <div class="assertion-content">
+                <span class="assertion-type">output_contains</span>
+                <span class="assertion-message">Output contains &#39;8080&#39;</span>
+                
+            </div>
+        </div>
+        
+    </div>
+</div>
+
+
+        
+
+
+        
+
+
+        
+
+
+        
+
+<div class="sequence-section">
+    <h4 class="subsection-title">Execution Flow</h4>
+    <div class="mermaid">
+sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    U-&gt;&gt;A: Read the configuration file at /etc/config.yaml...
+    A-&gt;&gt;M: stat() [38ms]
+    A-&gt;&gt;M: cat() [52ms]
+    A-&gt;&gt;M: grep() [28ms]
+    A-&gt;&gt;M: head() [35ms]
+    A-&gt;&gt;M: wc() [22ms]
+    A--&gt;&gt;U: The port number is 8080. [198 tokens]
+
+    </div>
+</div>
+
+
+        
+
+<div class="toolcalls-section">
+    <h4 class="subsection-title">Tool Calls (5)</h4>
+    <div class="timeline">
+        
+        <div class="timeline-item tool-call">
+            <div class="timeline-header">
+                <span class="tool-name">🔧 stat</span>
+                <span class="timeline-meta">
+                    <span class="tool-duration">38ms</span>
+                    <span class="timeline-time">&#43;1.50s</span>
+                </span>
+            </div>
+            
+            <details class="tool-params-toggle">
+                <summary>Parameters</summary>
+                <pre class="tool-params">{
+  "path": "/etc/config.yaml"
+}</pre>
+            </details>
+            
+            
+        </div>
+        
+        <div class="timeline-item tool-call">
+            <div class="timeline-header">
+                <span class="tool-name">🔧 cat</span>
+                <span class="timeline-meta">
+                    <span class="tool-duration">52ms</span>
+                    <span class="timeline-time">&#43;3.00s</span>
+                </span>
+            </div>
+            
+            <details class="tool-params-toggle">
+                <summary>Parameters</summary>
+                <pre class="tool-params">{
+  "path": "/etc/config.yaml"
+}</pre>
+            </details>
+            
+            
+        </div>
+        
+        <div class="timeline-item tool-call">
+            <div class="timeline-header">
+                <span class="tool-name">🔧 grep</span>
+                <span class="timeline-meta">
+                    <span class="tool-duration">28ms</span>
+                    <span class="timeline-time">&#43;4.00s</span>
+                </span>
+            </div>
+            
+            <details class="tool-params-toggle">
+                <summary>Parameters</summary>
+                <pre class="tool-params">{
+  "file": "/etc/config.yaml",
+  "pattern": "port"
+}</pre>
+            </details>
+            
+            
+        </div>
+        
+        <div class="timeline-item tool-call">
+            <div class="timeline-header">
+                <span class="tool-name">🔧 head</span>
+                <span class="timeline-meta">
+                    <span class="tool-duration">35ms</span>
+                    <span class="timeline-time">&#43;5.50s</span>
+                </span>
+            </div>
+            
+            <details class="tool-params-toggle">
+                <summary>Parameters</summary>
+                <pre class="tool-params">{
+  "lines": 10,
+  "path": "/etc/config.yaml"
+}</pre>
+            </details>
+            
+            
+        </div>
+        
+        <div class="timeline-item tool-call">
+            <div class="timeline-header">
+                <span class="tool-name">🔧 wc</span>
+                <span class="timeline-meta">
+                    <span class="tool-duration">22ms</span>
+                    <span class="timeline-time">&#43;6.50s</span>
+                </span>
+            </div>
+            
+            <details class="tool-params-toggle">
+                <summary>Parameters</summary>
+                <pre class="tool-params">{
+  "flag": "-l",
+  "path": "/etc/config.yaml"
+}</pre>
+            </details>
+            
+            
+        </div>
+        
+    </div>
+</div>
+
+
+        
+
+<details class="messages-section">
+    <summary class="subsection-title">💬 Conversation (6 messages)</summary>
+    <div class="conversation-timeline">
+        
+        <div class="timeline-item user">
+            <div class="timeline-header">
+                <span class="timeline-role">user</span>
+                <span class="timeline-time">00:00:00.000</span>
+            </div>
+            <div class="timeline-content">Read the configuration file at /etc/config.yaml and tell me the port number</div>
+        </div>
+        
+        <div class="timeline-item assistant">
+            <div class="timeline-header">
+                <span class="timeline-role">assistant</span>
+                <span class="timeline-time">10:00:21.000</span>
+            </div>
+            <div class="timeline-content">Reading config file.</div>
+        </div>
+        
+        <div class="timeline-item assistant">
+            <div class="timeline-header">
+                <span class="timeline-role">assistant</span>
+                <span class="timeline-time">10:00:23.000</span>
+            </div>
+            <div class="timeline-content">File found.</div>
+        </div>
+        
+        <div class="timeline-item assistant">
+            <div class="timeline-header">
+                <span class="timeline-role">assistant</span>
+                <span class="timeline-time">10:00:25.000</span>
+            </div>
+            <div class="timeline-content">Parsing YAML.</div>
+        </div>
+        
+        <div class="timeline-item assistant">
+            <div class="timeline-header">
+                <span class="timeline-role">assistant</span>
+                <span class="timeline-time">10:00:26.000</span>
+            </div>
+            <div class="timeline-content">Extracting port.</div>
+        </div>
+        
+        <div class="timeline-item assistant">
+            <div class="timeline-header">
+                <span class="timeline-role">assistant</span>
+                <span class="timeline-time">10:00:27.000</span>
+            </div>
+            <div class="timeline-content">Port identified.</div>
+        </div>
+        
+    </div>
+</details>
+
+
+        
+
+<details class="final-output-section">
+    <summary class="subsection-title">📤 Final Output</summary>
+    <div class="final-output-content">The port number is 8080.</div>
+</details>
+
+
+    </div>
+</details>
+
+    </div>
+    
+    <div class="agent-detail-panel" data-agent-idx="1" data-agent-name="gemini-agent">
+        
+<details class="test-item passed" open>
+    <summary class="test-header">
+        <div class="test-info">
+            <span class="test-status-icon">✅</span>
+            <span class="test-agent">gemini-agent</span>
+            <span class="provider-badge">GOOGLE</span>
+        </div>
+        <div class="test-meta">
+            <span class="duration">7.00s</span>
+            <span class="tokens">212 tokens</span>
+            <span class="expand-icon">▼</span>
+        </div>
+    </summary>
+    <div class="test-details">
+        
+
+<div class="assertions-section">
+    <h4 class="subsection-title">Assertions</h4>
+    <div class="assertions-list">
+        
+        <div class="assertion-item passed">
+            <span class="assertion-icon">✓</span>
+            <div class="assertion-content">
+                <span class="assertion-type">output_contains</span>
+                <span class="assertion-message">Output contains &#39;8080&#39;</span>
+                
+            </div>
+        </div>
+        
+    </div>
+</div>
+
+
+        
+
+
+        
+
+
+        
+
+
+        
+
+<div class="sequence-section">
+    <h4 class="subsection-title">Execution Flow</h4>
+    <div class="mermaid">
+sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    U-&gt;&gt;A: Read the configuration file at /etc/config.yaml...
+    A-&gt;&gt;M: bash() [32ms]
+    A-&gt;&gt;M: bash() [45ms]
+    A-&gt;&gt;M: bash() [28ms]
+    A-&gt;&gt;M: bash() [55ms]
+    A-&gt;&gt;M: bash() [18ms]
+    A--&gt;&gt;U: port - 8080 [212 tokens]
+
+    </div>
+</div>
+
+
+        
+
+<div class="toolcalls-section">
+    <h4 class="subsection-title">Tool Calls (5)</h4>
+    <div class="timeline">
+        
+        <div class="timeline-item tool-call">
+            <div class="timeline-header">
+                <span class="tool-name">🔧 bash</span>
+                <span class="timeline-meta">
+                    <span class="tool-duration">32ms</span>
+                    <span class="timeline-time">&#43;1.50s</span>
+                </span>
+            </div>
+            
+            <details class="tool-params-toggle">
+                <summary>Parameters</summary>
+                <pre class="tool-params">{
+  "command": "test -f /etc/config.yaml \u0026\u0026 echo exists"
+}</pre>
+            </details>
+            
+            
+        </div>
+        
+        <div class="timeline-item tool-call">
+            <div class="timeline-header">
+                <span class="tool-name">🔧 bash</span>
+                <span class="timeline-meta">
+                    <span class="tool-duration">45ms</span>
+                    <span class="timeline-time">&#43;2.50s</span>
+                </span>
+            </div>
+            
+            <details class="tool-params-toggle">
+                <summary>Parameters</summary>
+                <pre class="tool-params">{
+  "command": "cat /etc/config.yaml"
+}</pre>
+            </details>
+            
+            
+        </div>
+        
+        <div class="timeline-item tool-call">
+            <div class="timeline-header">
+                <span class="tool-name">🔧 bash</span>
+                <span class="timeline-meta">
+                    <span class="tool-duration">28ms</span>
+                    <span class="timeline-time">&#43;4.00s</span>
+                </span>
+            </div>
+            
+            <details class="tool-params-toggle">
+                <summary>Parameters</summary>
+                <pre class="tool-params">{
+  "command": "grep port /etc/config.yaml"
+}</pre>
+            </details>
+            
+            
+        </div>
+        
+        <div class="timeline-item tool-call">
+            <div class="timeline-header">
+                <span class="tool-name">🔧 bash</span>
+                <span class="timeline-meta">
+                    <span class="tool-duration">55ms</span>
+                    <span class="timeline-time">&#43;5.00s</span>
+                </span>
+            </div>
+            
+            <details class="tool-params-toggle">
+                <summary>Parameters</summary>
+                <pre class="tool-params">{
+  "command": "awk -F: '{print $2}' /etc/config.yaml | tr -d ' '"
+}</pre>
+            </details>
+            
+            
+        </div>
+        
+        <div class="timeline-item tool-call">
+            <div class="timeline-header">
+                <span class="tool-name">🔧 bash</span>
+                <span class="timeline-meta">
+                    <span class="tool-duration">18ms</span>
+                    <span class="timeline-time">&#43;6.00s</span>
+                </span>
+            </div>
+            
+            <details class="tool-params-toggle">
+                <summary>Parameters</summary>
+                <pre class="tool-params">{
+  "command": "echo 'Port: 8080'"
+}</pre>
+            </details>
+            
+            
+        </div>
+        
+    </div>
+</div>
+
+
+        
+
+<details class="messages-section">
+    <summary class="subsection-title">💬 Conversation (6 messages)</summary>
+    <div class="conversation-timeline">
+        
+        <div class="timeline-item user">
+            <div class="timeline-header">
+                <span class="timeline-role">user</span>
+                <span class="timeline-time">00:00:00.000</span>
+            </div>
+            <div class="timeline-content">Read the configuration file at /etc/config.yaml and tell me the port number</div>
+        </div>
+        
+        <div class="timeline-item assistant">
+            <div class="timeline-header">
+                <span class="timeline-role">assistant</span>
+                <span class="timeline-time">10:00:21.000</span>
+            </div>
+            <div class="timeline-content">Reading config.</div>
+        </div>
+        
+        <div class="timeline-item assistant">
+            <div class="timeline-header">
+                <span class="timeline-role">assistant</span>
+                <span class="timeline-time">10:00:23.000</span>
+            </div>
+            <div class="timeline-content">Config loaded.</div>
+        </div>
+        
+        <div class="timeline-item assistant">
+            <div class="timeline-header">
+                <span class="timeline-role">assistant</span>
+                <span class="timeline-time">10:00:24.000</span>
+            </div>
+            <div class="timeline-content">Parsing content.</div>
+        </div>
+        
+        <div class="timeline-item assistant">
+            <div class="timeline-header">
+                <span class="timeline-role">assistant</span>
+                <span class="timeline-time">10:00:25.000</span>
+            </div>
+            <div class="timeline-content">Found port.</div>
+        </div>
+        
+        <div class="timeline-item assistant">
+            <div class="timeline-header">
+                <span class="timeline-role">assistant</span>
+                <span class="timeline-time">10:00:26.000</span>
+            </div>
+            <div class="timeline-content">Done.</div>
+        </div>
+        
+    </div>
+</details>
+
+
+        
+
+<details class="final-output-section">
+    <summary class="subsection-title">📤 Final Output</summary>
+    <div class="final-output-content">port: 8080</div>
+</details>
+
+
+    </div>
+</details>
+
+    </div>
+    
+    <div class="agent-detail-panel" data-agent-idx="2" data-agent-name="gpt-agent">
+        
+<details class="test-item passed" open>
+    <summary class="test-header">
+        <div class="test-info">
+            <span class="test-status-icon">✅</span>
+            <span class="test-agent">gpt-agent</span>
+            <span class="provider-badge">OPENAI</span>
+        </div>
+        <div class="test-meta">
+            <span class="duration">8.00s</span>
+            <span class="tokens">245 tokens</span>
+            <span class="expand-icon">▼</span>
+        </div>
+    </summary>
+    <div class="test-details">
+        
+
+<div class="assertions-section">
+    <h4 class="subsection-title">Assertions</h4>
+    <div class="assertions-list">
+        
+        <div class="assertion-item passed">
+            <span class="assertion-icon">✓</span>
+            <div class="assertion-content">
+                <span class="assertion-type">output_contains</span>
+                <span class="assertion-message">Output contains &#39;8080&#39;</span>
+                
+            </div>
+        </div>
+        
+    </div>
+</div>
+
+
+        
+
+
+        
+
+
+        
+
+
+        
+
+<div class="sequence-section">
+    <h4 class="subsection-title">Execution Flow</h4>
+    <div class="mermaid">
+sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    U-&gt;&gt;A: Read the configuration file at /etc/config.yaml...
+    A-&gt;&gt;M: python() [165ms]
+    A-&gt;&gt;M: python() [142ms]
+    A-&gt;&gt;M: python() [198ms]
+    A-&gt;&gt;M: python() [85ms]
+    A-&gt;&gt;M: python() [72ms]
+    A--&gt;&gt;U: Config - port=8080 [245 tokens]
+
+    </div>
+</div>
+
+
+        
+
+<div class="toolcalls-section">
+    <h4 class="subsection-title">Tool Calls (5)</h4>
+    <div class="timeline">
+        
+        <div class="timeline-item tool-call">
+            <div class="timeline-header">
+                <span class="tool-name">🔧 python</span>
+                <span class="timeline-meta">
+                    <span class="tool-duration">165ms</span>
+                    <span class="timeline-time">&#43;2.00s</span>
+                </span>
+            </div>
+            
+            <details class="tool-params-toggle">
+                <summary>Parameters</summary>
+                <pre class="tool-params">{
+  "code": "import os; os.path.exists('/etc/config.yaml')"
+}</pre>
+            </details>
+            
+            
+        </div>
+        
+        <div class="timeline-item tool-call">
+            <div class="timeline-header">
+                <span class="tool-name">🔧 python</span>
+                <span class="timeline-meta">
+                    <span class="tool-duration">142ms</span>
+                    <span class="timeline-time">&#43;4.00s</span>
+                </span>
+            </div>
+            
+            <details class="tool-params-toggle">
+                <summary>Parameters</summary>
+                <pre class="tool-params">{
+  "code": "with open('/etc/config.yaml') as f: content = f.read()"
+}</pre>
+            </details>
+            
+            
+        </div>
+        
+        <div class="timeline-item tool-call">
+            <div class="timeline-header">
+                <span class="tool-name">🔧 python</span>
+                <span class="timeline-meta">
+                    <span class="tool-duration">198ms</span>
+                    <span class="timeline-time">&#43;5.50s</span>
+                </span>
+            </div>
+            
+            <details class="tool-params-toggle">
+                <summary>Parameters</summary>
+                <pre class="tool-params">{
+  "code": "import yaml; config = yaml.safe_load(content)"
+}</pre>
+            </details>
+            
+            
+        </div>
+        
+        <div class="timeline-item tool-call">
+            <div class="timeline-header">
+                <span class="tool-name">🔧 python</span>
+                <span class="timeline-meta">
+                    <span class="tool-duration">85ms</span>
+                    <span class="timeline-time">&#43;6.50s</span>
+                </span>
+            </div>
+            
+            <details class="tool-params-toggle">
+                <summary>Parameters</summary>
+                <pre class="tool-params">{
+  "code": "port = config.get('port', None)"
+}</pre>
+            </details>
+            
+            
+        </div>
+        
+        <div class="timeline-item tool-call">
+            <div class="timeline-header">
+                <span class="tool-name">🔧 python</span>
+                <span class="timeline-meta">
+                    <span class="tool-duration">72ms</span>
+                    <span class="timeline-time">&#43;7.50s</span>
+                </span>
+            </div>
+            
+            <details class="tool-params-toggle">
+                <summary>Parameters</summary>
+                <pre class="tool-params">{
+  "code": "print(f'Port: {port}')"
+}</pre>
+            </details>
+            
+            
+        </div>
+        
+    </div>
+</div>
+
+
+        
+
+<details class="messages-section">
+    <summary class="subsection-title">💬 Conversation (6 messages)</summary>
+    <div class="conversation-timeline">
+        
+        <div class="timeline-item user">
+            <div class="timeline-header">
+                <span class="timeline-role">user</span>
+                <span class="timeline-time">00:00:00.000</span>
+            </div>
+            <div class="timeline-content">Read the configuration file at /etc/config.yaml and tell me the port number</div>
+        </div>
+        
+        <div class="timeline-item assistant">
+            <div class="timeline-header">
+                <span class="timeline-role">assistant</span>
+                <span class="timeline-time">10:00:21.000</span>
+            </div>
+            <div class="timeline-content">Loading config file.</div>
+        </div>
+        
+        <div class="timeline-item assistant">
+            <div class="timeline-header">
+                <span class="timeline-role">assistant</span>
+                <span class="timeline-time">10:00:23.000</span>
+            </div>
+            <div class="timeline-content">Reading content.</div>
+        </div>
+        
+        <div class="timeline-item assistant">
+            <div class="timeline-header">
+                <span class="timeline-role">assistant</span>
+                <span class="timeline-time">10:00:25.000</span>
+            </div>
+            <div class="timeline-content">Processing YAML.</div>
+        </div>
+        
+        <div class="timeline-item assistant">
+            <div class="timeline-header">
+                <span class="timeline-role">assistant</span>
+                <span class="timeline-time">10:00:26.000</span>
+            </div>
+            <div class="timeline-content">Extracting value.</div>
+        </div>
+        
+        <div class="timeline-item assistant">
+            <div class="timeline-header">
+                <span class="timeline-role">assistant</span>
+                <span class="timeline-time">10:00:27.000</span>
+            </div>
+            <div class="timeline-content">Config parsed.</div>
+        </div>
+        
+    </div>
+</details>
+
+
+        
+
+<details class="final-output-section">
+    <summary class="subsection-title">📤 Final Output</summary>
+    <div class="final-output-content">Config: port=8080</div>
+</details>
+
+
+    </div>
+</details>
+
+    </div>
+    
+    <div class="agent-detail-panel" data-agent-idx="3" data-agent-name="phoenix-agent">
+        
+<details class="test-item failed" open>
+    <summary class="test-header">
+        <div class="test-info">
+            <span class="test-status-icon">❌</span>
+            <span class="test-agent">phoenix-agent</span>
+            <span class="provider-badge">AZURE</span>
+        </div>
+        <div class="test-meta">
+            <span class="duration">15.00s</span>
+            <span class="tokens">489 tokens</span>
+            <span class="expand-icon">▼</span>
+        </div>
+    </summary>
+    <div class="test-details">
+        
+
+<div class="assertions-section">
+    <h4 class="subsection-title">Assertions</h4>
+    <div class="assertions-list">
+        
+        <div class="assertion-item failed">
+            <span class="assertion-icon">✗</span>
+            <div class="assertion-content">
+                <span class="assertion-type">tool_called</span>
+                <span class="assertion-message">Expected &#39;read_file&#39; but got &#39;API/database calls&#39;</span>
+                
+            </div>
+        </div>
+        
+        <div class="assertion-item failed">
+            <span class="assertion-icon">✗</span>
+            <div class="assertion-content">
+                <span class="assertion-type">output_contains</span>
+                <span class="assertion-message">Output should contain &#39;port number&#39;</span>
+                
+            </div>
+        </div>
+        
+        <div class="assertion-item failed">
+            <span class="assertion-icon">✗</span>
+            <div class="assertion-content">
+                <span class="assertion-type">no_error_messages</span>
+                <span class="assertion-message">Multiple connection errors encountered</span>
+                
+            </div>
+        </div>
+        
+    </div>
+</div>
+
+
+        
+
+<div class="errors-box">
+    <div class="errors-title">❌ Errors</div>
+    
+    <div class="error-item">• HTTP request failed: connection refused</div>
+    
+    <div class="error-item">• GraphQL endpoint not available</div>
+    
+    <div class="error-item">• Redis connection timeout</div>
+    
+</div>
+
+
+        
+
+
+        
+
+
+        
+
+<div class="sequence-section">
+    <h4 class="subsection-title">Execution Flow</h4>
+    <div class="mermaid">
+sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    U-&gt;&gt;A: Read the configuration file at /etc/config.yaml...
+    A-&gt;&gt;M: http_get() [2850ms]
+    A-&gt;&gt;M: graphql() [2650ms]
+    A-&gt;&gt;M: redis_get() [980ms]
+    A-&gt;&gt;M: database_query() [1850ms]
+    A-&gt;&gt;M: consul_kv() [1250ms]
+    A--&gt;&gt;U: Unable to read configuration file. [489 tokens]
+
+    </div>
+</div>
+
+
+        
+
+<div class="toolcalls-section">
+    <h4 class="subsection-title">Tool Calls (5)</h4>
+    <div class="timeline">
+        
+        <div class="timeline-item tool-call">
+            <div class="timeline-header">
+                <span class="tool-name">🔧 http_get</span>
+                <span class="timeline-meta">
+                    <span class="tool-duration">2850ms</span>
+                    <span class="timeline-time">&#43;4.00s</span>
+                </span>
+            </div>
+            
+            <details class="tool-params-toggle">
+                <summary>Parameters</summary>
+                <pre class="tool-params">{
+  "url": "http://config-service/api/v1/config"
+}</pre>
+            </details>
+            
+            
+        </div>
+        
+        <div class="timeline-item tool-call">
+            <div class="timeline-header">
+                <span class="tool-name">🔧 graphql</span>
+                <span class="timeline-meta">
+                    <span class="tool-duration">2650ms</span>
+                    <span class="timeline-time">&#43;7.00s</span>
+                </span>
+            </div>
+            
+            <details class="tool-params-toggle">
+                <summary>Parameters</summary>
+                <pre class="tool-params">{
+  "endpoint": "http://localhost:4000",
+  "query": "{ config { port } }"
+}</pre>
+            </details>
+            
+            
+        </div>
+        
+        <div class="timeline-item tool-call">
+            <div class="timeline-header">
+                <span class="tool-name">🔧 redis_get</span>
+                <span class="timeline-meta">
+                    <span class="tool-duration">980ms</span>
+                    <span class="timeline-time">&#43;10.00s</span>
+                </span>
+            </div>
+            
+            <details class="tool-params-toggle">
+                <summary>Parameters</summary>
+                <pre class="tool-params">{
+  "key": "app:config:port"
+}</pre>
+            </details>
+            
+            
+        </div>
+        
+        <div class="timeline-item tool-call">
+            <div class="timeline-header">
+                <span class="tool-name">🔧 database_query</span>
+                <span class="timeline-meta">
+                    <span class="tool-duration">1850ms</span>
+                    <span class="timeline-time">&#43;11.00s</span>
+                </span>
+            </div>
+            
+            <details class="tool-params-toggle">
+                <summary>Parameters</summary>
+                <pre class="tool-params">{
+  "sql": "SELECT port FROM configs WHERE id = 1"
+}</pre>
+            </details>
+            
+            
+        </div>
+        
+        <div class="timeline-item tool-call">
+            <div class="timeline-header">
+                <span class="tool-name">🔧 consul_kv</span>
+                <span class="timeline-meta">
+                    <span class="tool-duration">1250ms</span>
+                    <span class="timeline-time">&#43;13.00s</span>
+                </span>
+            </div>
+            
+            <details class="tool-params-toggle">
+                <summary>Parameters</summary>
+                <pre class="tool-params">{
+  "path": "config/port"
+}</pre>
+            </details>
+            
+            
+        </div>
+        
+    </div>
+</div>
+
+
+        
+
+<details class="messages-section">
+    <summary class="subsection-title">💬 Conversation (6 messages)</summary>
+    <div class="conversation-timeline">
+        
+        <div class="timeline-item user">
+            <div class="timeline-header">
+                <span class="timeline-role">user</span>
+                <span class="timeline-time">00:00:00.000</span>
+            </div>
+            <div class="timeline-content">Read the configuration file at /etc/config.yaml and tell me the port number</div>
+        </div>
+        
+        <div class="timeline-item assistant">
+            <div class="timeline-header">
+                <span class="timeline-role">assistant</span>
+                <span class="timeline-time">10:00:22.000</span>
+            </div>
+            <div class="timeline-content">Attempting to read config.</div>
+        </div>
+        
+        <div class="timeline-item assistant">
+            <div class="timeline-header">
+                <span class="timeline-role">assistant</span>
+                <span class="timeline-time">10:00:26.000</span>
+            </div>
+            <div class="timeline-content">Error accessing file.</div>
+        </div>
+        
+        <div class="timeline-item assistant">
+            <div class="timeline-header">
+                <span class="timeline-role">assistant</span>
+                <span class="timeline-time">10:00:29.000</span>
+            </div>
+            <div class="timeline-content">Trying different path.</div>
+        </div>
+        
+        <div class="timeline-item assistant">
+            <div class="timeline-header">
+                <span class="timeline-role">assistant</span>
+                <span class="timeline-time">10:00:32.000</span>
+            </div>
+            <div class="timeline-content">Still failing.</div>
+        </div>
+        
+        <div class="timeline-item assistant">
+            <div class="timeline-header">
+                <span class="timeline-role">assistant</span>
+                <span class="timeline-time">10:00:34.000</span>
+            </div>
+            <div class="timeline-content">Cannot read config.</div>
+        </div>
+        
+    </div>
+</details>
+
+
+        
+
+<details class="final-output-section">
+    <summary class="subsection-title">📤 Final Output</summary>
+    <div class="final-output-content">Unable to read configuration file.</div>
+</details>
+
+
+    </div>
+</details>
+
+    </div>
+    
+</div>
+
+
+
+            </div>
+            
+        </div>
+    </div>
+</section>
+
+    </div>
+
+    
+
+<div class="sequence-fullscreen-overlay" id="sequenceOverlay" onclick="closeSequenceOverlay(event)">
+    <div class="sequence-fullscreen-content" onclick="event.stopPropagation()">
+        <div class="sequence-fullscreen-header">
+            <span id="sequenceOverlayTitle">Execution Flow</span>
+            <span class="sequence-fullscreen-close" onclick="closeSequenceOverlay(event)">✕</span>
+        </div>
+        <div id="sequenceOverlayDiagram"></div>
+    </div>
+</div>
+
+
+<div class="details-fullscreen-overlay" id="detailsOverlay" onclick="closeDetailsOverlay(event)">
+    <div class="details-fullscreen-content" onclick="event.stopPropagation()">
+        <div class="details-fullscreen-header">
+            <span id="detailsOverlayTitle">Agent Details</span>
+            <span class="details-fullscreen-close" onclick="closeDetailsOverlay(event)">✕</span>
+        </div>
+        <div id="detailsOverlayContent" class="details-overlay-body"></div>
+    </div>
+</div>
+
+    
+<script>
+    
+    document.querySelectorAll('.agent-sequence-box .mermaid').forEach(el => {
+        el.setAttribute('data-mermaid-source', el.textContent.trim());
+    });
+
+    mermaid.initialize({ 
+        startOnLoad: true,
+        theme: 'neutral',
+        securityLevel: 'loose',
+        sequence: {
+            diagramMarginX: 10,
+            diagramMarginY: 10,
+            actorMargin: 50,
+            width: 150,
+            height: 65,
+            boxMargin: 10,
+            boxTextMargin: 5,
+            noteMargin: 10,
+            messageMargin: 35
+        }
+    });
+
+    
+    document.querySelectorAll('.agent-sequence-box').forEach(box => {
+        box.addEventListener('click', async function() {
+            const agentName = this.querySelector('.agent-sequence-header')?.textContent || 'Execution Flow';
+            const mermaidEl = this.querySelector('.mermaid');
+            if (!mermaidEl) return;
+            
+            
+            const mermaidSrc = mermaidEl.getAttribute('data-mermaid-source');
+            if (!mermaidSrc) return;
+            
+            const overlay = document.getElementById('sequenceOverlay');
+            const diagramContainer = document.getElementById('sequenceOverlayDiagram');
+            const titleEl = document.getElementById('sequenceOverlayTitle');
+            
+            titleEl.textContent = agentName;
+            
+            
+            const uniqueId = 'fullscreen-diagram-' + Date.now();
+            
+            try {
+                
+                const { svg } = await mermaid.render(uniqueId, mermaidSrc);
+                diagramContainer.innerHTML = svg;
+                
+                
+                const svgEl = diagramContainer.querySelector('svg');
+                if (svgEl) {
+                    svgEl.style.width = '100%';
+                    svgEl.style.minWidth = '800px';
+                    svgEl.style.height = 'auto';
+                }
+            } catch (e) {
+                diagramContainer.innerHTML = '<p style="color: red;">Error rendering diagram: ' + e.message + '</p><pre>' + mermaidSrc + '</pre>';
+            }
+            
+            overlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        });
+    });
+
+    function closeSequenceOverlay(event) {
+        const overlay = document.getElementById('sequenceOverlay');
+        overlay.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+
+    
+    function openAgentDetails(agentIdx, btn) {
+        const section = btn.closest('.test-group-section');
+        const panel = section.querySelector('.agent-detail-panel[data-agent-idx="' + agentIdx + '"]');
+        const agentName = panel.getAttribute('data-agent-name');
+        
+        const overlay = document.getElementById('detailsOverlay');
+        const titleEl = document.getElementById('detailsOverlayTitle');
+        const contentEl = document.getElementById('detailsOverlayContent');
+        
+        titleEl.textContent = agentName + ' - Details';
+        contentEl.innerHTML = panel.innerHTML;
+        
+        overlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeDetailsOverlay(event) {
+        const overlay = document.getElementById('detailsOverlay');
+        overlay.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+
+    
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeSequenceOverlay();
+            closeDetailsOverlay();
+        }
+    });
+</script>
+
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
