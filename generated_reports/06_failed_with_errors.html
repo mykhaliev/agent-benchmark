@@ -218,6 +218,39 @@ body {
 
 .comparison-matrix tbody tr:hover { background: #f8f9fa; }
 
+/* Grouped Matrix - File and Session Headers */
+.matrix-file-header td {
+    background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+    font-weight: 600;
+    text-align: left !important;
+    padding: 12px 16px;
+    border-bottom: 2px solid var(--color-primary);
+    color: var(--color-primary);
+}
+
+.matrix-session-header td {
+    background: #f8f9fa;
+    font-weight: 500;
+    text-align: left !important;
+    padding: 10px 16px 10px 32px;
+    border-bottom: 1px solid var(--color-border);
+    color: var(--color-text-light);
+    font-size: 13px;
+}
+
+.matrix-test-indented td:first-child {
+    padding-left: 48px;
+}
+
+.matrix-group-icon {
+    margin-right: 8px;
+}
+
+.matrix-file-header:hover td,
+.matrix-session-header:hover td {
+    background: inherit;
+}
+
 /* Test Overview Table (Single Agent) */
 .test-overview-table .row-passed { background: rgba(46, 204, 113, 0.05); }
 .test-overview-table .row-failed { background: rgba(231, 76, 60, 0.05); }
@@ -1726,7 +1759,7 @@ body {
             <h1>🧪 Agent Benchmark Report</h1>
             <div class="report-meta">
                 <span>📦 Version: 0.0.0-SNAPSHOT</span>
-                <span>📅 Generated: 2026-01-07T08:11:44&#43;01:00</span>
+                <span>📅 Generated: 2026-01-08T08:43:13&#43;01:00</span>
                 
                 
             </div>

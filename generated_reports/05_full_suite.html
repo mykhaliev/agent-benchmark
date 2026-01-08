@@ -218,6 +218,39 @@ body {
 
 .comparison-matrix tbody tr:hover { background: #f8f9fa; }
 
+/* Grouped Matrix - File and Session Headers */
+.matrix-file-header td {
+    background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+    font-weight: 600;
+    text-align: left !important;
+    padding: 12px 16px;
+    border-bottom: 2px solid var(--color-primary);
+    color: var(--color-primary);
+}
+
+.matrix-session-header td {
+    background: #f8f9fa;
+    font-weight: 500;
+    text-align: left !important;
+    padding: 10px 16px 10px 32px;
+    border-bottom: 1px solid var(--color-border);
+    color: var(--color-text-light);
+    font-size: 13px;
+}
+
+.matrix-test-indented td:first-child {
+    padding-left: 48px;
+}
+
+.matrix-group-icon {
+    margin-right: 8px;
+}
+
+.matrix-file-header:hover td,
+.matrix-session-header:hover td {
+    background: inherit;
+}
+
 /* Test Overview Table (Single Agent) */
 .test-overview-table .row-passed { background: rgba(46, 204, 113, 0.05); }
 .test-overview-table .row-failed { background: rgba(231, 76, 60, 0.05); }
@@ -1726,7 +1759,7 @@ body {
             <h1>🧪 Agent Benchmark Report</h1>
             <div class="report-meta">
                 <span>📦 Version: 0.0.0-SNAPSHOT</span>
-                <span>📅 Generated: 2026-01-07T08:11:44&#43;01:00</span>
+                <span>📅 Generated: 2026-01-08T08:43:13&#43;01:00</span>
                 
                 
                 <span>📄 Files: 4</span>
@@ -1799,154 +1832,25 @@ body {
                 </thead>
                 <tbody>
                     
-                    <tr>
-                        <td>Cleanup temp files</td>
-                        
-                        
-                        <td>
-                            
-                            <div class="matrix-cell">
-                                <span class="matrix-status">❌</span>
-                                <span class="matrix-duration">1200ms</span>
-                                <span class="matrix-tokens">130 tok</span>
-                            </div>
-                            
+                    
+                    
+                    
+                    <tr class="matrix-file-header">
+                        <td colspan="5">
+                            <span class="matrix-group-icon">📁</span> tests/api_tests.yaml
                         </td>
-                        
-                        
-                        <td>
-                            
-                            <div class="matrix-cell">
-                                <span class="matrix-status">✅</span>
-                                <span class="matrix-duration">1200ms</span>
-                                <span class="matrix-tokens">160 tok</span>
-                            </div>
-                            
-                        </td>
-                        
-                        
-                        <td>
-                            
-                            <div class="matrix-cell">
-                                <span class="matrix-status">✅</span>
-                                <span class="matrix-duration">1200ms</span>
-                                <span class="matrix-tokens">145 tok</span>
-                            </div>
-                            
-                        </td>
-                        
-                        
-                        <td>
-                            
-                            <div class="matrix-cell">
-                                <span class="matrix-status">❌</span>
-                                <span class="matrix-duration">1200ms</span>
-                                <span class="matrix-tokens">175 tok</span>
-                            </div>
-                            
-                        </td>
-                        
                     </tr>
                     
-                    <tr>
-                        <td>Connect to database</td>
-                        
-                        
-                        <td>
-                            
-                            <div class="matrix-cell">
-                                <span class="matrix-status">✅</span>
-                                <span class="matrix-duration">2000ms</span>
-                                <span class="matrix-tokens">145 tok</span>
-                            </div>
-                            
+                    
+                    
+                    <tr class="matrix-session-header">
+                        <td colspan="5">
+                            <span class="matrix-group-icon">🔄</span> API Testing
                         </td>
-                        
-                        
-                        <td>
-                            
-                            <div class="matrix-cell">
-                                <span class="matrix-status">✅</span>
-                                <span class="matrix-duration">2000ms</span>
-                                <span class="matrix-tokens">185 tok</span>
-                            </div>
-                            
-                        </td>
-                        
-                        
-                        <td>
-                            
-                            <div class="matrix-cell">
-                                <span class="matrix-status">❌</span>
-                                <span class="matrix-duration">2000ms</span>
-                                <span class="matrix-tokens">165 tok</span>
-                            </div>
-                            
-                        </td>
-                        
-                        
-                        <td>
-                            
-                            <div class="matrix-cell">
-                                <span class="matrix-status">❌</span>
-                                <span class="matrix-duration">2000ms</span>
-                                <span class="matrix-tokens">205 tok</span>
-                            </div>
-                            
-                        </td>
-                        
                     </tr>
                     
-                    <tr>
-                        <td>Create config file</td>
-                        
-                        
-                        <td>
-                            
-                            <div class="matrix-cell">
-                                <span class="matrix-status">✅</span>
-                                <span class="matrix-duration">1500ms</span>
-                                <span class="matrix-tokens">120 tok</span>
-                            </div>
-                            
-                        </td>
-                        
-                        
-                        <td>
-                            
-                            <div class="matrix-cell">
-                                <span class="matrix-status">✅</span>
-                                <span class="matrix-duration">1500ms</span>
-                                <span class="matrix-tokens">150 tok</span>
-                            </div>
-                            
-                        </td>
-                        
-                        
-                        <td>
-                            
-                            <div class="matrix-cell">
-                                <span class="matrix-status">✅</span>
-                                <span class="matrix-duration">1500ms</span>
-                                <span class="matrix-tokens">135 tok</span>
-                            </div>
-                            
-                        </td>
-                        
-                        
-                        <td>
-                            
-                            <div class="matrix-cell">
-                                <span class="matrix-status">❌</span>
-                                <span class="matrix-duration">1500ms</span>
-                                <span class="matrix-tokens">165 tok</span>
-                            </div>
-                            
-                        </td>
-                        
-                    </tr>
                     
-                    <tr>
+                    <tr class="matrix-test-indented">
                         <td>Health check API</td>
                         
                         
@@ -1995,7 +1899,141 @@ body {
                         
                     </tr>
                     
-                    <tr>
+                    
+                    
+                    
+                    <tr class="matrix-file-header">
+                        <td colspan="5">
+                            <span class="matrix-group-icon">📁</span> tests/cleanup.yaml
+                        </td>
+                    </tr>
+                    
+                    
+                    
+                    <tr class="matrix-session-header">
+                        <td colspan="5">
+                            <span class="matrix-group-icon">🔄</span> Cleanup
+                        </td>
+                    </tr>
+                    
+                    
+                    <tr class="matrix-test-indented">
+                        <td>Cleanup temp files</td>
+                        
+                        
+                        <td>
+                            
+                            <div class="matrix-cell">
+                                <span class="matrix-status">❌</span>
+                                <span class="matrix-duration">1200ms</span>
+                                <span class="matrix-tokens">130 tok</span>
+                            </div>
+                            
+                        </td>
+                        
+                        
+                        <td>
+                            
+                            <div class="matrix-cell">
+                                <span class="matrix-status">✅</span>
+                                <span class="matrix-duration">1200ms</span>
+                                <span class="matrix-tokens">160 tok</span>
+                            </div>
+                            
+                        </td>
+                        
+                        
+                        <td>
+                            
+                            <div class="matrix-cell">
+                                <span class="matrix-status">✅</span>
+                                <span class="matrix-duration">1200ms</span>
+                                <span class="matrix-tokens">145 tok</span>
+                            </div>
+                            
+                        </td>
+                        
+                        
+                        <td>
+                            
+                            <div class="matrix-cell">
+                                <span class="matrix-status">❌</span>
+                                <span class="matrix-duration">1200ms</span>
+                                <span class="matrix-tokens">175 tok</span>
+                            </div>
+                            
+                        </td>
+                        
+                    </tr>
+                    
+                    
+                    
+                    
+                    <tr class="matrix-file-header">
+                        <td colspan="5">
+                            <span class="matrix-group-icon">📁</span> tests/db_ops.yaml
+                        </td>
+                    </tr>
+                    
+                    
+                    
+                    <tr class="matrix-session-header">
+                        <td colspan="5">
+                            <span class="matrix-group-icon">🔄</span> Database Operations
+                        </td>
+                    </tr>
+                    
+                    
+                    <tr class="matrix-test-indented">
+                        <td>Connect to database</td>
+                        
+                        
+                        <td>
+                            
+                            <div class="matrix-cell">
+                                <span class="matrix-status">✅</span>
+                                <span class="matrix-duration">2000ms</span>
+                                <span class="matrix-tokens">145 tok</span>
+                            </div>
+                            
+                        </td>
+                        
+                        
+                        <td>
+                            
+                            <div class="matrix-cell">
+                                <span class="matrix-status">✅</span>
+                                <span class="matrix-duration">2000ms</span>
+                                <span class="matrix-tokens">185 tok</span>
+                            </div>
+                            
+                        </td>
+                        
+                        
+                        <td>
+                            
+                            <div class="matrix-cell">
+                                <span class="matrix-status">❌</span>
+                                <span class="matrix-duration">2000ms</span>
+                                <span class="matrix-tokens">165 tok</span>
+                            </div>
+                            
+                        </td>
+                        
+                        
+                        <td>
+                            
+                            <div class="matrix-cell">
+                                <span class="matrix-status">❌</span>
+                                <span class="matrix-duration">2000ms</span>
+                                <span class="matrix-tokens">205 tok</span>
+                            </div>
+                            
+                        </td>
+                        
+                    </tr>
+                    
+                    <tr class="matrix-test-indented">
                         <td>Query users table</td>
                         
                         
@@ -2044,7 +2082,74 @@ body {
                         
                     </tr>
                     
-                    <tr>
+                    
+                    
+                    
+                    <tr class="matrix-file-header">
+                        <td colspan="5">
+                            <span class="matrix-group-icon">📁</span> tests/file_ops.yaml
+                        </td>
+                    </tr>
+                    
+                    
+                    
+                    <tr class="matrix-session-header">
+                        <td colspan="5">
+                            <span class="matrix-group-icon">🔄</span> File Operations
+                        </td>
+                    </tr>
+                    
+                    
+                    <tr class="matrix-test-indented">
+                        <td>Create config file</td>
+                        
+                        
+                        <td>
+                            
+                            <div class="matrix-cell">
+                                <span class="matrix-status">✅</span>
+                                <span class="matrix-duration">1500ms</span>
+                                <span class="matrix-tokens">120 tok</span>
+                            </div>
+                            
+                        </td>
+                        
+                        
+                        <td>
+                            
+                            <div class="matrix-cell">
+                                <span class="matrix-status">✅</span>
+                                <span class="matrix-duration">1500ms</span>
+                                <span class="matrix-tokens">150 tok</span>
+                            </div>
+                            
+                        </td>
+                        
+                        
+                        <td>
+                            
+                            <div class="matrix-cell">
+                                <span class="matrix-status">✅</span>
+                                <span class="matrix-duration">1500ms</span>
+                                <span class="matrix-tokens">135 tok</span>
+                            </div>
+                            
+                        </td>
+                        
+                        
+                        <td>
+                            
+                            <div class="matrix-cell">
+                                <span class="matrix-status">❌</span>
+                                <span class="matrix-duration">1500ms</span>
+                                <span class="matrix-tokens">165 tok</span>
+                            </div>
+                            
+                        </td>
+                        
+                    </tr>
+                    
+                    <tr class="matrix-test-indented">
                         <td>Read and verify config</td>
                         
                         
@@ -2092,6 +2197,9 @@ body {
                         </td>
                         
                     </tr>
+                    
+                    
+                    
                     
                 </tbody>
             </table>

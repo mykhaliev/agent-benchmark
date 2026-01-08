@@ -47,8 +47,8 @@
                 {{if .ShowSuiteInfo}}
                 <span>📁 Suite: {{if .SuiteName}}{{.SuiteName}}{{else}}Test Suite{{end}}</span>
                 {{end}}
-                {{if .ShowFileSections}}
-                <span>📄 Files: {{len .FileGroups}}</span>
+                {{if .Adaptive.Flags.ShowFileHeaders}}
+                <span>📄 Files: {{.Adaptive.Flags.FileCount}}</span>
                 {{end}}
             </div>
         </header>
@@ -57,25 +57,25 @@
         {{template "summary-cards" .}}
 
         <!-- Test Overview (for single-agent with multiple tests) -->
-        {{if .ShowTestOverview}}
+        {{if .Adaptive.Flags.ShowTestOverview}}
         {{template "test-overview" .}}
         {{end}}
 
         <!-- Comparison Matrix (only for multi-agent runs) -->
-        {{if and .ShowAgentComparison (gt (len .Matrix.TestNames) 0)}}
+        {{if and .Adaptive.Flags.ShowMatrix (gt (len .Matrix.TestNames) 0)}}
         {{template "comparison-matrix" .}}
         {{end}}
         
         <!-- Agent Leaderboard (only for multi-agent runs) -->
-        {{if .ShowAgentComparison}}
+        {{if .Adaptive.Flags.ShowLeaderboard}}
         {{template "agent-leaderboard" .}}
         {{end}}
 
-        {{if .ShowFileSections}}
+        {{if .Adaptive.Flags.ShowFileHeaders}}
         {{template "file-summary" .}}
         {{end}}
 
-        {{if .ShowSessionSections}}
+        {{if .Adaptive.Flags.ShowSessionHeaders}}
         {{template "session-summary" .}}
         {{end}}
 
@@ -185,6 +185,47 @@
                     </tr>
                 </thead>
                 <tbody>
+                    {{if or .Matrix.ShowFileGroups .Matrix.ShowSessionGroups}}
+                    {{/* Grouped matrix: show file/session headers */}}
+                    {{range $fileGroup := .Matrix.FileGroups}}
+                    {{if $.Matrix.ShowFileGroups}}
+                    <tr class="matrix-file-header">
+                        <td colspan="{{add (len $.Matrix.AgentNames) 1}}">
+                            <span class="matrix-group-icon">📁</span> {{$fileGroup.FileName}}
+                        </td>
+                    </tr>
+                    {{end}}
+                    {{range $sessionGroup := $fileGroup.SessionGroups}}
+                    {{if $.Matrix.ShowSessionGroups}}
+                    <tr class="matrix-session-header">
+                        <td colspan="{{add (len $.Matrix.AgentNames) 1}}">
+                            <span class="matrix-group-icon">🔄</span> {{$sessionGroup.SessionName}}
+                        </td>
+                    </tr>
+                    {{end}}
+                    {{range $testRow := $sessionGroup.TestRows}}
+                    <tr class="{{if $.Matrix.ShowSessionGroups}}matrix-test-indented{{end}}{{if and $.Matrix.ShowFileGroups (not $.Matrix.ShowSessionGroups)}}matrix-test-indented{{end}}">
+                        <td>{{$testRow.TestName}}</td>
+                        {{range $agentName := $.Matrix.AgentNames}}
+                        {{$cell := getMatrixCell $.Matrix.Cells $testRow.TestKey $agentName}}
+                        <td>
+                            {{if $cell.HasResult}}
+                            <div class="matrix-cell">
+                                <span class="matrix-status">{{if $cell.Passed}}✅{{else}}❌{{end}}</span>
+                                <span class="matrix-duration">{{printf "%.0fms" $cell.DurationMs}}</span>
+                                <span class="matrix-tokens">{{formatNumber $cell.Tokens}} tok</span>
+                            </div>
+                            {{else}}
+                            <span class="text-muted">—</span>
+                            {{end}}
+                        </td>
+                        {{end}}
+                    </tr>
+                    {{end}}
+                    {{end}}
+                    {{end}}
+                    {{else}}
+                    {{/* Flat matrix: no grouping needed */}}
                     {{range $testKey := .Matrix.TestNames}}
                     <tr>
                         <td>{{getTestDisplayName $.Matrix.TestDisplayNames $testKey}}</td>
@@ -203,6 +244,7 @@
                         </td>
                         {{end}}
                     </tr>
+                    {{end}}
                     {{end}}
                 </tbody>
             </table>
