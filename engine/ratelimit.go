@@ -42,8 +42,9 @@ type RateLimitedLLM struct {
 	tpmLimit   int
 	rpmLimit   int
 	// 429 retry handling (reactive) - separate from rate limiting
-	retryOn429 bool // Whether to retry on 429 errors (default: false)
-	maxRetries int  // Max number of 429 retries (only used if retryOn429 is true)
+	retryOn429          bool               // Whether to retry on 429 errors (default: false)
+	maxRetries          int                // Max number of 429 retries (only used if retryOn429 is true)
+	retryAfterProvider  RetryAfterProvider // Optional provider for Retry-After header values
 	// Statistics tracking
 	stats RateLimitStats
 }
@@ -88,6 +89,15 @@ func NewRateLimitedLLM(wrapped llms.Model, rateLimitConfig model.RateLimitConfig
 	}
 
 	return rl
+}
+
+// SetRetryAfterProvider sets the provider for Retry-After header values.
+// This should be called after construction if using a custom HTTP client that captures headers.
+func (rl *RateLimitedLLM) SetRetryAfterProvider(provider RetryAfterProvider) {
+	rl.retryAfterProvider = provider
+	if provider != nil {
+		logger.Logger.Debug("Retry-After provider configured for HTTP header extraction")
+	}
 }
 
 // GenerateContent implements llms.Model interface with rate limiting and retry logic
@@ -293,9 +303,29 @@ func (rl *RateLimitedLLM) isRateLimitError(err error) bool {
 		strings.Contains(errStr, "Too Many Requests")
 }
 
-// extractRetryAfter extracts the retry-after duration from an error message
+// extractRetryAfter extracts the retry-after duration from multiple sources:
+// 1. HTTP Retry-After header (via RetryAfterProvider) - most reliable
+// 2. Error message text parsing (fallback for providers that include it in errors)
 // Azure OpenAI errors typically contain "Please retry after X seconds"
 func (rl *RateLimitedLLM) extractRetryAfter(err error) time.Duration {
+	// First, try to get the value from HTTP Retry-After header
+	// This is the most reliable source as it comes directly from the server
+	if rl.retryAfterProvider != nil {
+		if duration, capturedAt := rl.retryAfterProvider.GetLastRetryAfter(); duration > 0 {
+			// Only use if captured recently (within last 5 seconds) to ensure it's from this request
+			if time.Since(capturedAt) < 5*time.Second {
+				logger.Logger.Debug("Using Retry-After from HTTP header",
+					"duration_seconds", duration.Seconds(),
+					"captured_ago_ms", time.Since(capturedAt).Milliseconds())
+				// Clear the value so it's not reused for subsequent requests
+				rl.retryAfterProvider.ClearRetryAfter()
+				// Add a small buffer to ensure we're past the rate limit window
+				return duration + time.Second
+			}
+		}
+	}
+
+	// Fallback: parse from error message text
 	if err == nil {
 		return 0
 	}
@@ -308,6 +338,7 @@ func (rl *RateLimitedLLM) extractRetryAfter(err error) time.Duration {
 	if len(matches) >= 2 {
 		seconds, parseErr := strconv.Atoi(matches[1])
 		if parseErr == nil && seconds > 0 {
+			logger.Logger.Debug("Using Retry-After from error message", "seconds", seconds)
 			// Add a small buffer to ensure we're past the rate limit window
 			return time.Duration(seconds+1) * time.Second
 		}
