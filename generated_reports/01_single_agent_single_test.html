@@ -97,6 +97,7 @@ body {
 .summary-card.passed { border-top: 4px solid var(--color-pass); }
 .summary-card.failed { border-top: 4px solid var(--color-fail); }
 .summary-card.agents { border-top: 4px solid var(--color-primary); }
+.summary-card.agent-info { border-top: 4px solid var(--color-primary); }
 .summary-card.rate { border-top: 4px solid #9b59b6; }
 .summary-card.tokens { border-top: 4px solid var(--color-warning); }
 .summary-card.duration { border-top: 4px solid #3498db; }
@@ -111,6 +112,11 @@ body {
 .summary-card.passed .summary-value { color: var(--color-pass); }
 .summary-card.failed .summary-value { color: var(--color-fail); }
 .summary-card.agents .summary-value { color: var(--color-primary); }
+.summary-card.agent-info .summary-value { 
+    color: var(--color-primary);
+    font-size: 18px;
+    word-break: break-word;
+}
 .summary-card.rate .summary-value { color: #9b59b6; }
 .summary-card.tokens .summary-value { color: var(--color-warning); }
 .summary-card.duration .summary-value { color: #3498db; }
@@ -182,9 +188,27 @@ body {
     font-size: 13px;
 }
 
+.session-source-file {
+    font-weight: 400;
+    color: var(--color-text-light);
+    font-size: 12px;
+}
+
 .file-stats {
     font-size: 14px;
     color: var(--color-text-light);
+}
+
+.file-stats .summary-metric {
+    margin-left: 12px;
+    color: var(--color-text-light);
+    font-size: 13px;
+}
+
+.file-stats .summary-metric .tok-suffix {
+    font-size: 10px;
+    opacity: 0.7;
+    margin-left: 1px;
 }
 
 /* Comparison Matrix */
@@ -1770,7 +1794,7 @@ body {
             <h1>🧪 Agent Benchmark Report</h1>
             <div class="report-meta">
                 <span>📦 Version: 0.0.0-SNAPSHOT</span>
-                <span>📅 Generated: 2026-01-08T08:53:07&#43;01:00</span>
+                <span>📅 Generated: 2026-01-08T10:10:11&#43;01:00</span>
                 
                 
             </div>
@@ -1779,6 +1803,12 @@ body {
         
         
 <div class="summary-grid">
+    
+    <div class="summary-card agent-info">
+        <div class="summary-value">gemini-agent</div>
+        <div class="summary-label"><span class="provider-badge provider-GOOGLE">GOOGLE</span></div>
+    </div>
+    
     <div class="summary-card total">
         <div class="summary-value">1</div>
         <div class="summary-label">Total Tests</div>

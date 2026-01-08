@@ -91,6 +91,12 @@
 {{/* ================ Summary Cards ================ */}}
 {{define "summary-cards"}}
 <div class="summary-grid">
+    {{if .Adaptive.Flags.SingleAgentMode}}
+    <div class="summary-card agent-info">
+        <div class="summary-value">{{.Adaptive.Flags.SingleAgentName}}</div>
+        <div class="summary-label"><span class="provider-badge provider-{{.Adaptive.Flags.SingleAgentProvider}}">{{.Adaptive.Flags.SingleAgentProvider}}</span></div>
+    </div>
+    {{end}}
     <div class="summary-card total">
         <div class="summary-value">{{.Summary.Total}}</div>
         <div class="summary-label">Total Tests</div>
@@ -333,6 +339,8 @@
                         <span class="{{if eq .SuccessRate 100.0}}text-pass{{else if lt .SuccessRate 50.0}}text-fail{{else}}text-muted{{end}}">
                             ({{printf "%.0f" .SuccessRate}}%)
                         </span>
+                        <span class="summary-metric">⏱ {{printf "%.1fs" .TotalDuration}}</span>
+                        <span class="summary-metric">🔢 {{formatNumber .TotalTokens}}<span class="tok-suffix">tok</span></span>
                     </span>
                 </div>
             </div>
@@ -353,13 +361,16 @@
             {{range .SessionGroups}}
             <div class="file-summary-item {{if eq .SuccessRate 100.0}}file-perfect{{end}}">
                 <div class="file-summary-header">
-                    <span class="file-name">🔄 {{.SessionName}}</span>
+                    <span class="file-name">🔄 {{.SessionName}}{{if and (gt $.Adaptive.Flags.FileCount 1) .SourceFile}} <span class="session-source-file">(📄 {{.SourceFile}})</span>{{end}}</span>
                     <span class="success-bar"><span class="success-bar-fill {{.SuccessRateClass}}" style="width: {{printf "%.0f" .SuccessRate}}%"></span></span>
                     <span class="file-stats">
                         {{.PassedTests}}/{{add .PassedTests .FailedTests}} tests
                         <span class="{{if eq .SuccessRate 100.0}}text-pass{{else if lt .SuccessRate 50.0}}text-fail{{else}}text-muted{{end}}">
                             ({{printf "%.0f" .SuccessRate}}%)
                         </span>
+                        <span class="summary-metric">⏱ {{printf "%.1fs" .TotalDuration}}</span>
+                        <span class="summary-metric">🔢 {{formatNumber .TotalTokens}}<span class="tok-suffix">tok</span></span>
+                        {{if gt .AgentCount 1}}<span class="summary-metric">🤖 {{.AgentCount}} agents</span>{{end}}
                     </span>
                 </div>
                 {{if .SequenceDiagram}}

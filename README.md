@@ -1266,13 +1266,20 @@ sessions:
 
 ## Reports
 
-agent-benchmark generates comprehensive reports in multiple formats. You can specify the output filename with -o (extension added automatically) and generate multiple formats simultaneously using -reportType with comma-separated values.Supported Formats:
+agent-benchmark generates comprehensive reports in multiple formats. You can specify the output filename with -o (extension added automatically) and generate multiple formats simultaneously using -reportType with comma-separated values.
 
-Console - Real-time colored output during execution (default, always shown)
-HTML - Rich visual dashboard with charts and metrics
-JSON - Structured data for programmatic analysis
-Markdown - Documentation-friendly format
-Examples:
+📊 **[View Sample Reports](generated_reports/)** - See example HTML reports covering all test configuration permutations (single/multi agent, single/multi test, sessions, suites).
+
+📖 **[Report Documentation](report/README.md)** - Detailed documentation on report hierarchy, sections, and adaptive display.
+
+### Supported Formats
+
+- **Console** - Real-time colored output during execution (default, always shown)
+- **HTML** - Rich visual dashboard with charts and metrics
+- **JSON** - Structured data for programmatic analysis
+- **Markdown** - Documentation-friendly format
+
+### Examples
 
 ```bash
 # Console output only (default)
@@ -1464,11 +1471,14 @@ go run test/generate_reports.go
 
 This creates hierarchical sample reports in `generated_reports/`:
 - `01_single_agent_single_test.html` - Level 1: One agent, one test
-- `02_single_agent_multi_test.html` - Level 2: One agent, multiple independent tests
-- `03_multi_agent.html` - Level 3: Multiple agents compared
-- `04_multi_session.html` - Level 4: Multiple sessions with grouped tests
-- `05_full_suite.html` - Level 5: Everything combined
-- `06_failed_with_errors.html` - Error display example
+- `02_single_agent_multi_test.html` - Level 2: One agent, multiple tests
+- `03_multi_agent_single_test.html` - Level 3: Multiple agents, one test (leaderboard)
+- `04_multi_agent_multi_test.html` - Level 4: Multiple agents, multiple tests (matrix)
+- `05_single_agent_multi_session.html` - Level 5: One agent, multiple sessions
+- `06_multi_agent_multi_session.html` - Level 6: Multiple agents, multiple sessions
+- `07_single_agent_multi_file.html` - Level 7: One agent, multiple files
+- `08_multi_agent_multi_file.html` - Level 8: Full suite (multiple agents, sessions, files)
+- `09_failed_with_errors.html` - Error display example
 
 ##### Report Types and Their Components
 

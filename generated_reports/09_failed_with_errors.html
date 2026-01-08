@@ -1,3 +1,12 @@
+
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Test Results - Agent Benchmark</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
 /* Agent Benchmark Report Styles - Enhanced Version */
 
 :root {
@@ -1776,3 +1785,471 @@ body {
     .test-item[open] .test-details { display: block; }
     .agent-card-details[open] .agent-details-content { display: block; }
 }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="report-header">
+            <h1>🧪 Agent Benchmark Report</h1>
+            <div class="report-meta">
+                <span>📦 Version: 0.0.0-SNAPSHOT</span>
+                <span>📅 Generated: 2026-01-08T10:10:11&#43;01:00</span>
+                
+                
+            </div>
+        </header>
+        
+        
+        
+<div class="summary-grid">
+    
+    <div class="summary-card agent-info">
+        <div class="summary-value">gemini-agent</div>
+        <div class="summary-label"><span class="provider-badge provider-GOOGLE">GOOGLE</span></div>
+    </div>
+    
+    <div class="summary-card total">
+        <div class="summary-value">1</div>
+        <div class="summary-label">Total Tests</div>
+    </div>
+    <div class="summary-card passed">
+        <div class="summary-value">0</div>
+        <div class="summary-label">Passed</div>
+    </div>
+    <div class="summary-card failed">
+        <div class="summary-value">1</div>
+        <div class="summary-label">Failed</div>
+    </div>
+    
+    <div class="summary-card rate">
+        <div class="summary-value">0%</div>
+        <div class="summary-label">Pass Rate</div>
+    </div>
+    <div class="summary-card tokens">
+        <div class="summary-value">0</div>
+        <div class="summary-label">Avg Tokens ✓</div>
+    </div>
+    <div class="summary-card duration">
+        <div class="summary-value">5.0s</div>
+        <div class="summary-label">Avg Duration</div>
+    </div>
+</div>
+
+
+        
+        
+
+        
+        
+        
+        
+        
+
+        
+
+        
+
+        
+        
+<section class="section">
+    <div class="section-header">
+        <h2 class="section-title">📋 Detailed Test Results</h2>
+    </div>
+    <div class="section-body">
+        <div class="test-list">
+            
+            <div class="test-group-section">
+                
+<div class="test-group-header">
+    <h3 class="test-group-title">Connect to database</h3>
+    
+    
+    
+    
+    
+</div>
+
+
+
+
+
+<details class="test-item failed" open>
+    <summary class="test-header">
+        <div class="test-info">
+            <span class="test-status-icon">❌</span>
+            <span class="test-agent">gemini-agent</span>
+            <span class="provider-badge">GOOGLE</span>
+        </div>
+        <div class="test-meta">
+            <span class="duration">5.00s</span>
+            <span class="tokens">423 tokens</span>
+            <span class="expand-icon">▼</span>
+        </div>
+    </summary>
+    <div class="test-details">
+        
+
+<div class="assertions-section">
+    <h4 class="subsection-title">Assertions</h4>
+    <div class="assertions-list">
+        
+        <div class="assertion-item passed">
+            <span class="assertion-icon">✓</span>
+            <div class="assertion-content">
+                <span class="assertion-type">tool_called</span>
+                <span class="assertion-message">Tool &#39;db_connect&#39; was called</span>
+                
+            </div>
+        </div>
+        
+        <div class="assertion-item failed">
+            <span class="assertion-icon">✗</span>
+            <div class="assertion-content">
+                <span class="assertion-type">no_error_messages</span>
+                <span class="assertion-message">Errors encountered</span>
+                
+            </div>
+        </div>
+        
+    </div>
+</div>
+
+
+        
+
+<div class="errors-box">
+    <div class="errors-title">❌ Errors</div>
+    
+    <div class="error-item">• Connection refused</div>
+    
+    <div class="error-item">• Timeout after 5s</div>
+    
+    <div class="error-item">• LLM asked for clarification instead of acting (iteration 2): Would you like me to try a different connection method?</div>
+    
+</div>
+
+
+        
+
+<div class="clarification-stats-section">
+    <h4 class="subsection-title">🤔 Clarification Requests</h4>
+    <div class="clarification-stats-content">
+        <div class="clarification-count">
+            <span class="stat-icon">❓</span>
+            <div class="stat-content">
+                <span class="stat-value">2</span>
+                <span class="stat-label">Clarifications Detected</span>
+                <span class="stat-detail">Iterations: #2, #4</span>
+            </div>
+        </div>
+        
+        <div class="clarification-examples">
+            
+            <div class="clarification-example">
+                <span class="example-quote">"Would you like me to try a different connection method?"</span>
+            </div>
+            
+            <div class="clarification-example">
+                <span class="example-quote">"Should I proceed with the backup connection string instead?"</span>
+            </div>
+            
+        </div>
+        
+    </div>
+</div>
+
+
+        
+
+<div class="rate-limit-stats-section">
+    <h4 class="subsection-title">⏱️ Rate Limit Stats</h4>
+    <div class="rate-limit-stats-grid">
+        
+        
+        <div class="rate-limit-stat hits">
+            <span class="stat-icon">⚠️</span>
+            <div class="stat-content">
+                <span class="stat-value">3</span>
+                <span class="stat-label">429 Hits</span>
+            </div>
+        </div>
+        
+        
+        <div class="rate-limit-stat retries">
+            <span class="stat-icon">🔄</span>
+            <div class="stat-content">
+                <span class="stat-value">3</span>
+                <span class="stat-label">Retries</span>
+                <span class="stat-detail">2 succeeded, 6.0s wait</span>
+            </div>
+        </div>
+        
+    </div>
+</div>
+
+
+        
+
+<div class="sequence-section">
+    <h4 class="subsection-title">Execution Flow</h4>
+    <div class="mermaid">
+sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    A-&gt;&gt;M: db_connect()
+    A--&gt;&gt;U: Would you like me to try a different ... [423 tokens]
+
+    </div>
+</div>
+
+
+        
+
+<div class="toolcalls-section">
+    <h4 class="subsection-title">Tool Calls (1)</h4>
+    <div class="timeline">
+        
+        <div class="timeline-item tool-call">
+            <div class="timeline-header">
+                <span class="tool-name">🔧 db_connect</span>
+                <span class="timeline-meta">
+                    
+                    <span class="timeline-time">&#43;0.50s</span>
+                </span>
+            </div>
+            
+            <details class="tool-params-toggle">
+                <summary>Parameters</summary>
+                <pre class="tool-params">{
+  "host": "prod-db.example.com"
+}</pre>
+            </details>
+            
+            
+        </div>
+        
+    </div>
+</div>
+
+
+        
+
+
+        
+
+<details class="final-output-section">
+    <summary class="subsection-title">📤 Final Output</summary>
+    <div class="final-output-content">Would you like me to try a different connection method?</div>
+</details>
+
+
+    </div>
+</details>
+
+
+
+
+            </div>
+            
+        </div>
+    </div>
+</section>
+
+    </div>
+
+    
+
+<div class="sequence-fullscreen-overlay" id="sequenceOverlay" onclick="closeSequenceOverlay(event)">
+    <div class="sequence-fullscreen-content" onclick="event.stopPropagation()">
+        <div class="sequence-fullscreen-header">
+            <span id="sequenceOverlayTitle">Execution Flow</span>
+            <span class="sequence-fullscreen-close" onclick="closeSequenceOverlay(event)">✕</span>
+        </div>
+        <div id="sequenceOverlayDiagram"></div>
+    </div>
+</div>
+
+
+<div class="details-fullscreen-overlay" id="detailsOverlay" onclick="closeDetailsOverlay(event)">
+    <div class="details-fullscreen-content" onclick="event.stopPropagation()">
+        <div class="details-fullscreen-header">
+            <span id="detailsOverlayTitle">Agent Details</span>
+            <span class="details-fullscreen-close" onclick="closeDetailsOverlay(event)">✕</span>
+        </div>
+        <div id="detailsOverlayContent" class="details-overlay-body"></div>
+    </div>
+</div>
+
+    
+<script>
+    
+    document.querySelectorAll('.agent-sequence-box .mermaid').forEach(el => {
+        el.setAttribute('data-mermaid-source', el.textContent.trim());
+    });
+
+    mermaid.initialize({ 
+        startOnLoad: true,
+        theme: 'neutral',
+        securityLevel: 'loose',
+        sequence: {
+            diagramMarginX: 10,
+            diagramMarginY: 10,
+            actorMargin: 50,
+            width: 150,
+            height: 65,
+            boxMargin: 10,
+            boxTextMargin: 5,
+            noteMargin: 10,
+            messageMargin: 35
+        }
+    });
+
+    
+    document.querySelectorAll('.agent-sequence-box').forEach(box => {
+        box.addEventListener('click', async function() {
+            const agentName = this.querySelector('.agent-sequence-header')?.textContent || 'Execution Flow';
+            const mermaidEl = this.querySelector('.mermaid');
+            if (!mermaidEl) return;
+            
+            
+            const mermaidSrc = mermaidEl.getAttribute('data-mermaid-source');
+            if (!mermaidSrc) return;
+            
+            const overlay = document.getElementById('sequenceOverlay');
+            const diagramContainer = document.getElementById('sequenceOverlayDiagram');
+            const titleEl = document.getElementById('sequenceOverlayTitle');
+            
+            titleEl.textContent = agentName;
+            
+            
+            const uniqueId = 'fullscreen-diagram-' + Date.now();
+            
+            try {
+                
+                const { svg } = await mermaid.render(uniqueId, mermaidSrc);
+                diagramContainer.innerHTML = svg;
+                
+                
+                const svgEl = diagramContainer.querySelector('svg');
+                if (svgEl) {
+                    svgEl.style.width = '100%';
+                    svgEl.style.minWidth = '800px';
+                    svgEl.style.height = 'auto';
+                }
+            } catch (e) {
+                diagramContainer.innerHTML = '<p style="color: red;">Error rendering diagram: ' + e.message + '</p><pre>' + mermaidSrc + '</pre>';
+            }
+            
+            overlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        });
+    });
+
+    function closeSequenceOverlay(event) {
+        const overlay = document.getElementById('sequenceOverlay');
+        overlay.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+
+    
+    function openAgentDetails(agentIdx, btn) {
+        const section = btn.closest('.test-group-section');
+        const panel = section.querySelector('.agent-detail-panel[data-agent-idx="' + agentIdx + '"]');
+        const agentName = panel.getAttribute('data-agent-name');
+        
+        const overlay = document.getElementById('detailsOverlay');
+        const titleEl = document.getElementById('detailsOverlayTitle');
+        const contentEl = document.getElementById('detailsOverlayContent');
+        
+        titleEl.textContent = agentName + ' - Details';
+        contentEl.innerHTML = panel.innerHTML;
+        
+        overlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeDetailsOverlay(event) {
+        const overlay = document.getElementById('detailsOverlay');
+        overlay.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+
+    
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeSequenceOverlay();
+            closeDetailsOverlay();
+        }
+    });
+</script>
+
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

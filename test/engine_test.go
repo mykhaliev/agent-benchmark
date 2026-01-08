@@ -2652,8 +2652,8 @@ func TestCompileClarificationPatterns(t *testing.T) {
 			result := engine.CompileClarificationPatterns(tt.patterns)
 
 			if tt.expectedCount == 0 {
-				assert.True(t, result == nil || len(result) == 0,
-					"%s: expected nil or empty, got %d patterns", tt.description, len(result))
+				assert.True(t, len(result) == 0,
+					"%s: expected empty, got %d patterns", tt.description, len(result))
 			} else {
 				require.NotNil(t, result, "%s: expected non-nil result", tt.description)
 				assert.Equal(t, tt.expectedCount, len(result),
