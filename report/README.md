@@ -48,6 +48,27 @@ graph TD
 | **Provider** | LLM service with credentials and rate limits | Azure OpenAI, Anthropic, Google |
 | **Agent** | Named configuration using a provider + MCP servers | `gpt5-agent` using `azure-openai-gpt5` provider |
 
+## Sample Reports
+
+The `generated_reports/` directory contains sample reports covering all valid configuration permutations:
+
+| Report | Agents | Tests | Sessions | Files | Description |
+|--------|--------|-------|----------|-------|-------------|
+| `01_single_agent_single_test` | 1 | 1 | 1 | 1 | Minimal case - detailed execution view |
+| `02_single_agent_multi_test` | 1 | N | 1 | 1 | Test overview table |
+| `03_multi_agent_single_test` | N | 1 | 1 | 1 | Agent leaderboard focus |
+| `04_multi_agent_multi_test` | N | N | 1 | 1 | Full comparison matrix |
+| `05_single_agent_multi_session` | 1 | N | N | 1 | Session grouping with flow diagrams |
+| `06_multi_agent_multi_session` | N | N | N | 1 | Session grouping (no flow diagrams) |
+| `07_single_agent_multi_file` | 1 | N | N | N | File grouping with flow diagrams |
+| `08_multi_agent_multi_file` | N | N | N | N | Complete suite with file + session grouping |
+| `09_failed_with_errors` | 1 | 1 | 1 | 1 | Failed test with rate limits & clarifications |
+
+Generate these samples with:
+```bash
+go run test/generate_reports.go
+```
+
 ## Report Sections
 
 ```mermaid
@@ -69,11 +90,19 @@ Quick overview of test execution:
 - **Total Tests** - Number of test runs
 - **Passed/Failed** - Success and failure counts
 - **Pass Rate** - Overall success percentage
+- **Agent Info** - Agent name and provider badge (single-agent runs)
 - **Agents** - Number of agents tested (multi-agent runs)
 - **Avg Tokens** - Average tokens used by passing tests
 - **Avg Duration** - Average test execution time
 
-### 2. Comparison Matrix (Multi-Agent)
+### 2. File & Session Summary
+
+When running suites or multi-session tests, summary sections show:
+- **File Summary** - Per-file pass rate, duration, and token usage
+- **Session Summary** - Per-session stats with source file reference
+- **Session Flow Diagram** - Mermaid sequence diagram (single-agent sessions only)
+
+### 3. Comparison Matrix (Multi-Agent)
 
 When testing multiple agents, a matrix shows results at a glance. The matrix **adapts automatically** based on your test structure:
 
@@ -104,7 +133,7 @@ When testing multiple agents, a matrix shows results at a glance. The matrix **a
 
 Each cell shows: **status**, **duration**, and **token count**.
 
-### 3. Agent Leaderboard (Multi-Agent)
+### 4. Agent Leaderboard (Multi-Agent)
 
 Agents ranked by performance:
 
@@ -114,7 +143,7 @@ Agents ranked by performance:
 | 🥈 | claude-agent | 75% | 589 tok/✓ | 10.2s |
 | 🥉 | gpt4o-agent | 50% | 723 tok/✓ | 12.0s |
 
-### 4. Detailed Test Results
+### 5. Detailed Test Results
 
 Each test shows:
 - **Assertions** - Pass/fail status for each assertion
@@ -123,7 +152,7 @@ Each test shows:
 - **Messages** - Full conversation history
 - **Final Output** - Agent's final response
 
-### 5. Rate Limit & Clarification Stats
+### 6. Rate Limit & Clarification Stats
 
 When enabled, the report shows:
 - **Throttle Count** - Times request was proactively delayed
@@ -137,11 +166,13 @@ The report automatically adapts based on your test configuration:
 
 | Scenario | What's Shown |
 |----------|--------------|
-| Single agent, single test | Detailed view with full execution trace |
-| Single agent, multiple tests | Test overview table + detailed results |
-| Multiple agents, same tests | Comparison matrix + leaderboard + details |
-| Multiple sessions | Session grouping with per-session stats |
-| Suite run (multiple files) | File grouping with per-file stats |
+| Single agent, single test | Agent info card + detailed execution trace |
+| Single agent, multiple tests | Agent info + test overview table |
+| Single agent, multiple sessions | Session summary with flow diagrams |
+| Multiple agents, single test | Comparison matrix + leaderboard |
+| Multiple agents, multiple tests | Full comparison matrix + leaderboard |
+| Multiple agents, multiple sessions | Session grouping (no flow diagrams, shows agent count) |
+| Suite run (multiple files) | File + session grouping with per-file/session stats |
 
 ## How Tests with Same Names are Handled
 

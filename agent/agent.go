@@ -650,7 +650,7 @@ func (m *MCPAgent) ExtractToolsFromAgent() []llms.Tool {
 				"properties": agT.InputSchema.Properties,
 			}
 
-			if agT.InputSchema.Required != nil && len(agT.InputSchema.Required) > 0 {
+			if len(agT.InputSchema.Required) > 0 {
 				params["required"] = agT.InputSchema.Required
 			}
 
