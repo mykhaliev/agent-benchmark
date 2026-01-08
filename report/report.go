@@ -71,9 +71,10 @@ type TestOverviewRow struct {
 
 // MatrixView represents the test × agent comparison matrix
 type MatrixView struct {
-	TestNames  []string
-	AgentNames []string
-	Cells      map[string]map[string]MatrixCell // [testName][agentName]
+	TestNames        []string                         // Unique test keys (used for cell lookup)
+	TestDisplayNames map[string]string                // Map from unique key to display name
+	AgentNames       []string
+	Cells            map[string]map[string]MatrixCell // [testKey][agentName]
 }
 
 // MatrixCell represents a single cell in the comparison matrix
@@ -227,13 +228,19 @@ type Generator struct {
 func NewGenerator() (*Generator, error) {
 	funcMap := template.FuncMap{
 		"formatNumber": formatNumber,
-		"getMatrixCell": func(cells map[string]map[string]MatrixCell, testName, agentName string) MatrixCell {
-			if row, ok := cells[testName]; ok {
+		"getMatrixCell": func(cells map[string]map[string]MatrixCell, testKey, agentName string) MatrixCell {
+			if row, ok := cells[testKey]; ok {
 				if cell, ok := row[agentName]; ok {
 					return cell
 				}
 			}
 			return MatrixCell{HasResult: false}
+		},
+		"getTestDisplayName": func(displayNames map[string]string, testKey string) string {
+			if name, ok := displayNames[testKey]; ok {
+				return name
+			}
+			return testKey // Fallback to key if no display name found
 		},
 		"truncate": func(s string, max int) string {
 			if len(s) <= max {
@@ -586,15 +593,16 @@ func buildComparisons(results []model.TestRun) []ComparisonView {
 
 	for _, run := range results {
 		testName := run.Execution.TestName
+		testKey := getUniqueTestKey(run)
 
-		if _, exists := compMap[testName]; !exists {
-			compMap[testName] = &ComparisonView{
+		if _, exists := compMap[testKey]; !exists {
+			compMap[testKey] = &ComparisonView{
 				TestName:          testName,
 				ServerResultsList: []ServerResultView{},
 			}
 		}
 
-		comp := compMap[testName]
+		comp := compMap[testKey]
 		duration := run.Execution.EndTime.Sub(run.Execution.StartTime)
 
 		serverResult := ServerResultView{
@@ -637,15 +645,16 @@ func buildTestGroups(results []model.TestRun) []TestGroupView {
 
 	for _, run := range results {
 		testName := run.Execution.TestName
+		testKey := getUniqueTestKey(run)
 
-		if _, exists := groupMap[testName]; !exists {
-			groupMap[testName] = &TestGroupView{
+		if _, exists := groupMap[testKey]; !exists {
+			groupMap[testKey] = &TestGroupView{
 				TestName: testName,
 				Runs:     []TestRunView{},
 			}
 		}
 
-		group := groupMap[testName]
+		group := groupMap[testKey]
 		duration := run.Execution.EndTime.Sub(run.Execution.StartTime)
 
 		assertions := make([]AssertionView, len(run.Assertions))
@@ -1041,20 +1050,23 @@ func buildMatrix(results []model.TestRun) MatrixView {
 	testSet := make(map[string]bool)
 	agentSet := make(map[string]bool)
 	cells := make(map[string]map[string]MatrixCell)
+	testKeyToName := make(map[string]string) // Map from unique key to display name
 
 	for _, run := range results {
 		testName := run.Execution.TestName
+		testKey := getUniqueTestKey(run)
 		agentName := run.Execution.AgentName
 
-		testSet[testName] = true
+		testSet[testKey] = true
+		testKeyToName[testKey] = testName
 		agentSet[agentName] = true
 
-		if cells[testName] == nil {
-			cells[testName] = make(map[string]MatrixCell)
+		if cells[testKey] == nil {
+			cells[testKey] = make(map[string]MatrixCell)
 		}
 
 		duration := run.Execution.EndTime.Sub(run.Execution.StartTime)
-		cells[testName][agentName] = MatrixCell{
+		cells[testKey][agentName] = MatrixCell{
 			Passed:     run.Passed,
 			HasResult:  true,
 			DurationMs: float64(duration.Milliseconds()),
@@ -1064,8 +1076,8 @@ func buildMatrix(results []model.TestRun) MatrixView {
 
 	// Convert sets to sorted slices
 	testNames := make([]string, 0, len(testSet))
-	for name := range testSet {
-		testNames = append(testNames, name)
+	for key := range testSet {
+		testNames = append(testNames, key)
 	}
 	sort.Strings(testNames)
 
@@ -1076,9 +1088,10 @@ func buildMatrix(results []model.TestRun) MatrixView {
 	sort.Strings(agentNames)
 
 	return MatrixView{
-		TestNames:  testNames,
-		AgentNames: agentNames,
-		Cells:      cells,
+		TestNames:        testNames,
+		TestDisplayNames: testKeyToName,
+		AgentNames:       agentNames,
+		Cells:            cells,
 	}
 }
 
@@ -1236,4 +1249,25 @@ func formatNumber(n int) string {
 		result += string(c)
 	}
 	return result
+}
+
+// getUniqueTestKey creates a unique key for a test run that includes context
+// to distinguish tests with the same name but from different sessions/files.
+// The key format is: testName|session:sessionName|file:fileName
+// This ensures tests are properly grouped when the same test name appears
+// in different contexts (e.g., different sessions or source files).
+func getUniqueTestKey(run model.TestRun) string {
+	key := run.Execution.TestName
+
+	// Add session context if present
+	if run.Execution.SessionName != "" {
+		key += "|session:" + run.Execution.SessionName
+	}
+
+	// Add source file context if present
+	if run.Execution.SourceFile != "" {
+		key += "|file:" + run.Execution.SourceFile
+	}
+
+	return key
 }
