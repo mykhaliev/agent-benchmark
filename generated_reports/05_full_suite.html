@@ -169,6 +169,11 @@ body {
     flex-wrap: wrap;
 }
 
+.file-summary-item.file-perfect {
+    background: rgba(46, 204, 113, 0.08);
+    border-left: 4px solid var(--color-pass);
+}
+
 .file-name {
     font-weight: 600;
     color: var(--color-text);
@@ -246,10 +251,13 @@ body {
     margin-right: 8px;
 }
 
-.matrix-file-header:hover td,
-.matrix-session-header:hover td {
-    background: inherit;
-}
+/* Provider badge colors */
+.provider-badge.provider-AZURE { background: #0078d4; color: white; }
+.provider-badge.provider-OPENAI { background: #10a37f; color: white; }
+.provider-badge.provider-ANTHROPIC { background: #d4a574; color: white; }
+.provider-badge.provider-GOOGLE { background: #4285f4; color: white; }
+.provider-badge.provider-AWS { background: #ff9900; color: white; }
+.provider-badge.provider-OLLAMA { background: #333; color: white; }
 
 /* Test Overview Table (Single Agent) */
 .test-overview-table .row-passed { background: rgba(46, 204, 113, 0.05); }
@@ -278,6 +286,9 @@ body {
 .matrix-tokens {
     font-size: 10px;
     color: var(--color-text-muted);
+}
+.matrix-tokens::after {
+    content: ' tok';
 }
 
 /* Leaderboard */
@@ -1759,7 +1770,7 @@ body {
             <h1>🧪 Agent Benchmark Report</h1>
             <div class="report-meta">
                 <span>📦 Version: 0.0.0-SNAPSHOT</span>
-                <span>📅 Generated: 2026-01-08T08:43:13&#43;01:00</span>
+                <span>📅 Generated: 2026-01-08T08:53:07&#43;01:00</span>
                 
                 
                 <span>📄 Files: 4</span>
@@ -1858,8 +1869,8 @@ body {
                             
                             <div class="matrix-cell">
                                 <span class="matrix-status">✅</span>
-                                <span class="matrix-duration">800ms</span>
-                                <span class="matrix-tokens">85 tok</span>
+                                <span class="matrix-duration">0.8s</span>
+                                <span class="matrix-tokens">85</span>
                             </div>
                             
                         </td>
@@ -1869,8 +1880,8 @@ body {
                             
                             <div class="matrix-cell">
                                 <span class="matrix-status">✅</span>
-                                <span class="matrix-duration">800ms</span>
-                                <span class="matrix-tokens">101 tok</span>
+                                <span class="matrix-duration">0.8s</span>
+                                <span class="matrix-tokens">101</span>
                             </div>
                             
                         </td>
@@ -1880,8 +1891,8 @@ body {
                             
                             <div class="matrix-cell">
                                 <span class="matrix-status">✅</span>
-                                <span class="matrix-duration">800ms</span>
-                                <span class="matrix-tokens">93 tok</span>
+                                <span class="matrix-duration">0.8s</span>
+                                <span class="matrix-tokens">93</span>
                             </div>
                             
                         </td>
@@ -1891,8 +1902,8 @@ body {
                             
                             <div class="matrix-cell">
                                 <span class="matrix-status">❌</span>
-                                <span class="matrix-duration">800ms</span>
-                                <span class="matrix-tokens">109 tok</span>
+                                <span class="matrix-duration">0.8s</span>
+                                <span class="matrix-tokens">109</span>
                             </div>
                             
                         </td>
@@ -1925,8 +1936,8 @@ body {
                             
                             <div class="matrix-cell">
                                 <span class="matrix-status">❌</span>
-                                <span class="matrix-duration">1200ms</span>
-                                <span class="matrix-tokens">130 tok</span>
+                                <span class="matrix-duration">1.2s</span>
+                                <span class="matrix-tokens">130</span>
                             </div>
                             
                         </td>
@@ -1936,8 +1947,8 @@ body {
                             
                             <div class="matrix-cell">
                                 <span class="matrix-status">✅</span>
-                                <span class="matrix-duration">1200ms</span>
-                                <span class="matrix-tokens">160 tok</span>
+                                <span class="matrix-duration">1.2s</span>
+                                <span class="matrix-tokens">160</span>
                             </div>
                             
                         </td>
@@ -1947,8 +1958,8 @@ body {
                             
                             <div class="matrix-cell">
                                 <span class="matrix-status">✅</span>
-                                <span class="matrix-duration">1200ms</span>
-                                <span class="matrix-tokens">145 tok</span>
+                                <span class="matrix-duration">1.2s</span>
+                                <span class="matrix-tokens">145</span>
                             </div>
                             
                         </td>
@@ -1958,8 +1969,8 @@ body {
                             
                             <div class="matrix-cell">
                                 <span class="matrix-status">❌</span>
-                                <span class="matrix-duration">1200ms</span>
-                                <span class="matrix-tokens">175 tok</span>
+                                <span class="matrix-duration">1.2s</span>
+                                <span class="matrix-tokens">175</span>
                             </div>
                             
                         </td>
@@ -1992,8 +2003,8 @@ body {
                             
                             <div class="matrix-cell">
                                 <span class="matrix-status">✅</span>
-                                <span class="matrix-duration">2000ms</span>
-                                <span class="matrix-tokens">145 tok</span>
+                                <span class="matrix-duration">2.0s</span>
+                                <span class="matrix-tokens">145</span>
                             </div>
                             
                         </td>
@@ -2003,8 +2014,8 @@ body {
                             
                             <div class="matrix-cell">
                                 <span class="matrix-status">✅</span>
-                                <span class="matrix-duration">2000ms</span>
-                                <span class="matrix-tokens">185 tok</span>
+                                <span class="matrix-duration">2.0s</span>
+                                <span class="matrix-tokens">185</span>
                             </div>
                             
                         </td>
@@ -2014,8 +2025,8 @@ body {
                             
                             <div class="matrix-cell">
                                 <span class="matrix-status">❌</span>
-                                <span class="matrix-duration">2000ms</span>
-                                <span class="matrix-tokens">165 tok</span>
+                                <span class="matrix-duration">2.0s</span>
+                                <span class="matrix-tokens">165</span>
                             </div>
                             
                         </td>
@@ -2025,8 +2036,8 @@ body {
                             
                             <div class="matrix-cell">
                                 <span class="matrix-status">❌</span>
-                                <span class="matrix-duration">2000ms</span>
-                                <span class="matrix-tokens">205 tok</span>
+                                <span class="matrix-duration">2.0s</span>
+                                <span class="matrix-tokens">205</span>
                             </div>
                             
                         </td>
@@ -2041,8 +2052,8 @@ body {
                             
                             <div class="matrix-cell">
                                 <span class="matrix-status">✅</span>
-                                <span class="matrix-duration">1000ms</span>
-                                <span class="matrix-tokens">110 tok</span>
+                                <span class="matrix-duration">1.0s</span>
+                                <span class="matrix-tokens">110</span>
                             </div>
                             
                         </td>
@@ -2052,8 +2063,8 @@ body {
                             
                             <div class="matrix-cell">
                                 <span class="matrix-status">✅</span>
-                                <span class="matrix-duration">1000ms</span>
-                                <span class="matrix-tokens">134 tok</span>
+                                <span class="matrix-duration">1.0s</span>
+                                <span class="matrix-tokens">134</span>
                             </div>
                             
                         </td>
@@ -2063,8 +2074,8 @@ body {
                             
                             <div class="matrix-cell">
                                 <span class="matrix-status">✅</span>
-                                <span class="matrix-duration">1000ms</span>
-                                <span class="matrix-tokens">122 tok</span>
+                                <span class="matrix-duration">1.0s</span>
+                                <span class="matrix-tokens">122</span>
                             </div>
                             
                         </td>
@@ -2074,8 +2085,8 @@ body {
                             
                             <div class="matrix-cell">
                                 <span class="matrix-status">❌</span>
-                                <span class="matrix-duration">1000ms</span>
-                                <span class="matrix-tokens">146 tok</span>
+                                <span class="matrix-duration">1.0s</span>
+                                <span class="matrix-tokens">146</span>
                             </div>
                             
                         </td>
@@ -2108,8 +2119,8 @@ body {
                             
                             <div class="matrix-cell">
                                 <span class="matrix-status">✅</span>
-                                <span class="matrix-duration">1500ms</span>
-                                <span class="matrix-tokens">120 tok</span>
+                                <span class="matrix-duration">1.5s</span>
+                                <span class="matrix-tokens">120</span>
                             </div>
                             
                         </td>
@@ -2119,8 +2130,8 @@ body {
                             
                             <div class="matrix-cell">
                                 <span class="matrix-status">✅</span>
-                                <span class="matrix-duration">1500ms</span>
-                                <span class="matrix-tokens">150 tok</span>
+                                <span class="matrix-duration">1.5s</span>
+                                <span class="matrix-tokens">150</span>
                             </div>
                             
                         </td>
@@ -2130,8 +2141,8 @@ body {
                             
                             <div class="matrix-cell">
                                 <span class="matrix-status">✅</span>
-                                <span class="matrix-duration">1500ms</span>
-                                <span class="matrix-tokens">135 tok</span>
+                                <span class="matrix-duration">1.5s</span>
+                                <span class="matrix-tokens">135</span>
                             </div>
                             
                         </td>
@@ -2141,8 +2152,8 @@ body {
                             
                             <div class="matrix-cell">
                                 <span class="matrix-status">❌</span>
-                                <span class="matrix-duration">1500ms</span>
-                                <span class="matrix-tokens">165 tok</span>
+                                <span class="matrix-duration">1.5s</span>
+                                <span class="matrix-tokens">165</span>
                             </div>
                             
                         </td>
@@ -2157,8 +2168,8 @@ body {
                             
                             <div class="matrix-cell">
                                 <span class="matrix-status">✅</span>
-                                <span class="matrix-duration">1200ms</span>
-                                <span class="matrix-tokens">95 tok</span>
+                                <span class="matrix-duration">1.2s</span>
+                                <span class="matrix-tokens">95</span>
                             </div>
                             
                         </td>
@@ -2168,8 +2179,8 @@ body {
                             
                             <div class="matrix-cell">
                                 <span class="matrix-status">❌</span>
-                                <span class="matrix-duration">1200ms</span>
-                                <span class="matrix-tokens">115 tok</span>
+                                <span class="matrix-duration">1.2s</span>
+                                <span class="matrix-tokens">115</span>
                             </div>
                             
                         </td>
@@ -2179,8 +2190,8 @@ body {
                             
                             <div class="matrix-cell">
                                 <span class="matrix-status">✅</span>
-                                <span class="matrix-duration">1200ms</span>
-                                <span class="matrix-tokens">105 tok</span>
+                                <span class="matrix-duration">1.2s</span>
+                                <span class="matrix-tokens">105</span>
                             </div>
                             
                         </td>
@@ -2190,8 +2201,8 @@ body {
                             
                             <div class="matrix-cell">
                                 <span class="matrix-status">❌</span>
-                                <span class="matrix-duration">1200ms</span>
-                                <span class="matrix-tokens">125 tok</span>
+                                <span class="matrix-duration">1.2s</span>
+                                <span class="matrix-tokens">125</span>
                             </div>
                             
                         </td>
@@ -2356,50 +2367,54 @@ body {
     <div class="section-body">
         <div class="file-summary-list">
             
-            <div class="file-summary-item">
+            <div class="file-summary-item ">
                 <div class="file-summary-header">
                     <span class="file-name">📄 tests/api_tests.yaml</span>
                     <span class="success-bar"><span class="success-bar-fill success-medium" style="width: 75%"></span></span>
                     <span class="file-stats">
-                        <span class="text-pass">3 passed</span> / 
-                        <span class="text-fail">1 failed</span>
-                        (75%)
+                        3/4 tests
+                        <span class="text-muted">
+                            (75%)
+                        </span>
                     </span>
                 </div>
             </div>
             
-            <div class="file-summary-item">
+            <div class="file-summary-item ">
                 <div class="file-summary-header">
                     <span class="file-name">📄 tests/cleanup.yaml</span>
                     <span class="success-bar"><span class="success-bar-fill success-medium" style="width: 50%"></span></span>
                     <span class="file-stats">
-                        <span class="text-pass">2 passed</span> / 
-                        <span class="text-fail">2 failed</span>
-                        (50%)
+                        2/4 tests
+                        <span class="text-muted">
+                            (50%)
+                        </span>
                     </span>
                 </div>
             </div>
             
-            <div class="file-summary-item">
+            <div class="file-summary-item ">
                 <div class="file-summary-header">
                     <span class="file-name">📄 tests/db_ops.yaml</span>
                     <span class="success-bar"><span class="success-bar-fill success-medium" style="width: 62%"></span></span>
                     <span class="file-stats">
-                        <span class="text-pass">5 passed</span> / 
-                        <span class="text-fail">3 failed</span>
-                        (62%)
+                        5/8 tests
+                        <span class="text-muted">
+                            (62%)
+                        </span>
                     </span>
                 </div>
             </div>
             
-            <div class="file-summary-item">
+            <div class="file-summary-item ">
                 <div class="file-summary-header">
                     <span class="file-name">📄 tests/file_ops.yaml</span>
                     <span class="success-bar"><span class="success-bar-fill success-medium" style="width: 62%"></span></span>
                     <span class="file-stats">
-                        <span class="text-pass">5 passed</span> / 
-                        <span class="text-fail">3 failed</span>
-                        (62%)
+                        5/8 tests
+                        <span class="text-muted">
+                            (62%)
+                        </span>
                     </span>
                 </div>
             </div>
@@ -2419,14 +2434,15 @@ body {
     <div class="section-body">
         <div class="file-summary-list">
             
-            <div class="file-summary-item">
+            <div class="file-summary-item ">
                 <div class="file-summary-header">
                     <span class="file-name">🔄 API Testing</span>
                     <span class="success-bar"><span class="success-bar-fill success-medium" style="width: 75%"></span></span>
                     <span class="file-stats">
-                        <span class="text-pass">3 passed</span> / 
-                        <span class="text-fail">1 failed</span>
-                        (75%)
+                        3/4 tests
+                        <span class="text-muted">
+                            (75%)
+                        </span>
                     </span>
                 </div>
                 
@@ -2457,14 +2473,15 @@ body {
                 
             </div>
             
-            <div class="file-summary-item">
+            <div class="file-summary-item ">
                 <div class="file-summary-header">
                     <span class="file-name">🔄 Cleanup</span>
                     <span class="success-bar"><span class="success-bar-fill success-medium" style="width: 50%"></span></span>
                     <span class="file-stats">
-                        <span class="text-pass">2 passed</span> / 
-                        <span class="text-fail">2 failed</span>
-                        (50%)
+                        2/4 tests
+                        <span class="text-muted">
+                            (50%)
+                        </span>
                     </span>
                 </div>
                 
@@ -2499,14 +2516,15 @@ body {
                 
             </div>
             
-            <div class="file-summary-item">
+            <div class="file-summary-item ">
                 <div class="file-summary-header">
                     <span class="file-name">🔄 Database Operations</span>
                     <span class="success-bar"><span class="success-bar-fill success-medium" style="width: 62%"></span></span>
                     <span class="file-stats">
-                        <span class="text-pass">5 passed</span> / 
-                        <span class="text-fail">3 failed</span>
-                        (62%)
+                        5/8 tests
+                        <span class="text-muted">
+                            (62%)
+                        </span>
                     </span>
                 </div>
                 
@@ -2553,14 +2571,15 @@ body {
                 
             </div>
             
-            <div class="file-summary-item">
+            <div class="file-summary-item ">
                 <div class="file-summary-header">
                     <span class="file-name">🔄 File Operations</span>
                     <span class="success-bar"><span class="success-bar-fill success-medium" style="width: 62%"></span></span>
                     <span class="file-stats">
-                        <span class="text-pass">5 passed</span> / 
-                        <span class="text-fail">3 failed</span>
-                        (62%)
+                        5/8 tests
+                        <span class="text-muted">
+                            (62%)
+                        </span>
                     </span>
                 </div>
                 
