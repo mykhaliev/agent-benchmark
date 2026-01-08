@@ -169,6 +169,11 @@ body {
     flex-wrap: wrap;
 }
 
+.file-summary-item.file-perfect {
+    background: rgba(46, 204, 113, 0.08);
+    border-left: 4px solid var(--color-pass);
+}
+
 .file-name {
     font-weight: 600;
     color: var(--color-text);
@@ -246,10 +251,13 @@ body {
     margin-right: 8px;
 }
 
-.matrix-file-header:hover td,
-.matrix-session-header:hover td {
-    background: inherit;
-}
+/* Provider badge colors */
+.provider-badge.provider-AZURE { background: #0078d4; color: white; }
+.provider-badge.provider-OPENAI { background: #10a37f; color: white; }
+.provider-badge.provider-ANTHROPIC { background: #d4a574; color: white; }
+.provider-badge.provider-GOOGLE { background: #4285f4; color: white; }
+.provider-badge.provider-AWS { background: #ff9900; color: white; }
+.provider-badge.provider-OLLAMA { background: #333; color: white; }
 
 /* Test Overview Table (Single Agent) */
 .test-overview-table .row-passed { background: rgba(46, 204, 113, 0.05); }
@@ -278,6 +286,9 @@ body {
 .matrix-tokens {
     font-size: 10px;
     color: var(--color-text-muted);
+}
+.matrix-tokens::after {
+    content: ' tok';
 }
 
 /* Leaderboard */
@@ -1759,7 +1770,7 @@ body {
             <h1>🧪 Agent Benchmark Report</h1>
             <div class="report-meta">
                 <span>📦 Version: 0.0.0-SNAPSHOT</span>
-                <span>📅 Generated: 2026-01-08T08:43:13&#43;01:00</span>
+                <span>📅 Generated: 2026-01-08T08:53:07&#43;01:00</span>
                 
                 
             </div>
@@ -1840,8 +1851,8 @@ body {
                             
                             <div class="matrix-cell">
                                 <span class="matrix-status">✅</span>
-                                <span class="matrix-duration">8000ms</span>
-                                <span class="matrix-tokens">325 tok</span>
+                                <span class="matrix-duration">8.0s</span>
+                                <span class="matrix-tokens">325</span>
                             </div>
                             
                         </td>
@@ -1851,8 +1862,8 @@ body {
                             
                             <div class="matrix-cell">
                                 <span class="matrix-status">✅</span>
-                                <span class="matrix-duration">6500ms</span>
-                                <span class="matrix-tokens">256 tok</span>
+                                <span class="matrix-duration">6.5s</span>
+                                <span class="matrix-tokens">256</span>
                             </div>
                             
                         </td>
@@ -1862,8 +1873,8 @@ body {
                             
                             <div class="matrix-cell">
                                 <span class="matrix-status">❌</span>
-                                <span class="matrix-duration">7000ms</span>
-                                <span class="matrix-tokens">234 tok</span>
+                                <span class="matrix-duration">7.0s</span>
+                                <span class="matrix-tokens">234</span>
                             </div>
                             
                         </td>
@@ -1873,8 +1884,8 @@ body {
                             
                             <div class="matrix-cell">
                                 <span class="matrix-status">❌</span>
-                                <span class="matrix-duration">15000ms</span>
-                                <span class="matrix-tokens">567 tok</span>
+                                <span class="matrix-duration">15.0s</span>
+                                <span class="matrix-tokens">567</span>
                             </div>
                             
                         </td>
@@ -1889,8 +1900,8 @@ body {
                             
                             <div class="matrix-cell">
                                 <span class="matrix-status">✅</span>
-                                <span class="matrix-duration">8000ms</span>
-                                <span class="matrix-tokens">198 tok</span>
+                                <span class="matrix-duration">8.0s</span>
+                                <span class="matrix-tokens">198</span>
                             </div>
                             
                         </td>
@@ -1900,8 +1911,8 @@ body {
                             
                             <div class="matrix-cell">
                                 <span class="matrix-status">✅</span>
-                                <span class="matrix-duration">7000ms</span>
-                                <span class="matrix-tokens">212 tok</span>
+                                <span class="matrix-duration">7.0s</span>
+                                <span class="matrix-tokens">212</span>
                             </div>
                             
                         </td>
@@ -1911,8 +1922,8 @@ body {
                             
                             <div class="matrix-cell">
                                 <span class="matrix-status">✅</span>
-                                <span class="matrix-duration">8000ms</span>
-                                <span class="matrix-tokens">245 tok</span>
+                                <span class="matrix-duration">8.0s</span>
+                                <span class="matrix-tokens">245</span>
                             </div>
                             
                         </td>
@@ -1922,8 +1933,8 @@ body {
                             
                             <div class="matrix-cell">
                                 <span class="matrix-status">❌</span>
-                                <span class="matrix-duration">15000ms</span>
-                                <span class="matrix-tokens">489 tok</span>
+                                <span class="matrix-duration">15.0s</span>
+                                <span class="matrix-tokens">489</span>
                             </div>
                             
                         </td>

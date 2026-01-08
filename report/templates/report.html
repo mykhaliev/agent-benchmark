@@ -212,8 +212,8 @@
                             {{if $cell.HasResult}}
                             <div class="matrix-cell">
                                 <span class="matrix-status">{{if $cell.Passed}}✅{{else}}❌{{end}}</span>
-                                <span class="matrix-duration">{{printf "%.0fms" $cell.DurationMs}}</span>
-                                <span class="matrix-tokens">{{formatNumber $cell.Tokens}} tok</span>
+                                <span class="matrix-duration">{{printf "%.1fs" (divFloat $cell.DurationMs 1000)}}</span>
+                                <span class="matrix-tokens">{{formatNumber $cell.Tokens}}</span>
                             </div>
                             {{else}}
                             <span class="text-muted">—</span>
@@ -235,8 +235,8 @@
                             {{if $cell.HasResult}}
                             <div class="matrix-cell">
                                 <span class="matrix-status">{{if $cell.Passed}}✅{{else}}❌{{end}}</span>
-                                <span class="matrix-duration">{{printf "%.0fms" $cell.DurationMs}}</span>
-                                <span class="matrix-tokens">{{formatNumber $cell.Tokens}} tok</span>
+                                <span class="matrix-duration">{{printf "%.1fs" (divFloat $cell.DurationMs 1000)}}</span>
+                                <span class="matrix-tokens">{{formatNumber $cell.Tokens}}</span>
                             </div>
                             {{else}}
                             <span class="text-muted">—</span>
@@ -324,14 +324,15 @@
     <div class="section-body">
         <div class="file-summary-list">
             {{range .FileGroups}}
-            <div class="file-summary-item">
+            <div class="file-summary-item {{if eq .SuccessRate 100.0}}file-perfect{{end}}">
                 <div class="file-summary-header">
                     <span class="file-name">📄 {{.FileName}}</span>
                     <span class="success-bar"><span class="success-bar-fill {{.SuccessRateClass}}" style="width: {{printf "%.0f" .SuccessRate}}%"></span></span>
                     <span class="file-stats">
-                        <span class="text-pass">{{.PassedTests}} passed</span> / 
-                        <span class="text-fail">{{.FailedTests}} failed</span>
-                        ({{printf "%.0f%%" .SuccessRate}})
+                        {{.PassedTests}}/{{add .PassedTests .FailedTests}} tests
+                        <span class="{{if eq .SuccessRate 100.0}}text-pass{{else if lt .SuccessRate 50.0}}text-fail{{else}}text-muted{{end}}">
+                            ({{printf "%.0f" .SuccessRate}}%)
+                        </span>
                     </span>
                 </div>
             </div>
@@ -350,14 +351,15 @@
     <div class="section-body">
         <div class="file-summary-list">
             {{range .SessionGroups}}
-            <div class="file-summary-item">
+            <div class="file-summary-item {{if eq .SuccessRate 100.0}}file-perfect{{end}}">
                 <div class="file-summary-header">
                     <span class="file-name">🔄 {{.SessionName}}</span>
                     <span class="success-bar"><span class="success-bar-fill {{.SuccessRateClass}}" style="width: {{printf "%.0f" .SuccessRate}}%"></span></span>
                     <span class="file-stats">
-                        <span class="text-pass">{{.PassedTests}} passed</span> / 
-                        <span class="text-fail">{{.FailedTests}} failed</span>
-                        ({{printf "%.0f%%" .SuccessRate}})
+                        {{.PassedTests}}/{{add .PassedTests .FailedTests}} tests
+                        <span class="{{if eq .SuccessRate 100.0}}text-pass{{else if lt .SuccessRate 50.0}}text-fail{{else}}text-muted{{end}}">
+                            ({{printf "%.0f" .SuccessRate}}%)
+                        </span>
                     </span>
                 </div>
                 {{if .SequenceDiagram}}
