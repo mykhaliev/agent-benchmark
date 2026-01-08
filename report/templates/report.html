@@ -185,11 +185,11 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {{range $testName := .Matrix.TestNames}}
+                    {{range $testKey := .Matrix.TestNames}}
                     <tr>
-                        <td>{{$testName}}</td>
+                        <td>{{getTestDisplayName $.Matrix.TestDisplayNames $testKey}}</td>
                         {{range $agentName := $.Matrix.AgentNames}}
-                        {{$cell := getMatrixCell $.Matrix.Cells $testName $agentName}}
+                        {{$cell := getMatrixCell $.Matrix.Cells $testKey $agentName}}
                         <td>
                             {{if $cell.HasResult}}
                             <div class="matrix-cell">
