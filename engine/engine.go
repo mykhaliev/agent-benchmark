@@ -451,6 +451,13 @@ func CreateProvider(ctx context.Context, p model.Provider) (llms.Model, error) {
 		return nil, fmt.Errorf("provider model is empty")
 	}
 
+	// Create custom HTTP client for Retry-After header capture if retry is enabled
+	var retryAfterClient *RetryAfterHTTPClient
+	if p.Retry.RetryOn429 {
+		retryAfterClient = NewRetryAfterHTTPClient(nil)
+		logger.Logger.Debug("Created Retry-After HTTP client for header capture", "provider", p.Name)
+	}
+
 	var llmModel llms.Model
 	var err error
 
@@ -460,6 +467,9 @@ func CreateProvider(ctx context.Context, p model.Provider) (llms.Model, error) {
 			openai.WithToken(p.Token),
 			openai.WithModel(p.Model),
 		}
+		if retryAfterClient != nil {
+			opts = append(opts, openai.WithHTTPClient(retryAfterClient))
+		}
 		if p.BaseURL != "" {
 			opts = append(opts, openai.WithBaseURL(p.BaseURL))
 			logger.Logger.Debug("Using custom base URL", "url", p.BaseURL)
@@ -468,11 +478,14 @@ func CreateProvider(ctx context.Context, p model.Provider) (llms.Model, error) {
 		}
 		llmModel, err = openai.New(opts...)
 	case model.ProviderGoogle:
-		llmModel, err = googleai.New(
-			ctx,
+		googleOpts := []googleai.Option{
 			googleai.WithAPIKey(p.Token),
 			googleai.WithDefaultModel(p.Model),
-		)
+		}
+		if retryAfterClient != nil {
+			googleOpts = append(googleOpts, googleai.WithHTTPClient(retryAfterClient.wrapped))
+		}
+		llmModel, err = googleai.New(ctx, googleOpts...)
 	case model.ProviderVertex:
 		llmModel, err = vertex.New(
 			ctx,
@@ -485,6 +498,9 @@ func CreateProvider(ctx context.Context, p model.Provider) (llms.Model, error) {
 		opts := []anthropic.Option{
 			anthropic.WithModel(p.Model),
 			anthropic.WithToken(p.Token),
+		}
+		if retryAfterClient != nil {
+			opts = append(opts, anthropic.WithHTTPClient(retryAfterClient))
 		}
 		llmModel, err = anthropic.New(opts...)
 	case model.ProviderAmazonAnthropic:
@@ -509,6 +525,9 @@ func CreateProvider(ctx context.Context, p model.Provider) (llms.Model, error) {
 			openai.WithToken(p.Token),
 			openai.WithModel(p.Model),
 		}
+		if retryAfterClient != nil {
+			opts = append(opts, openai.WithHTTPClient(retryAfterClient))
+		}
 
 		if p.BaseURL != "" {
 			opts = append(opts, openai.WithBaseURL(p.BaseURL))
@@ -530,6 +549,9 @@ func CreateProvider(ctx context.Context, p model.Provider) (llms.Model, error) {
 			openai.WithModel(p.Model),
 			openai.WithAPIVersion(p.Version),
 			openai.WithBaseURL(p.BaseURL),
+		}
+		if retryAfterClient != nil {
+			opts = append(opts, openai.WithHTTPClient(retryAfterClient))
 		}
 		logger.Logger.Debug("Using Azure base URL", "url", p.BaseURL)
 
@@ -581,7 +603,15 @@ func CreateProvider(ctx context.Context, p model.Provider) (llms.Model, error) {
 			"tpm", p.RateLimits.TPM,
 			"rpm", p.RateLimits.RPM,
 			"retry_on_429", p.Retry.RetryOn429)
-		llmModel = NewRateLimitedLLM(llmModel, p.RateLimits, p.Retry)
+		rateLimitedLLM := NewRateLimitedLLM(llmModel, p.RateLimits, p.Retry)
+		
+		// If we created a custom HTTP client for Retry-After header capture, link it
+		if retryAfterClient != nil {
+			rateLimitedLLM.SetRetryAfterProvider(retryAfterClient)
+			logger.Logger.Debug("Retry-After HTTP header capture enabled for provider", "name", p.Name)
+		}
+		
+		llmModel = rateLimitedLLM
 	}
 
 	return llmModel, nil

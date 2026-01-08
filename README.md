@@ -476,7 +476,10 @@ providers:
 **Behavior:**
 - By default, 429 errors fail immediately (no retry)
 - When `retry_on_429: true` is set, the framework will retry with exponential backoff
-- If the API returns a `retry-after` header, that duration is used for the backoff
+- The framework extracts the wait duration from:
+  1. **HTTP `Retry-After` header** (preferred) - parsed as seconds or HTTP-date
+  2. **Error message text** (fallback) - e.g., "retry after 30 seconds"
+- A 1-second buffer is added to ensure we're past the rate limit window
 
 > **Note:** Rate limiting (proactive throttling) and 429 retry handling (reactive recovery) are separate concepts. You can use either or both depending on your needs
 
