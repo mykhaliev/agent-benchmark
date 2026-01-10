@@ -765,6 +765,7 @@ These variables can be used in server commands, provider configs, user variables
 | Variable | Description |
 |----------|-------------|
 | `{{TEST_DIR}}` | Absolute path to the directory containing the test YAML file |
+| `{{TEMP_DIR}}` | System temporary directory (cross-platform: `%TEMP%` on Windows, `/tmp` on Linux/macOS) |
 | `{{ANY_ENV_VAR}}` | Any environment variable (e.g., `{{HOME}}`, `{{AZURE_OPENAI_ENDPOINT}}`) |
 | User-defined variables | Variables defined in the `variables:` section of your config |
 

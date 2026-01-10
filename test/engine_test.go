@@ -607,6 +607,19 @@ func TestCreateTemplateContext(t *testing.T) {
 }
 
 func TestCreateStaticTemplateContext(t *testing.T) {
+	t.Run("TEMP_DIR is set", func(t *testing.T) {
+		ctx := engine.CreateStaticTemplateContext("", nil)
+
+		assert.NotNil(t, ctx)
+		assert.NotEmpty(t, ctx["TEMP_DIR"])
+		// Should be an absolute path
+		assert.True(t, filepath.IsAbs(ctx["TEMP_DIR"]))
+		// Directory should exist
+		info, err := os.Stat(ctx["TEMP_DIR"])
+		assert.NoError(t, err)
+		assert.True(t, info.IsDir())
+	})
+
 	t.Run("TEST_DIR from source file", func(t *testing.T) {
 		// Create a temp directory and file path
 		tempDir := t.TempDir()

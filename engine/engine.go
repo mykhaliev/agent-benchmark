@@ -1041,6 +1041,10 @@ func runTests(
 func CreateStaticTemplateContext(sourceFile string, variables map[string]string) map[string]string {
 	templateCtx := model.GetAllEnv()
 
+	// Add TEMP_DIR: system temporary directory (cross-platform)
+	// Windows: %TEMP% or %TMP%, Linux/macOS: /tmp or $TMPDIR
+	templateCtx["TEMP_DIR"] = os.TempDir()
+
 	// Add TEST_DIR: absolute path to the directory containing the source file
 	// Enables relative path references in templates (e.g., {{TEST_DIR}}/data)
 	if sourceFile != "" {
