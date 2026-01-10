@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"regexp"
 	"testing"
 	"time"
 
@@ -705,281 +704,79 @@ func TestExecuteToolWithTimeout(t *testing.T) {
 	mockClient.AssertExpectations(t)
 }
 
-func TestIsClarificationRequest(t *testing.T) {
+// TestCheckClarificationWithLLM tests the LLM-based clarification detection function
+func TestCheckClarificationWithLLM(t *testing.T) {
+	logger.SetupLogger(NewDummyWriter(), true)
+	ctx := context.Background()
+
 	tests := []struct {
-		name     string
-		text     string
-		expected bool
+		name           string
+		llmResponse    string
+		expectedResult bool
 	}{
-		// Positive cases - should detect clarification requests
 		{
-			name:     "would you like me to",
-			text:     "I found the file. Would you like me to read its contents?",
-			expected: true,
+			name:           "LLM returns YES - is clarification",
+			llmResponse:    "YES",
+			expectedResult: true,
 		},
 		{
-			name:     "do you want me to",
-			text:     "Do you want me to create this file for you?",
-			expected: true,
+			name:           "LLM returns YES with explanation",
+			llmResponse:    "YES, this is asking for confirmation",
+			expectedResult: true,
 		},
 		{
-			name:     "should i proceed",
-			text:     "I'm ready to delete these files. Should I proceed?",
-			expected: true,
+			name:           "LLM returns NO - not clarification",
+			llmResponse:    "NO",
+			expectedResult: false,
 		},
 		{
-			name:     "shall i proceed",
-			text:     "The operation is ready. Shall I proceed with the changes?",
-			expected: true,
+			name:           "LLM returns NO with explanation",
+			llmResponse:    "NO, this is a direct action",
+			expectedResult: false,
 		},
 		{
-			name:     "shall i continue",
-			text:     "I've completed step 1. Shall I continue with step 2?",
-			expected: true,
-		},
-		{
-			name:     "would you prefer",
-			text:     "Would you prefer JSON or YAML format for the output?",
-			expected: true,
-		},
-		{
-			name:     "do you prefer",
-			text:     "Do you prefer to save this to a file or display it?",
-			expected: true,
-		},
-		{
-			name:     "please confirm",
-			text:     "I will delete all files in /tmp. Please confirm before I proceed.",
-			expected: true,
-		},
-		{
-			name:     "please clarify",
-			text:     "Please clarify which directory you want me to use.",
-			expected: true,
-		},
-		{
-			name:     "can you confirm",
-			text:     "Can you confirm that this is the correct file path?",
-			expected: true,
-		},
-		{
-			name:     "can you clarify",
-			text:     "Can you clarify what format you need?",
-			expected: true,
-		},
-		{
-			name:     "let me know if you want me to",
-			text:     "I've prepared the script. Let me know if you want me to run it.",
-			expected: true,
-		},
-		{
-			name:     "let me know if i should",
-			text:     "The file is ready for deletion. Let me know if I should proceed.",
-			expected: true,
-		},
-		{
-			name:     "is that correct",
-			text:     "You want to rename the file to 'output.txt', is that correct?",
-			expected: true,
-		},
-		{
-			name:     "is this correct",
-			text:     "The target directory is /home/user. Is this correct?",
-			expected: true,
-		},
-		{
-			name:     "would you like to - with action intent (still detected via would you like me to)",
-			text:     "Would you like me to show you the full contents of the file?",
-			expected: true,
-		},
-		{
-			name:     "do you want to proceed",
-			text:     "Do you want to proceed with this operation?",
-			expected: true,
-		},
-		{
-			name:     "case insensitive - uppercase",
-			text:     "WOULD YOU LIKE ME TO help with that?",
-			expected: true,
-		},
-		{
-			name:     "case insensitive - mixed case",
-			text:     "Should I Proceed with the deletion?",
-			expected: true,
-		},
-		{
-			name:     "pattern in middle of text",
-			text:     "I analyzed the data and found 3 issues. Do you want me to fix them automatically or show you the details first?",
-			expected: true,
-		},
-		// Negative cases - should NOT be detected as clarification
-		{
-			name:     "direct action statement",
-			text:     "I have created the file successfully.",
-			expected: false,
-		},
-		{
-			name:     "information response",
-			text:     "The file contains 150 lines of code.",
-			expected: false,
-		},
-		{
-			name:     "task completion",
-			text:     "Done! I've updated the configuration file with the new settings.",
-			expected: false,
-		},
-		{
-			name:     "empty string",
-			text:     "",
-			expected: false,
-		},
-		{
-			name:     "unrelated question",
-			text:     "What is the current directory?",
-			expected: false,
-		},
-		{
-			name:     "statement with similar words",
-			text:     "I would like to note that the file was modified yesterday.",
-			expected: false,
-		},
-		{
-			name:     "past tense action",
-			text:     "I proceeded to create the file as requested.",
-			expected: false,
-		},
-		{
-			name:     "polite closing - offering future help",
-			text:     "The PivotTable has been created successfully. Let me know if you want further analysis or visualizations!",
-			expected: false,
-		},
-		{
-			name:     "polite closing - offering customization",
-			text:     "A chart has been added to the sheet. Let me know if you want to customize it further!",
-			expected: false,
-		},
-		{
-			name:     "polite closing - would you like to add more",
-			text:     "Your star schema is ready. Would you like to define relationships or add more dimensions?",
-			expected: false,
+			name:           "LLM returns lowercase yes",
+			llmResponse:    "yes",
+			expectedResult: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Test with builtin patterns enabled (default behavior)
-			result := agent.IsClarificationRequest(tt.text, true, nil)
-			assert.Equal(t, tt.expected, result, "IsClarificationRequest(%q, true, nil) = %v, want %v", tt.text, result, tt.expected)
+			mockLLM := new(MockLLMModel)
+			mockLLM.On("GenerateContent", mock.Anything, mock.Anything, mock.Anything).Return(
+				&llms.ContentResponse{
+					Choices: []*llms.ContentChoice{
+						{Content: tt.llmResponse},
+					},
+				}, nil,
+			)
+
+			result := agent.CheckClarificationWithLLM(ctx, mockLLM, "Some response text")
+			assert.Equal(t, tt.expectedResult, result)
 		})
 	}
 }
 
-func TestIsClarificationRequest_CustomPatterns(t *testing.T) {
-	// Test custom regex patterns
-	customPattern := regexp.MustCompile(`(?i)¿te gustaría`)
-	germanPattern := regexp.MustCompile(`(?i)möchten sie`)
+func TestCheckClarificationWithLLM_NilLLM(t *testing.T) {
+	logger.SetupLogger(NewDummyWriter(), true)
+	ctx := context.Background()
 
-	tests := []struct {
-		name               string
-		text               string
-		useBuiltin         bool
-		customPatterns     []*regexp.Regexp
-		expected           bool
-	}{
-		// Custom patterns only (builtin disabled)
-		{
-			name:           "custom pattern matches - Spanish",
-			text:           "¿Te gustaría que proceda con la operación?",
-			useBuiltin:     false,
-			customPatterns: []*regexp.Regexp{customPattern},
-			expected:       true,
-		},
-		{
-			name:           "custom pattern matches - German",
-			text:           "Möchten Sie fortfahren?",
-			useBuiltin:     false,
-			customPatterns: []*regexp.Regexp{germanPattern},
-			expected:       true,
-		},
-		{
-			name:           "custom pattern does not match",
-			text:           "I have completed the task.",
-			useBuiltin:     false,
-			customPatterns: []*regexp.Regexp{customPattern},
-			expected:       false,
-		},
-		{
-			name:           "builtin disabled - builtin pattern should not match",
-			text:           "Would you like me to proceed?",
-			useBuiltin:     false,
-			customPatterns: []*regexp.Regexp{customPattern},
-			expected:       false,
-		},
-		// Builtin + custom patterns (additive mode)
-		{
-			name:           "additive - builtin matches",
-			text:           "Would you like me to proceed?",
-			useBuiltin:     true,
-			customPatterns: []*regexp.Regexp{customPattern},
-			expected:       true,
-		},
-		{
-			name:           "additive - custom matches",
-			text:           "¿Te gustaría continuar?",
-			useBuiltin:     true,
-			customPatterns: []*regexp.Regexp{customPattern},
-			expected:       true,
-		},
-		{
-			name:           "additive - neither matches",
-			text:           "Task completed successfully.",
-			useBuiltin:     true,
-			customPatterns: []*regexp.Regexp{customPattern},
-			expected:       false,
-		},
-		// Multiple custom patterns
-		{
-			name:           "multiple custom - first matches",
-			text:           "¿Te gustaría proceder?",
-			useBuiltin:     false,
-			customPatterns: []*regexp.Regexp{customPattern, germanPattern},
-			expected:       true,
-		},
-		{
-			name:           "multiple custom - second matches",
-			text:           "Möchten Sie das bestätigen?",
-			useBuiltin:     false,
-			customPatterns: []*regexp.Regexp{customPattern, germanPattern},
-			expected:       true,
-		},
-		// Empty/nil patterns
-		{
-			name:           "nil custom patterns with builtin",
-			text:           "Would you like me to help?",
-			useBuiltin:     true,
-			customPatterns: nil,
-			expected:       true,
-		},
-		{
-			name:           "empty custom patterns with builtin",
-			text:           "Would you like me to help?",
-			useBuiltin:     true,
-			customPatterns: []*regexp.Regexp{},
-			expected:       true,
-		},
-		{
-			name:           "nil custom patterns without builtin",
-			text:           "Would you like me to help?",
-			useBuiltin:     false,
-			customPatterns: nil,
-			expected:       false,
-		},
-	}
+	// Should return false when LLM is nil
+	result := agent.CheckClarificationWithLLM(ctx, nil, "Some response")
+	assert.False(t, result)
+}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := agent.IsClarificationRequest(tt.text, tt.useBuiltin, tt.customPatterns)
-			assert.Equal(t, tt.expected, result, "IsClarificationRequest(%q, %v, patterns) = %v, want %v", tt.text, tt.useBuiltin, result, tt.expected)
-		})
-	}
+func TestCheckClarificationWithLLM_LLMError(t *testing.T) {
+	logger.SetupLogger(NewDummyWriter(), true)
+	ctx := context.Background()
+
+	mockLLM := new(MockLLMModel)
+	mockLLM.On("GenerateContent", mock.Anything, mock.Anything, mock.Anything).Return(
+		nil, errors.New("LLM error"),
+	)
+
+	// Should return false when LLM returns an error
+	result := agent.CheckClarificationWithLLM(ctx, mockLLM, "Some response")
+	assert.False(t, result)
 }
