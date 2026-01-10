@@ -768,8 +768,13 @@ func TestIsClarificationRequest(t *testing.T) {
 			expected: true,
 		},
 		{
-			name:     "let me know if",
+			name:     "let me know if you want me to",
 			text:     "I've prepared the script. Let me know if you want me to run it.",
+			expected: true,
+		},
+		{
+			name:     "let me know if i should",
+			text:     "The file is ready for deletion. Let me know if I should proceed.",
 			expected: true,
 		},
 		{
@@ -783,8 +788,8 @@ func TestIsClarificationRequest(t *testing.T) {
 			expected: true,
 		},
 		{
-			name:     "would you like to",
-			text:     "Would you like to see the full contents of the file?",
+			name:     "would you like to - with action intent (still detected via would you like me to)",
+			text:     "Would you like me to show you the full contents of the file?",
 			expected: true,
 		},
 		{
@@ -841,6 +846,21 @@ func TestIsClarificationRequest(t *testing.T) {
 		{
 			name:     "past tense action",
 			text:     "I proceeded to create the file as requested.",
+			expected: false,
+		},
+		{
+			name:     "polite closing - offering future help",
+			text:     "The PivotTable has been created successfully. Let me know if you want further analysis or visualizations!",
+			expected: false,
+		},
+		{
+			name:     "polite closing - offering customization",
+			text:     "A chart has been added to the sheet. Let me know if you want to customize it further!",
+			expected: false,
+		},
+		{
+			name:     "polite closing - would you like to add more",
+			text:     "Your star schema is ready. Would you like to define relationships or add more dimensions?",
 			expected: false,
 		},
 	}

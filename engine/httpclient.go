@@ -16,8 +16,8 @@ import (
 type RetryAfterHTTPClient struct {
 	wrapped *http.Client
 
-	mu              sync.RWMutex
-	lastRetryAfter  time.Duration
+	mu               sync.RWMutex
+	lastRetryAfter   time.Duration
 	lastRetryAfterAt time.Time
 }
 
@@ -43,22 +43,46 @@ func (c *RetryAfterHTTPClient) Do(req *http.Request) (*http.Response, error) {
 	}
 
 	// Check for 429 status and capture Retry-After header
+	// Azure OpenAI returns both retry-after (seconds) and retry-after-ms (milliseconds)
+	// We prefer retry-after-ms for higher precision
 	if resp.StatusCode == http.StatusTooManyRequests {
-		retryAfter := c.parseRetryAfterHeader(resp.Header.Get("Retry-After"))
+		retryAfter := c.extractRetryAfterFromResponse(resp)
 		if retryAfter > 0 {
 			c.mu.Lock()
 			c.lastRetryAfter = retryAfter
 			c.lastRetryAfterAt = time.Now()
 			c.mu.Unlock()
 			if logger.Logger != nil {
-				logger.Logger.Debug("Captured Retry-After header from 429 response",
+				logger.Logger.Debug("Captured Retry-After from 429 response",
 					"retry_after_seconds", retryAfter.Seconds(),
-					"header_value", resp.Header.Get("Retry-After"))
+					"retry_after_ms_header", resp.Header.Get("retry-after-ms"),
+					"retry_after_header", resp.Header.Get("Retry-After"))
 			}
 		}
 	}
 
 	return resp, err
+}
+
+// extractRetryAfterFromResponse extracts the retry duration from response headers.
+// Azure OpenAI returns both headers:
+// - retry-after-ms: milliseconds (more precise, preferred)
+// - retry-after / Retry-After: seconds (fallback)
+// See: https://learn.microsoft.com/en-us/azure/ai-foundry/openai/how-to/provisioned-get-started#handling-high-utilization
+func (c *RetryAfterHTTPClient) extractRetryAfterFromResponse(resp *http.Response) time.Duration {
+	// First, try retry-after-ms (Azure OpenAI specific, more precise)
+	// Header names are case-insensitive in HTTP, but Go's Header.Get is case-insensitive
+	if msValue := resp.Header.Get("retry-after-ms"); msValue != "" {
+		if ms, err := strconv.Atoi(strings.TrimSpace(msValue)); err == nil && ms > 0 {
+			if logger.Logger != nil {
+				logger.Logger.Debug("Using retry-after-ms header", "milliseconds", ms)
+			}
+			return time.Duration(ms) * time.Millisecond
+		}
+	}
+
+	// Fall back to standard Retry-After header (seconds or HTTP-date)
+	return c.parseRetryAfterHeader(resp.Header.Get("Retry-After"))
 }
 
 // GetLastRetryAfter returns the last captured Retry-After duration and when it was captured.
