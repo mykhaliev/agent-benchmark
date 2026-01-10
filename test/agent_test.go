@@ -788,8 +788,8 @@ func TestIsClarificationRequest(t *testing.T) {
 			expected: true,
 		},
 		{
-			name:     "would you like to",
-			text:     "Would you like to see the full contents of the file?",
+			name:     "would you like to - with action intent (still detected via would you like me to)",
+			text:     "Would you like me to show you the full contents of the file?",
 			expected: true,
 		},
 		{
@@ -856,6 +856,11 @@ func TestIsClarificationRequest(t *testing.T) {
 		{
 			name:     "polite closing - offering customization",
 			text:     "A chart has been added to the sheet. Let me know if you want to customize it further!",
+			expected: false,
+		},
+		{
+			name:     "polite closing - would you like to add more",
+			text:     "Your star schema is ready. Would you like to define relationships or add more dimensions?",
 			expected: false,
 		},
 	}

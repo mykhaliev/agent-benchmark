@@ -969,6 +969,8 @@ func extractInt(v any) int {
 // These patterns detect when an LLM is asking for permission/confirmation BEFORE acting.
 // Patterns are intentionally specific to avoid false positives from polite closings like
 // "Let me know if you want anything else" which are offers AFTER task completion.
+// NOTE: Patterns like "would you like to" and "let me know if" are intentionally excluded
+// as they produce too many false positives from polite closing statements.
 var BuiltinClarificationPatterns = []string{
 	"would you like me to",
 	"do you want me to",
@@ -985,7 +987,7 @@ var BuiltinClarificationPatterns = []string{
 	"let me know if i should",        // More specific than "let me know if" to avoid false positives
 	"is that correct",
 	"is this correct",
-	"would you like to",
+	// "would you like to" removed - too many false positives from polite closings like "Would you like to add more?"
 	"do you want to proceed",
 }
 
