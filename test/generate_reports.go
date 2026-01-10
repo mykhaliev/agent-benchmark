@@ -87,6 +87,12 @@ func toolWriteFile(offset time.Duration, durationMs int64) model.ToolCall {
 		Parameters: map[string]interface{}{"path": "/tmp/test.txt", "content": "Hello World"},
 		Timestamp:  baseTime.Add(offset),
 		DurationMs: durationMs,
+		Result: model.Result{
+			Content: []model.ContentItem{{
+				Type: "text",
+				Text: `{"ok":true,"path":"/tmp/test.txt","bytes":11}`,
+			}},
+		},
 	}
 }
 
@@ -96,6 +102,12 @@ func toolReadFile(offset time.Duration, durationMs int64) model.ToolCall {
 		Parameters: map[string]interface{}{"path": "/etc/config.yaml"},
 		Timestamp:  baseTime.Add(offset),
 		DurationMs: durationMs,
+		Result: model.Result{
+			Content: []model.ContentItem{{
+				Type: "text",
+				Text: `{"ok":true,"content":"server:\n  port: 8080\n  host: localhost"}`,
+			}},
+		},
 	}
 }
 
@@ -105,6 +117,12 @@ func toolBashCommand(offset time.Duration, durationMs int64, cmd string) model.T
 		Parameters: map[string]interface{}{"command": cmd},
 		Timestamp:  baseTime.Add(offset),
 		DurationMs: durationMs,
+		Result: model.Result{
+			Content: []model.ContentItem{{
+				Type: "text",
+				Text: `{"ok":true,"exitCode":0,"stdout":"command completed"}`,
+			}},
+		},
 	}
 }
 
@@ -114,6 +132,12 @@ func toolPythonExec(offset time.Duration, durationMs int64, code string) model.T
 		Parameters: map[string]interface{}{"code": code},
 		Timestamp:  baseTime.Add(offset),
 		DurationMs: durationMs,
+		Result: model.Result{
+			Content: []model.ContentItem{{
+				Type: "text",
+				Text: `{"ok":true,"output":"True","exitCode":0}`,
+			}},
+		},
 	}
 }
 
@@ -123,6 +147,12 @@ func toolDBConnect(offset time.Duration, durationMs int64, host string, port int
 		Parameters: map[string]interface{}{"host": host, "port": port},
 		Timestamp:  baseTime.Add(offset),
 		DurationMs: durationMs,
+		Result: model.Result{
+			Content: []model.ContentItem{{
+				Type: "text",
+				Text: fmt.Sprintf(`{"ok":true,"connection":{"host":"%s","port":%d,"status":"connected"}}`, host, port),
+			}},
+		},
 	}
 }
 
@@ -132,6 +162,12 @@ func toolDBQuery(offset time.Duration, durationMs int64, sql string) model.ToolC
 		Parameters: map[string]interface{}{"sql": sql},
 		Timestamp:  baseTime.Add(offset),
 		DurationMs: durationMs,
+		Result: model.Result{
+			Content: []model.ContentItem{{
+				Type: "text",
+				Text: `{"ok":true,"rows":[{"id":1,"name":"test"}],"rowCount":1}`,
+			}},
+		},
 	}
 }
 
@@ -141,6 +177,12 @@ func toolHTTPGet(offset time.Duration, durationMs int64, url string) model.ToolC
 		Parameters: map[string]interface{}{"url": url},
 		Timestamp:  baseTime.Add(offset),
 		DurationMs: durationMs,
+		Result: model.Result{
+			Content: []model.ContentItem{{
+				Type: "text",
+				Text: `{"ok":true,"status":200,"body":"{\"message\":\"success\"}"}`,
+			}},
+		},
 	}
 }
 
@@ -150,6 +192,12 @@ func toolDeleteFile(offset time.Duration, durationMs int64, path string) model.T
 		Parameters: map[string]interface{}{"path": path},
 		Timestamp:  baseTime.Add(offset),
 		DurationMs: durationMs,
+		Result: model.Result{
+			Content: []model.ContentItem{{
+				Type: "text",
+				Text: fmt.Sprintf(`{"ok":true,"deleted":"%s"}`, path),
+			}},
+		},
 	}
 }
 
@@ -159,6 +207,12 @@ func toolListFiles(offset time.Duration, durationMs int64, path string) model.To
 		Parameters: map[string]interface{}{"path": path},
 		Timestamp:  baseTime.Add(offset),
 		DurationMs: durationMs,
+		Result: model.Result{
+			Content: []model.ContentItem{{
+				Type: "text",
+				Text: fmt.Sprintf(`{"ok":true,"path":"%s","files":["file1.txt","file2.txt"]}`, path),
+			}},
+		},
 	}
 }
 
@@ -168,6 +222,27 @@ func toolGeneric(offset time.Duration, durationMs int64, name string, params map
 		Parameters: params,
 		Timestamp:  baseTime.Add(offset),
 		DurationMs: durationMs,
+		Result: model.Result{
+			Content: []model.ContentItem{{
+				Type: "text",
+				Text: fmt.Sprintf(`{"ok":true,"tool":"%s","completed":true}`, name),
+			}},
+		},
+	}
+}
+
+func toolGenericWithResult(offset time.Duration, durationMs int64, name string, params map[string]interface{}, resultJSON string) model.ToolCall {
+	return model.ToolCall{
+		Name:       name,
+		Parameters: params,
+		Timestamp:  baseTime.Add(offset),
+		DurationMs: durationMs,
+		Result: model.Result{
+			Content: []model.ContentItem{{
+				Type: "text",
+				Text: resultJSON,
+			}},
+		},
 	}
 }
 
@@ -218,14 +293,15 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Hierarchical test reports - from simple to complex:
+	// Hierarchical test reports - progressive complexity:
 	// Level 1: Single agent, single test (simplest case)
-	// Level 2: Single agent, multiple tests (test overview table)
-	// Level 3: Multiple agents, single test (leaderboard focus)
-	// Level 4: Multiple agents, multiple tests (full matrix)
-	// Level 5: Single agent, multiple sessions (session grouping with flow diagrams)
-	// Level 6: Multiple agents, multiple sessions (session grouping, no flow diagrams)
-	// Level 7: Full suite (multiple agents, sessions, files)
+	// Level 2: Single agent, multiple tests (adds test variety)
+	// Level 3: Single agent, multiple sessions (adds session grouping)
+	// Level 4: Single agent, multiple files (adds file grouping)
+	// Level 5: Multiple agents, single test (adds agent comparison)
+	// Level 6: Multiple agents, multiple tests (full matrix)
+	// Level 7: Multiple agents, multiple sessions (session grouping across agents)
+	// Level 8: Multiple agents, multiple files (full complexity)
 	// Bonus: Failed test with errors
 	fixtures := []struct {
 		name    string
@@ -234,11 +310,11 @@ func main() {
 	}{
 		{"01_single_agent_single_test", 1, createSingleAgentOneTest()},
 		{"02_single_agent_multi_test", 2, createSingleAgentTwoTests()},
-		{"03_multi_agent_single_test", 3, createMultiAgentSingleTest()},
-		{"04_multi_agent_multi_test", 4, createMultiAgent()},
-		{"05_single_agent_multi_session", 5, createSingleAgentMultiSession()},
-		{"06_multi_agent_multi_session", 6, createMultiAgentMultiSession()},
-		{"07_single_agent_multi_file", 7, createSingleAgentMultiFile()},
+		{"03_single_agent_multi_session", 3, createSingleAgentMultiSession()},
+		{"04_single_agent_multi_file", 4, createSingleAgentMultiFile()},
+		{"05_multi_agent_single_test", 5, createMultiAgentSingleTest()},
+		{"06_multi_agent_multi_test", 6, createMultiAgent()},
+		{"07_multi_agent_multi_session", 7, createMultiAgentMultiSession()},
 		{"08_multi_agent_multi_file", 8, createFullSuite()},
 		{"09_failed_with_errors", 0, createFailedTest()},
 	}
@@ -270,10 +346,10 @@ func main() {
 func createSingleAgentOneTest() []model.TestRun {
 	return []model.TestRun{
 		buildTestRun("Create test file", agentGemini, true, TestRunOpts{
-			DurationMs: 2340,
-			Messages:   []model.Message{{Role: "user", Content: "Create a test file at /tmp/test.txt with the content 'Hello World'"}},
-			ToolCalls:  []model.ToolCall{toolWriteFile(500*time.Millisecond, 45)},
-			FinalOutput: "Done!",
+			DurationMs:  2340,
+			Messages:    []model.Message{{Role: "user", Content: "Create a test file at /tmp/test.txt with the content 'Hello World'"}},
+			ToolCalls:   []model.ToolCall{toolWriteFile(500*time.Millisecond, 45)},
+			FinalOutput: "[Iteration 1: 1 tool(s) to execute]\nDone!",
 			TokensUsed:  325,
 			Assertions:  []model.AssertionResult{assertToolCalled("write_file")},
 		}),
@@ -283,9 +359,9 @@ func createSingleAgentOneTest() []model.TestRun {
 func createSingleAgentTwoTests() []model.TestRun {
 	return []model.TestRun{
 		buildTestRun("Create test file", agentGemini, true, TestRunOpts{
-			DurationMs: 2340,
-			Messages:   []model.Message{{Role: "user", Content: "Create a test file at /tmp/test.txt with the content 'Hello World'"}},
-			ToolCalls:  []model.ToolCall{toolWriteFile(500*time.Millisecond, 45)},
+			DurationMs:  2340,
+			Messages:    []model.Message{{Role: "user", Content: "Create a test file at /tmp/test.txt with the content 'Hello World'"}},
+			ToolCalls:   []model.ToolCall{toolWriteFile(500*time.Millisecond, 45)},
 			FinalOutput: "File created successfully at /tmp/test.txt",
 			TokensUsed:  325,
 			Assertions: []model.AssertionResult{
@@ -301,7 +377,7 @@ func createSingleAgentTwoTests() []model.TestRun {
 				{Role: "assistant", Content: "I'll read the config file for you."},
 			},
 			ToolCalls:   []model.ToolCall{toolReadFile(3500*time.Millisecond, 82)},
-			FinalOutput: "The port number in the configuration is 8080.",
+			FinalOutput: "[Iteration 1: 1 tool(s) to execute]\nThe port number in the configuration is 8080.",
 			TokensUsed:  198,
 			Assertions: []model.AssertionResult{
 				assertToolCalled("read_file"),
@@ -365,7 +441,7 @@ func createMultiAgent() []model.TestRun {
 				{Role: "assistant", Content: "Done!", Timestamp: baseTime.Add(7500 * time.Millisecond)},
 			},
 			ToolCalls:   claudeFileTools,
-			FinalOutput: "File created successfully at /tmp/test.txt with content 'Hello World'",
+			FinalOutput: "[Iteration 1: 2 tool(s) to execute]\n[Iteration 2: 2 tool(s) to execute]\n[Iteration 3: 1 tool(s) to execute]\nFile created successfully at /tmp/test.txt with content 'Hello World'",
 			TokensUsed:  325,
 			Assertions: []model.AssertionResult{
 				assertToolCalled("write_file"),
@@ -383,7 +459,7 @@ func createMultiAgent() []model.TestRun {
 				{Role: "assistant", Content: "Complete.", Timestamp: baseTime.Add(6 * time.Second)},
 			},
 			ToolCalls:   geminiBashTools,
-			FinalOutput: "Done! File created using bash.",
+			FinalOutput: "[Iteration 1: 1 tool(s) to execute]\n[Iteration 2: 2 tool(s) to execute]\n[Iteration 3: 2 tool(s) to execute]\nDone! File created using bash.",
 			TokensUsed:  256,
 			Assertions: []model.AssertionResult{
 				assertToolCalled("bash"),
@@ -401,7 +477,7 @@ func createMultiAgent() []model.TestRun {
 				{Role: "assistant", Content: "File ready.", Timestamp: baseTime.Add(6500 * time.Millisecond)},
 			},
 			ToolCalls:   gptPythonTools,
-			FinalOutput: "File created via Python.",
+			FinalOutput: "[Iteration 1: 2 tool(s) to execute]\n[Iteration 2: 3 tool(s) to execute]\nFile created via Python.",
 			TokensUsed:  234,
 			Assertions: []model.AssertionResult{
 				assertToolCalled("python"),
@@ -420,7 +496,7 @@ func createMultiAgent() []model.TestRun {
 				{Role: "assistant", Content: "Cannot complete task.", Timestamp: baseTime.Add(14 * time.Second)},
 			},
 			ToolCalls:   phoenixWrongTools,
-			FinalOutput: "Failed to create file. I don't have the right tools.",
+			FinalOutput: "[Iteration 1: 1 tool(s) to execute]\n[Iteration 2: 1 tool(s) to execute]\n[Iteration 3: 3 tool(s) to execute]\nFailed to create file. I don't have the right tools.",
 			TokensUsed:  567,
 			Errors:      []string{"HTTP POST failed: connection refused", "GraphQL error: unknown mutation", "Database error: table not found"},
 			Assertions: []model.AssertionResult{
@@ -813,19 +889,19 @@ func createFullSuite() []model.TestRun {
 	// Session 1: File Operations - all agents
 	for i, agent := range agents {
 		offset := time.Duration(i) * 500 * time.Millisecond
-		
+
 		// Test 1: Create config
 		passed := !agent.disqualified
 		runs = append(runs, model.TestRun{
 			Execution: &model.ExecutionResult{
-				TestName:    "Create config file",
-				AgentName:   agent.name,
+				TestName:     "Create config file",
+				AgentName:    agent.name,
 				ProviderType: agent.provider,
-				SessionName: "File Operations",
-				SourceFile:  "tests/file_ops.yaml",
-				StartTime:   baseTime.Add(offset),
-				EndTime:     baseTime.Add(offset + 1500*time.Millisecond),
-				Messages:    []model.Message{{Role: "user", Content: fileOpsPrompt}},
+				SessionName:  "File Operations",
+				SourceFile:   "tests/file_ops.yaml",
+				StartTime:    baseTime.Add(offset),
+				EndTime:      baseTime.Add(offset + 1500*time.Millisecond),
+				Messages:     []model.Message{{Role: "user", Content: fileOpsPrompt}},
 				ToolCalls: []model.ToolCall{
 					{Name: "write_file", Parameters: map[string]interface{}{"path": func() string {
 						if agent.disqualified {
@@ -840,8 +916,8 @@ func createFullSuite() []model.TestRun {
 					}
 					return "Configuration file created successfully."
 				}(),
-				TokensUsed:  120 + i*15,
-				LatencyMs:   1500,
+				TokensUsed: 120 + i*15,
+				LatencyMs:  1500,
 				Errors: func() []string {
 					if agent.disqualified {
 						return []string{"Permission denied", "Invalid path"}
@@ -865,14 +941,14 @@ func createFullSuite() []model.TestRun {
 		passed2 := !agent.disqualified && i != 2 // gemini fails this one, mistral always fails
 		runs = append(runs, model.TestRun{
 			Execution: &model.ExecutionResult{
-				TestName:    "Read and verify config",
-				AgentName:   agent.name,
+				TestName:     "Read and verify config",
+				AgentName:    agent.name,
 				ProviderType: agent.provider,
-				SessionName: "File Operations",
-				SourceFile:  "tests/file_ops.yaml",
-				StartTime:   baseTime.Add(offset + 2*time.Second),
-				EndTime:     baseTime.Add(offset + 3200*time.Millisecond),
-				Messages:    []model.Message{{Role: "user", Content: readConfigPrompt}},
+				SessionName:  "File Operations",
+				SourceFile:   "tests/file_ops.yaml",
+				StartTime:    baseTime.Add(offset + 2*time.Second),
+				EndTime:      baseTime.Add(offset + 3200*time.Millisecond),
+				Messages:     []model.Message{{Role: "user", Content: readConfigPrompt}},
 				ToolCalls: []model.ToolCall{
 					{Name: "read_file", Parameters: map[string]interface{}{"path": func() string {
 						if agent.disqualified {
@@ -919,14 +995,14 @@ func createFullSuite() []model.TestRun {
 		passed := !agent.disqualified && i != 1 // gpt fails this one, mistral always fails
 		runs = append(runs, model.TestRun{
 			Execution: &model.ExecutionResult{
-				TestName:    "Connect to database",
-				AgentName:   agent.name,
+				TestName:     "Connect to database",
+				AgentName:    agent.name,
 				ProviderType: agent.provider,
-				SessionName: "Database Operations",
-				SourceFile:  "tests/db_ops.yaml",
-				StartTime:   baseTime.Add(offset),
-				EndTime:     baseTime.Add(offset + 2000*time.Millisecond),
-				Messages:    []model.Message{{Role: "user", Content: dbConnectPrompt}},
+				SessionName:  "Database Operations",
+				SourceFile:   "tests/db_ops.yaml",
+				StartTime:    baseTime.Add(offset),
+				EndTime:      baseTime.Add(offset + 2000*time.Millisecond),
+				Messages:     []model.Message{{Role: "user", Content: dbConnectPrompt}},
 				ToolCalls: []model.ToolCall{
 					{Name: "db_connect", Parameters: map[string]interface{}{"host": func() string {
 						if agent.disqualified {
@@ -972,14 +1048,14 @@ func createFullSuite() []model.TestRun {
 		passed4 := !agent.disqualified
 		runs = append(runs, model.TestRun{
 			Execution: &model.ExecutionResult{
-				TestName:    "Query users table",
-				AgentName:   agent.name,
+				TestName:     "Query users table",
+				AgentName:    agent.name,
 				ProviderType: agent.provider,
-				SessionName: "Database Operations",
-				SourceFile:  "tests/db_ops.yaml",
-				StartTime:   baseTime.Add(offset + 3*time.Second),
-				EndTime:     baseTime.Add(offset + 4*time.Second),
-				Messages:    []model.Message{{Role: "user", Content: dbQueryPrompt}},
+				SessionName:  "Database Operations",
+				SourceFile:   "tests/db_ops.yaml",
+				StartTime:    baseTime.Add(offset + 3*time.Second),
+				EndTime:      baseTime.Add(offset + 4*time.Second),
+				Messages:     []model.Message{{Role: "user", Content: dbQueryPrompt}},
 				ToolCalls: []model.ToolCall{
 					{Name: "db_query", Parameters: map[string]interface{}{"sql": func() string {
 						if agent.disqualified {
@@ -1022,14 +1098,14 @@ func createFullSuite() []model.TestRun {
 		passed := !agent.disqualified
 		runs = append(runs, model.TestRun{
 			Execution: &model.ExecutionResult{
-				TestName:    "Health check API",
-				AgentName:   agent.name,
+				TestName:     "Health check API",
+				AgentName:    agent.name,
 				ProviderType: agent.provider,
-				SessionName: "API Testing",
-				SourceFile:  "tests/api_tests.yaml",
-				StartTime:   baseTime.Add(offset),
-				EndTime:     baseTime.Add(offset + 800*time.Millisecond),
-				Messages:    []model.Message{{Role: "user", Content: apiTestPrompt}},
+				SessionName:  "API Testing",
+				SourceFile:   "tests/api_tests.yaml",
+				StartTime:    baseTime.Add(offset),
+				EndTime:      baseTime.Add(offset + 800*time.Millisecond),
+				Messages:     []model.Message{{Role: "user", Content: apiTestPrompt}},
 				ToolCalls: []model.ToolCall{
 					{Name: "http_get", Parameters: map[string]interface{}{"url": func() string {
 						if agent.disqualified {
@@ -1076,14 +1152,14 @@ func createFullSuite() []model.TestRun {
 
 		runs = append(runs, model.TestRun{
 			Execution: &model.ExecutionResult{
-				TestName:    "Cleanup temp files",
-				AgentName:   agent.name,
+				TestName:     "Cleanup temp files",
+				AgentName:    agent.name,
 				ProviderType: agent.provider,
-				SessionName: "Cleanup",
-				SourceFile:  "tests/cleanup.yaml",
-				StartTime:   baseTime.Add(offset),
-				EndTime:     baseTime.Add(offset + 1200*time.Millisecond),
-				Messages:    []model.Message{{Role: "user", Content: cleanupPrompt}},
+				SessionName:  "Cleanup",
+				SourceFile:   "tests/cleanup.yaml",
+				StartTime:    baseTime.Add(offset),
+				EndTime:      baseTime.Add(offset + 1200*time.Millisecond),
+				Messages:     []model.Message{{Role: "user", Content: cleanupPrompt}},
 				ToolCalls: []model.ToolCall{
 					{Name: "delete_file", Parameters: map[string]interface{}{"path": func() string {
 						if agent.disqualified {

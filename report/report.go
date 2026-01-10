@@ -27,24 +27,16 @@ type ReportData struct {
 	GeneratedAt string
 	Summary     SummaryData
 	AgentStats  []AgentStatsView
-	Comparisons []ComparisonView
-	TestGroups  []TestGroupView
 	// Enhanced report data
-	Matrix     MatrixView
-	AgentNames []string
-	TestNames  []string
+	Matrix MatrixView
 	// Suite-level data
 	IsSuiteRun bool
 	SuiteName  string
 	FileGroups []FileGroupView
-	// Adaptive rendering flags (legacy - use Adaptive.Flags instead)
-	ShowSuiteInfo       bool // Show suite name/info section
-	ShowFileSections    bool // Show file grouping (multiple source files)
-	ShowSessionSections bool // Show session grouping (multiple sessions)
-	ShowAgentComparison bool // Show agent comparison matrix (multiple agents)
-	ShowTestOverview    bool // Show test overview table (multiple tests)
-	SessionGroups       []SessionGroupView
-	TestOverview        []TestOverviewRow
+	// Adaptive rendering flags
+	ShowSuiteInfo bool // Show suite name/info section
+	SessionGroups []SessionGroupView
+	TestOverview  TestOverviewView
 	// Unified adaptive view
 	Adaptive AdaptiveView
 }
@@ -58,12 +50,12 @@ type AdaptiveView struct {
 // AdaptiveFlags controls what UI elements to display based on test configuration
 type AdaptiveFlags struct {
 	// What sections to show
-	ShowMatrix       bool // len(agents) > 1
-	ShowLeaderboard  bool // len(agents) > 1
-	ShowTestOverview bool // len(tests) > 1 && len(agents) == 1
-	ShowFileHeaders  bool // len(files) > 1
+	ShowMatrix         bool // len(agents) > 1
+	ShowLeaderboard    bool // len(agents) > 1
+	ShowTestOverview   bool // len(tests) > 1 && len(agents) == 1
+	ShowFileHeaders    bool // len(files) > 1
 	ShowSessionHeaders bool // len(sessions) > 1
-	ShowInlineAgents bool // len(agents) > 1 (show all agents per test row)
+	ShowInlineAgents   bool // len(agents) > 1 (show all agents per test row)
 
 	// Layout modes
 	SingleTestMode  bool // len(tests) == 1 (show details directly)
@@ -82,39 +74,39 @@ type AdaptiveFlags struct {
 
 // AdaptiveFileView represents a file-level grouping
 type AdaptiveFileView struct {
-	Name        string
-	Sessions    []AdaptiveSessionView
-	TotalTests  int
-	PassedTests int
-	FailedTests int
-	SuccessRate float64
+	Name             string
+	Sessions         []AdaptiveSessionView
+	TotalTests       int
+	PassedTests      int
+	FailedTests      int
+	SuccessRate      float64
 	SuccessRateClass string
 }
 
 // AdaptiveSessionView represents a session-level grouping
 type AdaptiveSessionView struct {
-	Name        string
-	Tests       []AdaptiveTestView
-	TotalTests  int
-	PassedTests int
-	FailedTests int
-	SuccessRate float64
+	Name             string
+	Tests            []AdaptiveTestView
+	TotalTests       int
+	PassedTests      int
+	FailedTests      int
+	SuccessRate      float64
 	SuccessRateClass string
 }
 
 // AdaptiveTestView represents a single test with all its agent runs
 type AdaptiveTestView struct {
 	Name        string
-	UniqueKey   string           // For matrix cell lookup
+	UniqueKey   string // For matrix cell lookup
 	SourceFile  string
 	SessionName string
-	Runs        []TestRunView    // One per agent that ran this test
+	Runs        []TestRunView // One per agent that ran this test
 	// Aggregated status
-	AllPassed   bool             // All agents passed
-	AnyPassed   bool             // At least one agent passed
-	TotalRuns   int
-	PassedRuns  int
-	FailedRuns  int
+	AllPassed  bool // All agents passed
+	AnyPassed  bool // At least one agent passed
+	TotalRuns  int
+	PassedRuns int
+	FailedRuns int
 }
 
 // SummaryData holds overall test summary
@@ -126,6 +118,35 @@ type SummaryData struct {
 	PassRate        float64 // Percentage 0-100
 	AvgTokensPassed int     // Average tokens used by passing tests
 	AvgDuration     float64
+}
+
+// TestOverviewView represents the grouped test overview table
+type TestOverviewView struct {
+	FileGroups        []TestOverviewFileGroup
+	ShowFileGroups    bool // True if multiple files
+	ShowSessionGroups bool // True if multiple sessions
+}
+
+// TestOverviewFileGroup represents a file-level grouping in test overview
+type TestOverviewFileGroup struct {
+	FileName      string
+	SessionGroups []TestOverviewSessionGroup
+	// Aggregate statistics
+	TotalTests    int
+	PassedTests   int
+	TotalDuration float64 // in milliseconds
+	TotalTokens   int
+}
+
+// TestOverviewSessionGroup represents a session-level grouping in test overview
+type TestOverviewSessionGroup struct {
+	SessionName string
+	Tests       []TestOverviewRow
+	// Aggregate statistics
+	TotalTests    int
+	PassedTests   int
+	TotalDuration float64 // in milliseconds
+	TotalTokens   int
 }
 
 // TestOverviewRow represents a single test in the overview table
@@ -155,12 +176,22 @@ type MatrixView struct {
 type MatrixFileGroup struct {
 	FileName      string
 	SessionGroups []MatrixSessionGroup
+	// Aggregate statistics (across all agents)
+	TotalTests    int
+	PassedTests   int
+	TotalDuration float64 // in milliseconds
+	TotalTokens   int
 }
 
 // MatrixSessionGroup represents a session-level grouping in the matrix
 type MatrixSessionGroup struct {
 	SessionName string
 	TestRows    []MatrixTestRow
+	// Aggregate statistics (across all agents)
+	TotalTests    int
+	PassedTests   int
+	TotalDuration float64 // in milliseconds
+	TotalTokens   int
 }
 
 // MatrixTestRow represents a single test row in the grouped matrix
@@ -200,26 +231,6 @@ type AgentStatsView struct {
 	RowClass         string // CSS class for row styling
 }
 
-// ComparisonView is a view model for test comparisons
-type ComparisonView struct {
-	TestName          string
-	TotalRuns         int
-	PassedRuns        int
-	FailedRuns        int
-	SuccessRate       float64
-	SuccessRateClass  string
-	ServerResultsList []ServerResultView
-}
-
-// ServerResultView is a view model for individual server results
-type ServerResultView struct {
-	ServerName string
-	Provider   string
-	Passed     bool
-	DurationMs float64
-	Errors     []string
-}
-
 // TestGroupView groups test runs by test name
 type TestGroupView struct {
 	TestName   string
@@ -241,20 +252,27 @@ type FileGroupView struct {
 	SessionGroups    []SessionGroupView // Sessions within this file
 }
 
+// AgentSequenceDiagramView holds a sequence diagram for a specific agent
+type AgentSequenceDiagramView struct {
+	AgentName string
+	Diagram   string
+}
+
 // SessionGroupView groups test results by session
 type SessionGroupView struct {
-	SessionName      string
-	SourceFile       string // Parent source file (for suite runs)
-	TotalTests       int
-	PassedTests      int
-	FailedTests      int
-	SuccessRate      float64
-	SuccessRateClass string
-	TotalDuration    float64 // Total duration in seconds
-	TotalTokens      int
-	AgentCount       int     // Number of distinct agents in this session
-	TestGroups       []TestGroupView
-	SequenceDiagram  string // Mermaid diagram showing all tests in session (only for single-agent)
+	SessionName           string
+	SourceFile            string // Parent source file (for suite runs)
+	TotalTests            int
+	PassedTests           int
+	FailedTests           int
+	SuccessRate           float64
+	SuccessRateClass      string
+	TotalDuration         float64 // Total duration in seconds
+	TotalTokens           int
+	AgentCount            int // Number of distinct agents in this session
+	TestGroups            []TestGroupView
+	SequenceDiagram       string                     // Mermaid diagram showing all tests in session (only for single-agent)
+	AgentSequenceDiagrams []AgentSequenceDiagramView // Per-agent diagrams for multi-agent sessions
 }
 
 // TestRunView is a view model for individual test runs
@@ -326,7 +344,7 @@ type Generator struct {
 func NewGenerator() (*Generator, error) {
 	funcMap := template.FuncMap{
 		"formatNumber": formatNumber,
-		"lower": strings.ToLower,
+		"lower":        strings.ToLower,
 		"getMatrixCell": func(cells map[string]map[string]MatrixCell, testKey, agentName string) MatrixCell {
 			if row, ok := cells[testKey]; ok {
 				if cell, ok := row[agentName]; ok {
@@ -491,10 +509,6 @@ func buildReportData(results []model.TestRun) ReportData {
 	// Compute adaptive flags
 	isSuiteRun := len(sourceFiles) > 0
 	showSuiteInfo := suiteName != ""
-	showFileSections := len(sourceFiles) > 1
-	showSessionSections := len(sessions) > 1
-	showAgentComparison := len(agents) > 1
-	showTestOverview := len(results) > 1 && !showAgentComparison // Show for single-agent with multiple tests
 
 	for _, r := range results {
 		if r.Passed {
@@ -546,30 +560,58 @@ func buildReportData(results []model.TestRun) ReportData {
 			AvgTokensPassed: avgTokensPassed,
 			AvgDuration:     avgDuration,
 		},
-		AgentStats:          buildAgentStats(results),
-		Comparisons:         buildComparisons(results),
-		TestGroups:          buildTestGroups(results),
-		Matrix:              matrix,
-		AgentNames:          matrix.AgentNames,
-		TestNames:           matrix.TestNames,
-		IsSuiteRun:          isSuiteRun,
-		SuiteName:           suiteName,
-		FileGroups:          fileGroups,
-		ShowSuiteInfo:       showSuiteInfo,
-		ShowFileSections:    showFileSections,
-		ShowSessionSections: showSessionSections,
-		ShowAgentComparison: showAgentComparison,
-		ShowTestOverview:    showTestOverview,
-		SessionGroups:       sessionGroups,
-		TestOverview:        testOverview,
-		Adaptive:            buildAdaptiveView(results),
+		AgentStats:    buildAgentStats(results),
+		Matrix:        matrix,
+		IsSuiteRun:    isSuiteRun,
+		SuiteName:     suiteName,
+		FileGroups:    fileGroups,
+		ShowSuiteInfo: showSuiteInfo,
+		SessionGroups: sessionGroups,
+		TestOverview:  testOverview,
+		Adaptive:      buildAdaptiveView(results),
 	}
 }
 
-func buildTestOverview(results []model.TestRun) []TestOverviewRow {
-	rows := make([]TestOverviewRow, 0, len(results))
+func buildTestOverview(results []model.TestRun) TestOverviewView {
+	// Track unique files and sessions, maintaining execution order
+	fileSet := make(map[string]bool)
+	sessionSet := make(map[string]bool)
+	fileOrder := make(map[string]int)
+	sessionOrder := make(map[string]int) // "file|session" -> order
+	orderIndex := 0
+
+	// Group results by file -> session -> tests
+	type groupKey struct {
+		file    string
+		session string
+	}
+	groupedTests := make(map[groupKey][]TestOverviewRow)
+
 	for _, r := range results {
-		rows = append(rows, TestOverviewRow{
+		file := r.Execution.SourceFile
+		if file == "" {
+			file = "(default)"
+		}
+		session := r.Execution.SessionName
+		if session == "" {
+			session = "(default)"
+		}
+
+		// Track execution order
+		if !fileSet[file] {
+			fileSet[file] = true
+			fileOrder[file] = orderIndex
+			orderIndex++
+		}
+		sessionKey := file + "|" + session
+		if !sessionSet[sessionKey] {
+			sessionSet[sessionKey] = true
+			sessionOrder[sessionKey] = orderIndex
+			orderIndex++
+		}
+
+		key := groupKey{file: file, session: session}
+		groupedTests[key] = append(groupedTests[key], TestOverviewRow{
 			TestName:   r.Execution.TestName,
 			Passed:     r.Passed,
 			DurationMs: float64(r.Execution.LatencyMs),
@@ -579,16 +621,98 @@ func buildTestOverview(results []model.TestRun) []TestOverviewRow {
 			ErrorCount: len(r.Execution.Errors),
 		})
 	}
-	return rows
+
+	// Build sorted file list
+	files := make([]string, 0, len(fileSet))
+	for f := range fileSet {
+		files = append(files, f)
+	}
+	sort.Slice(files, func(i, j int) bool {
+		return fileOrder[files[i]] < fileOrder[files[j]]
+	})
+
+	// Build file groups
+	var fileGroups []TestOverviewFileGroup
+	for _, file := range files {
+		// Find sessions for this file
+		var sessions []string
+		for key := range sessionSet {
+			parts := strings.SplitN(key, "|", 2)
+			if parts[0] == file {
+				sessions = append(sessions, parts[1])
+			}
+		}
+		// Sort sessions by execution order
+		sort.Slice(sessions, func(i, j int) bool {
+			return sessionOrder[file+"|"+sessions[i]] < sessionOrder[file+"|"+sessions[j]]
+		})
+
+		var sessionGroups []TestOverviewSessionGroup
+		var fileTotalTests, filePassedTests, fileTotalTokens int
+		var fileTotalDuration float64
+
+		for _, session := range sessions {
+			key := groupKey{file: file, session: session}
+			if tests, ok := groupedTests[key]; ok {
+				// Calculate session statistics
+				var sessionTotalTests, sessionPassedTests, sessionTotalTokens int
+				var sessionTotalDuration float64
+				for _, t := range tests {
+					sessionTotalTests++
+					if t.Passed {
+						sessionPassedTests++
+					}
+					sessionTotalDuration += t.DurationMs
+					sessionTotalTokens += t.TokensUsed
+				}
+
+				sessionGroups = append(sessionGroups, TestOverviewSessionGroup{
+					SessionName:   session,
+					Tests:         tests,
+					TotalTests:    sessionTotalTests,
+					PassedTests:   sessionPassedTests,
+					TotalDuration: sessionTotalDuration,
+					TotalTokens:   sessionTotalTokens,
+				})
+
+				// Accumulate file statistics
+				fileTotalTests += sessionTotalTests
+				filePassedTests += sessionPassedTests
+				fileTotalDuration += sessionTotalDuration
+				fileTotalTokens += sessionTotalTokens
+			}
+		}
+
+		fileGroups = append(fileGroups, TestOverviewFileGroup{
+			FileName:      file,
+			SessionGroups: sessionGroups,
+			TotalTests:    fileTotalTests,
+			PassedTests:   filePassedTests,
+			TotalDuration: fileTotalDuration,
+			TotalTokens:   fileTotalTokens,
+		})
+	}
+
+	return TestOverviewView{
+		FileGroups:        fileGroups,
+		ShowFileGroups:    len(fileSet) > 1,
+		ShowSessionGroups: len(sessionSet) > 1,
+	}
 }
 
 // buildAdaptiveView creates the unified hierarchical structure for adaptive rendering
 func buildAdaptiveView(results []model.TestRun) AdaptiveView {
-	// Collect unique values
+	// Collect unique values and track execution order (first occurrence)
 	fileSet := make(map[string]bool)
 	sessionSet := make(map[string]bool)
 	agentSet := make(map[string]bool)
 	testKeySet := make(map[string]bool)
+
+	// Track execution order: first occurrence index for each unique item
+	fileOrder := make(map[string]int)    // file -> first occurrence index
+	sessionOrder := make(map[string]int) // "file|session" -> first occurrence index
+	testOrder := make(map[string]int)    // "file|session|testKey" -> first occurrence index
+	orderIndex := 0
 
 	for _, r := range results {
 		file := r.Execution.SourceFile
@@ -599,10 +723,28 @@ func buildAdaptiveView(results []model.TestRun) AdaptiveView {
 		if session == "" {
 			session = "default"
 		}
+		testKey := getUniqueTestKey(r)
+
+		// Track first occurrence order for files
+		if !fileSet[file] {
+			fileOrder[file] = orderIndex
+		}
+		// Track first occurrence order for sessions within files
+		fileSessionKey := file + "|" + session
+		if !sessionSet[session] {
+			sessionOrder[fileSessionKey] = orderIndex
+		}
+		// Track first occurrence order for tests within sessions
+		fullTestKey := file + "|" + session + "|" + testKey
+		if !testKeySet[testKey] {
+			testOrder[fullTestKey] = orderIndex
+		}
+
 		fileSet[file] = true
 		sessionSet[session] = true
 		agentSet[r.Execution.AgentName] = true
 		testKeySet[getUniqueTestKey(r)] = true
+		orderIndex++
 	}
 
 	// Build hierarchical structure: file -> session -> test -> runs
@@ -640,24 +782,30 @@ func buildAdaptiveView(results []model.TestRun) AdaptiveView {
 		)
 	}
 
-	// Build sorted file list
+	// Build file list sorted by execution order
 	fileNames := make([]string, 0, len(fileSet))
 	for f := range fileSet {
 		fileNames = append(fileNames, f)
 	}
-	sort.Strings(fileNames)
+	sort.Slice(fileNames, func(i, j int) bool {
+		return fileOrder[fileNames[i]] < fileOrder[fileNames[j]]
+	})
 
 	// Build AdaptiveFileView list
 	files := make([]AdaptiveFileView, 0, len(fileNames))
 	for _, fileName := range fileNames {
 		sessionMap := fileSessionTestRuns[fileName]
 
-		// Sort session names
+		// Sort session names by execution order
 		sessionNames := make([]string, 0, len(sessionMap))
 		for s := range sessionMap {
 			sessionNames = append(sessionNames, s)
 		}
-		sort.Strings(sessionNames)
+		sort.Slice(sessionNames, func(i, j int) bool {
+			keyI := fileName + "|" + sessionNames[i]
+			keyJ := fileName + "|" + sessionNames[j]
+			return sessionOrder[keyI] < sessionOrder[keyJ]
+		})
 
 		// Build sessions
 		sessions := make([]AdaptiveSessionView, 0, len(sessionNames))
@@ -667,12 +815,16 @@ func buildAdaptiveView(results []model.TestRun) AdaptiveView {
 		for _, sessionName := range sessionNames {
 			testMap := sessionMap[sessionName]
 
-			// Sort test keys
+			// Sort test keys by execution order
 			testKeys := make([]string, 0, len(testMap))
 			for tk := range testMap {
 				testKeys = append(testKeys, tk)
 			}
-			sort.Strings(testKeys)
+			sort.Slice(testKeys, func(i, j int) bool {
+				keyI := fileName + "|" + sessionName + "|" + testKeys[i]
+				keyJ := fileName + "|" + sessionName + "|" + testKeys[j]
+				return testOrder[keyI] < testOrder[keyJ]
+			})
 
 			// Build tests
 			tests := make([]AdaptiveTestView, 0, len(testKeys))
@@ -766,10 +918,10 @@ func buildAdaptiveView(results []model.TestRun) AdaptiveView {
 	testCount := len(testKeySet)
 	agentCount := len(agentSet)
 
-	// Only show file headers if multiple files OR single named file (not "default")
-	showFileHeaders := fileCount > 1 || (fileCount == 1 && !fileSet["default"])
-	// Only show session headers if multiple sessions OR single named session (not "default")
-	showSessionHeaders := sessionCount > 1 || (sessionCount == 1 && !sessionSet["default"])
+	// Only show file headers if multiple files (hide if single file regardless of name)
+	showFileHeaders := fileCount > 1
+	// Only show session headers if multiple sessions (hide if single session regardless of name)
+	showSessionHeaders := sessionCount > 1
 
 	// Get single agent info if applicable
 	singleAgentName := ""
@@ -1005,193 +1157,32 @@ func buildAgentStats(results []model.TestRun) []AgentStatsView {
 	return statsList
 }
 
-func buildComparisons(results []model.TestRun) []ComparisonView {
-	compMap := make(map[string]*ComparisonView)
-
-	for _, run := range results {
-		testName := run.Execution.TestName
-		testKey := getUniqueTestKey(run)
-
-		if _, exists := compMap[testKey]; !exists {
-			compMap[testKey] = &ComparisonView{
-				TestName:          testName,
-				ServerResultsList: []ServerResultView{},
-			}
-		}
-
-		comp := compMap[testKey]
-		duration := run.Execution.EndTime.Sub(run.Execution.StartTime)
-
-		serverResult := ServerResultView{
-			ServerName: run.Execution.AgentName,
-			Provider:   string(run.Execution.ProviderType),
-			Passed:     run.Passed,
-			DurationMs: float64(duration.Milliseconds()),
-			Errors:     run.Execution.Errors,
-		}
-
-		comp.ServerResultsList = append(comp.ServerResultsList, serverResult)
-		comp.TotalRuns++
-		if run.Passed {
-			comp.PassedRuns++
-		} else {
-			comp.FailedRuns++
-		}
-	}
-
-	// Calculate success rates and convert to slice
-	compList := make([]ComparisonView, 0, len(compMap))
-	for _, comp := range compMap {
-		if comp.TotalRuns > 0 {
-			comp.SuccessRate = float64(comp.PassedRuns) / float64(comp.TotalRuns) * 100
-			comp.SuccessRateClass = getSuccessRateClass(comp.SuccessRate)
-		}
-		compList = append(compList, *comp)
-	}
-
-	// Sort by test name for consistent output
-	sort.Slice(compList, func(i, j int) bool {
-		return compList[i].TestName < compList[j].TestName
-	})
-
-	return compList
-}
-
-func buildTestGroups(results []model.TestRun) []TestGroupView {
-	groupMap := make(map[string]*TestGroupView)
-
-	for _, run := range results {
-		testName := run.Execution.TestName
-		testKey := getUniqueTestKey(run)
-
-		if _, exists := groupMap[testKey]; !exists {
-			groupMap[testKey] = &TestGroupView{
-				TestName: testName,
-				Runs:     []TestRunView{},
-			}
-		}
-
-		group := groupMap[testKey]
-		duration := run.Execution.EndTime.Sub(run.Execution.StartTime)
-
-		assertions := make([]AssertionView, len(run.Assertions))
-		for i, a := range run.Assertions {
-			detailsJSON := ""
-			if a.Details != nil {
-				if b, err := json.Marshal(a.Details); err == nil {
-					detailsJSON = string(b)
-				}
-			}
-			assertions[i] = AssertionView{
-				Type:    a.Type,
-				Passed:  a.Passed,
-				Message: a.Message,
-				Details: detailsJSON,
-			}
-		}
-
-		// Build message views
-		messages := make([]MessageView, len(run.Execution.Messages))
-		for i, m := range run.Execution.Messages {
-			messages[i] = MessageView{
-				Role:      m.Role,
-				Content:   m.Content,
-				Timestamp: m.Timestamp.Format("15:04:05.000"),
-			}
-		}
-
-		// Build tool call views with relative timestamps
-		toolCalls := make([]ToolCallView, len(run.Execution.ToolCalls))
-		testStartTime := run.Execution.StartTime
-		for i, tc := range run.Execution.ToolCalls {
-			paramsJSON := ""
-			if tc.Parameters != nil {
-				if b, err := json.Marshal(tc.Parameters); err == nil {
-					paramsJSON = string(b)
-				}
-			}
-			resultJSON := ""
-			if tc.Result.Content != nil {
-				if b, err := json.Marshal(tc.Result.Content); err == nil {
-					resultJSON = string(b)
-				}
-			}
-			// Calculate relative time from test start
-			relativeTime := ""
-			if !tc.Timestamp.IsZero() && !testStartTime.IsZero() {
-				elapsed := tc.Timestamp.Sub(testStartTime)
-				if elapsed >= 0 {
-					relativeTime = fmt.Sprintf("+%.2fs", elapsed.Seconds())
-				} else {
-					relativeTime = tc.Timestamp.Format("15:04:05")
-				}
-			} else {
-				relativeTime = "-"
-			}
-			toolCalls[i] = ToolCallView{
-				Name:       tc.Name,
-				Parameters: paramsJSON,
-				Result:     resultJSON,
-				Timestamp:  relativeTime,
-				DurationMs: tc.DurationMs,
-			}
-		}
-
-		// Generate sequence diagram
-		sequenceDiagram := buildSequenceDiagram(run)
-
-		// Extract user prompt from messages
-		prompt := ""
-		for _, msg := range run.Execution.Messages {
-			if msg.Role == "user" {
-				prompt = msg.Content
-				break
-			}
-		}
-
-		runView := TestRunView{
-			AgentName:          run.Execution.AgentName,
-			Provider:           string(run.Execution.ProviderType),
-			Passed:             run.Passed,
-			DurationSeconds:    duration.Seconds(),
-			Assertions:         assertions,
-			Errors:             run.Execution.Errors,
-			Prompt:             prompt,
-			TokensUsed:         run.Execution.TokensUsed,
-			FinalOutput:        run.Execution.FinalOutput,
-			Messages:           messages,
-			ToolCalls:          toolCalls,
-			SequenceDiagram:    sequenceDiagram,
-			RateLimitStats:     buildRateLimitStatsView(run.Execution.RateLimitStats),
-			ClarificationStats: buildClarificationStatsView(run.Execution.ClarificationStats),
-		}
-
-		group.Runs = append(group.Runs, runView)
-	}
-
-	// Convert to slice and sort
-	groupList := make([]TestGroupView, 0, len(groupMap))
-	for _, group := range groupMap {
-		groupList = append(groupList, *group)
-	}
-
-	sort.Slice(groupList, func(i, j int) bool {
-		return groupList[i].TestName < groupList[j].TestName
-	})
-
-	return groupList
-}
-
 // buildFileGroups groups test results by source file (for suite runs)
 func buildFileGroups(results []model.TestRun) []FileGroupView {
 	fileMap := make(map[string]*FileGroupView)
-	fileTestMap := make(map[string]map[string]*TestGroupView) // [fileName][testName]
+	fileTestMap := make(map[string]map[string]*TestGroupView) // [fileName][testKey]
+
+	// Track execution order (first occurrence)
+	fileOrder := make(map[string]int)
+	testOrder := make(map[string]int) // "file|testKey" -> order
+	orderIndex := 0
 
 	for _, run := range results {
 		sourceFile := run.Execution.SourceFile
 		if sourceFile == "" {
 			sourceFile = "default" // Single file run
 		}
+		testKey := getUniqueTestKey(run)
+
+		// Track first occurrence order
+		if _, exists := fileMap[sourceFile]; !exists {
+			fileOrder[sourceFile] = orderIndex
+		}
+		fullTestKey := sourceFile + "|" + testKey
+		if fileTestMap[sourceFile] == nil || fileTestMap[sourceFile][testKey] == nil {
+			testOrder[fullTestKey] = orderIndex
+		}
+		orderIndex++
 
 		// Initialize file group if needed
 		if _, exists := fileMap[sourceFile]; !exists {
@@ -1205,9 +1196,9 @@ func buildFileGroups(results []model.TestRun) []FileGroupView {
 		fileGroup := fileMap[sourceFile]
 		testName := run.Execution.TestName
 
-		// Initialize test group within file if needed
-		if _, exists := fileTestMap[sourceFile][testName]; !exists {
-			fileTestMap[sourceFile][testName] = &TestGroupView{
+		// Initialize test group within file if needed (use testKey for uniqueness)
+		if _, exists := fileTestMap[sourceFile][testKey]; !exists {
+			fileTestMap[sourceFile][testKey] = &TestGroupView{
 				TestName:   testName,
 				SourceFile: sourceFile,
 				Runs:       []TestRunView{},
@@ -1268,12 +1259,21 @@ func buildFileGroups(results []model.TestRun) []FileGroupView {
 			ClarificationStats: buildClarificationStatsView(run.Execution.ClarificationStats),
 		}
 
-		fileTestMap[sourceFile][testName].Runs = append(fileTestMap[sourceFile][testName].Runs, runView)
+		fileTestMap[sourceFile][testKey].Runs = append(fileTestMap[sourceFile][testKey].Runs, runView)
 	}
 
-	// Build the final structure
+	// Build the final structure sorted by execution order
 	fileList := make([]FileGroupView, 0, len(fileMap))
-	for fileName, fileGroup := range fileMap {
+	fileNames := make([]string, 0, len(fileMap))
+	for fileName := range fileMap {
+		fileNames = append(fileNames, fileName)
+	}
+	sort.Slice(fileNames, func(i, j int) bool {
+		return fileOrder[fileNames[i]] < fileOrder[fileNames[j]]
+	})
+
+	for _, fileName := range fileNames {
+		fileGroup := fileMap[fileName]
 		// Calculate success rate
 		if fileGroup.TotalTests > 0 {
 			fileGroup.SuccessRate = float64(fileGroup.PassedTests) / float64(fileGroup.TotalTests) * 100
@@ -1281,22 +1281,22 @@ func buildFileGroups(results []model.TestRun) []FileGroupView {
 		}
 
 		// Add test groups to file group
-		for _, testGroup := range fileTestMap[fileName] {
-			fileGroup.TestGroups = append(fileGroup.TestGroups, *testGroup)
+		testKeys := make([]string, 0, len(fileTestMap[fileName]))
+		for tk := range fileTestMap[fileName] {
+			testKeys = append(testKeys, tk)
 		}
-
-		// Sort test groups by name
-		sort.Slice(fileGroup.TestGroups, func(i, j int) bool {
-			return fileGroup.TestGroups[i].TestName < fileGroup.TestGroups[j].TestName
+		// Sort test groups by execution order
+		sort.Slice(testKeys, func(i, j int) bool {
+			keyI := fileName + "|" + testKeys[i]
+			keyJ := fileName + "|" + testKeys[j]
+			return testOrder[keyI] < testOrder[keyJ]
 		})
+		for _, tk := range testKeys {
+			fileGroup.TestGroups = append(fileGroup.TestGroups, *fileTestMap[fileName][tk])
+		}
 
 		fileList = append(fileList, *fileGroup)
 	}
-
-	// Sort file groups by name
-	sort.Slice(fileList, func(i, j int) bool {
-		return fileList[i].FileName < fileList[j].FileName
-	})
 
 	return fileList
 }
@@ -1304,15 +1304,31 @@ func buildFileGroups(results []model.TestRun) []FileGroupView {
 // buildSessionGroups groups test results by session
 func buildSessionGroups(results []model.TestRun) []SessionGroupView {
 	sessionMap := make(map[string]*SessionGroupView)
-	sessionTestMap := make(map[string]map[string]*TestGroupView) // [sessionName][testName]
+	sessionTestMap := make(map[string]map[string]*TestGroupView) // [sessionName][testKey]
 	sessionRuns := make(map[string][]model.TestRun)              // Collect runs for sequence diagrams
 	sessionAgents := make(map[string]map[string]bool)            // Track agents per session
+
+	// Track execution order (first occurrence)
+	sessionOrder := make(map[string]int)
+	testOrder := make(map[string]int) // "session|testKey" -> order
+	orderIndex := 0
 
 	for _, run := range results {
 		sessionName := run.Execution.SessionName
 		if sessionName == "" {
 			sessionName = "default" // Single session run
 		}
+		testKey := getUniqueTestKey(run)
+
+		// Track first occurrence order
+		if _, exists := sessionMap[sessionName]; !exists {
+			sessionOrder[sessionName] = orderIndex
+		}
+		fullTestKey := sessionName + "|" + testKey
+		if sessionTestMap[sessionName] == nil || sessionTestMap[sessionName][testKey] == nil {
+			testOrder[fullTestKey] = orderIndex
+		}
+		orderIndex++
 
 		// Collect runs for sequence diagram
 		sessionRuns[sessionName] = append(sessionRuns[sessionName], run)
@@ -1336,9 +1352,9 @@ func buildSessionGroups(results []model.TestRun) []SessionGroupView {
 		sessionGroup := sessionMap[sessionName]
 		testName := run.Execution.TestName
 
-		// Initialize test group within session if needed
-		if _, exists := sessionTestMap[sessionName][testName]; !exists {
-			sessionTestMap[sessionName][testName] = &TestGroupView{
+		// Initialize test group within session if needed (use testKey for uniqueness)
+		if _, exists := sessionTestMap[sessionName][testKey]; !exists {
+			sessionTestMap[sessionName][testKey] = &TestGroupView{
 				TestName:   testName,
 				SourceFile: run.Execution.SourceFile,
 				Runs:       []TestRunView{},
@@ -1397,12 +1413,21 @@ func buildSessionGroups(results []model.TestRun) []SessionGroupView {
 			ClarificationStats: buildClarificationStatsView(run.Execution.ClarificationStats),
 		}
 
-		sessionTestMap[sessionName][testName].Runs = append(sessionTestMap[sessionName][testName].Runs, runView)
+		sessionTestMap[sessionName][testKey].Runs = append(sessionTestMap[sessionName][testKey].Runs, runView)
 	}
 
-	// Build the final structure
+	// Build the final structure sorted by execution order
 	sessionList := make([]SessionGroupView, 0, len(sessionMap))
-	for sessionName, sessionGroup := range sessionMap {
+	sessionNames := make([]string, 0, len(sessionMap))
+	for sName := range sessionMap {
+		sessionNames = append(sessionNames, sName)
+	}
+	sort.Slice(sessionNames, func(i, j int) bool {
+		return sessionOrder[sessionNames[i]] < sessionOrder[sessionNames[j]]
+	})
+
+	for _, sessionName := range sessionNames {
+		sessionGroup := sessionMap[sessionName]
 		// Calculate success rate
 		if sessionGroup.TotalTests > 0 {
 			sessionGroup.SuccessRate = float64(sessionGroup.PassedTests) / float64(sessionGroup.TotalTests) * 100
@@ -1412,28 +1437,49 @@ func buildSessionGroups(results []model.TestRun) []SessionGroupView {
 		// Set agent count for this session
 		sessionGroup.AgentCount = len(sessionAgents[sessionName])
 
-		// Build session-level sequence diagram only for single-agent sessions
-		if runs, ok := sessionRuns[sessionName]; ok && sessionGroup.AgentCount == 1 {
-			sessionGroup.SequenceDiagram = buildSessionSequenceDiagram(runs)
+		// Build session-level sequence diagram(s)
+		if runs, ok := sessionRuns[sessionName]; ok {
+			if sessionGroup.AgentCount == 1 {
+				// Single-agent: one aggregate diagram
+				sessionGroup.SequenceDiagram = buildSessionSequenceDiagram(runs)
+			} else {
+				// Multi-agent: per-agent diagrams
+				agentRunsMap := make(map[string][]model.TestRun)
+				for _, run := range runs {
+					agentRunsMap[run.Execution.AgentName] = append(agentRunsMap[run.Execution.AgentName], run)
+				}
+				// Sort agent names for consistent ordering
+				agentNames := make([]string, 0, len(agentRunsMap))
+				for name := range agentRunsMap {
+					agentNames = append(agentNames, name)
+				}
+				sort.Strings(agentNames)
+				for _, agentName := range agentNames {
+					diagram := buildSessionSequenceDiagram(agentRunsMap[agentName])
+					sessionGroup.AgentSequenceDiagrams = append(sessionGroup.AgentSequenceDiagrams, AgentSequenceDiagramView{
+						AgentName: agentName,
+						Diagram:   diagram,
+					})
+				}
+			}
 		}
 
-		// Add test groups to session group
-		for _, testGroup := range sessionTestMap[sessionName] {
-			sessionGroup.TestGroups = append(sessionGroup.TestGroups, *testGroup)
+		// Add test groups to session group sorted by execution order
+		testKeys := make([]string, 0, len(sessionTestMap[sessionName]))
+		for tk := range sessionTestMap[sessionName] {
+			testKeys = append(testKeys, tk)
 		}
-
-		// Sort test groups by name
-		sort.Slice(sessionGroup.TestGroups, func(i, j int) bool {
-			return sessionGroup.TestGroups[i].TestName < sessionGroup.TestGroups[j].TestName
+		sort.Slice(testKeys, func(i, j int) bool {
+			keyI := sessionName + "|" + testKeys[i]
+			keyJ := sessionName + "|" + testKeys[j]
+			return testOrder[keyI] < testOrder[keyJ]
 		})
+		for _, tk := range testKeys {
+			sessionGroup.TestGroups = append(sessionGroup.TestGroups, *sessionTestMap[sessionName][tk])
+		}
 
 		sessionList = append(sessionList, *sessionGroup)
 	}
-
-	// Sort session groups by name
-	sort.Slice(sessionList, func(i, j int) bool {
-		return sessionList[i].SessionName < sessionList[j].SessionName
-	})
 
 	return sessionList
 }
@@ -1485,6 +1531,13 @@ func buildMatrix(results []model.TestRun) MatrixView {
 	cells := make(map[string]map[string]MatrixCell)
 	testKeyToName := make(map[string]string) // Map from unique key to display name
 
+	// Track execution order (first occurrence index)
+	fileOrder := make(map[string]int)
+	sessionOrder := make(map[string]int) // "file|session" -> order
+	testKeyOrder := make(map[string]int) // "file|session|testKey" -> order
+	agentOrder := make(map[string]int)
+	orderIndex := 0
+
 	// Track unique files and sessions for adaptive display
 	fileSet := make(map[string]bool)
 	sessionSet := make(map[string]bool)
@@ -1513,11 +1566,28 @@ func buildMatrix(results []model.TestRun) MatrixView {
 			sessionName = "default"
 		}
 
+		// Track execution order (first occurrence)
+		if !fileSet[sourceFile] {
+			fileOrder[sourceFile] = orderIndex
+		}
+		fileSessionKey := sourceFile + "|" + sessionName
+		if !sessionSet[sessionName] {
+			sessionOrder[fileSessionKey] = orderIndex
+		}
+		fullTestKey := sourceFile + "|" + sessionName + "|" + testKey
+		if !testSet[testKey] {
+			testKeyOrder[fullTestKey] = orderIndex
+		}
+		if !agentSet[agentName] {
+			agentOrder[agentName] = orderIndex
+		}
+
 		testSet[testKey] = true
 		testKeyToName[testKey] = testName
 		agentSet[agentName] = true
 		fileSet[sourceFile] = true
 		sessionSet[sessionName] = true
+		orderIndex++
 
 		if cells[testKey] == nil {
 			cells[testKey] = make(map[string]MatrixCell)
@@ -1551,40 +1621,64 @@ func buildMatrix(results []model.TestRun) MatrixView {
 		}
 	}
 
-	// Convert sets to sorted slices
+	// Convert sets to slices sorted by execution order
 	testNames := make([]string, 0, len(testSet))
 	for key := range testSet {
 		testNames = append(testNames, key)
 	}
-	sort.Strings(testNames)
+	// Sort tests by their first occurrence order
+	// We need to find the testKeyOrder for each testName
+	testFirstOrder := make(map[string]int)
+	for key, order := range testKeyOrder {
+		// key is "file|session|testKey", extract testKey
+		parts := strings.SplitN(key, "|", 3)
+		if len(parts) == 3 {
+			testKey := parts[2]
+			if existing, ok := testFirstOrder[testKey]; !ok || order < existing {
+				testFirstOrder[testKey] = order
+			}
+		}
+	}
+	sort.Slice(testNames, func(i, j int) bool {
+		return testFirstOrder[testNames[i]] < testFirstOrder[testNames[j]]
+	})
 
 	agentNames := make([]string, 0, len(agentSet))
 	for name := range agentSet {
 		agentNames = append(agentNames, name)
 	}
-	sort.Strings(agentNames)
+	sort.Slice(agentNames, func(i, j int) bool {
+		return agentOrder[agentNames[i]] < agentOrder[agentNames[j]]
+	})
 
-	// Build grouped file structure
+	// Build grouped file structure sorted by execution order
 	fileNames := make([]string, 0, len(fileSet))
 	for f := range fileSet {
 		fileNames = append(fileNames, f)
 	}
-	sort.Strings(fileNames)
+	sort.Slice(fileNames, func(i, j int) bool {
+		return fileOrder[fileNames[i]] < fileOrder[fileNames[j]]
+	})
 
 	fileGroups := make([]MatrixFileGroup, 0, len(fileNames))
 	for _, fileName := range fileNames {
 		sessionMap := fileSessionTests[fileName]
 
-		// Sort session names
+		// Sort session names by execution order
 		sessionNames := make([]string, 0, len(sessionMap))
 		for s := range sessionMap {
 			sessionNames = append(sessionNames, s)
 		}
-		sort.Strings(sessionNames)
+		sort.Slice(sessionNames, func(i, j int) bool {
+			keyI := fileName + "|" + sessionNames[i]
+			keyJ := fileName + "|" + sessionNames[j]
+			return sessionOrder[keyI] < sessionOrder[keyJ]
+		})
 
 		sessionGroups := make([]MatrixSessionGroup, 0, len(sessionNames))
 		for _, sessionName := range sessionNames {
 			tests := sessionMap[sessionName]
+			// Tests are already in execution order (appended in order during iteration)
 			testRows := make([]MatrixTestRow, 0, len(tests))
 			for _, t := range tests {
 				testRows = append(testRows, MatrixTestRow{
@@ -1606,9 +1700,53 @@ func buildMatrix(results []model.TestRun) MatrixView {
 		})
 	}
 
+	// Calculate statistics for file and session groups (aggregated across all agents)
+	for i := range fileGroups {
+		var fileTotalTests, filePassedTests, fileTotalTokens int
+		var fileTotalDuration float64
+
+		for j := range fileGroups[i].SessionGroups {
+			var sessionTotalTests, sessionPassedTests, sessionTotalTokens int
+			var sessionTotalDuration float64
+
+			for _, testRow := range fileGroups[i].SessionGroups[j].TestRows {
+				// Count stats across all agents for this test
+				for _, agentName := range agentNames {
+					if agentCells, ok := cells[testRow.TestKey]; ok {
+						if cell, ok := agentCells[agentName]; ok {
+							sessionTotalTests++
+							if cell.Passed {
+								sessionPassedTests++
+							}
+							sessionTotalDuration += float64(cell.DurationMs)
+							sessionTotalTokens += cell.Tokens
+						}
+					}
+				}
+			}
+
+			fileGroups[i].SessionGroups[j].TotalTests = sessionTotalTests
+			fileGroups[i].SessionGroups[j].PassedTests = sessionPassedTests
+			fileGroups[i].SessionGroups[j].TotalDuration = sessionTotalDuration
+			fileGroups[i].SessionGroups[j].TotalTokens = sessionTotalTokens
+
+			fileTotalTests += sessionTotalTests
+			filePassedTests += sessionPassedTests
+			fileTotalDuration += sessionTotalDuration
+			fileTotalTokens += sessionTotalTokens
+		}
+
+		fileGroups[i].TotalTests = fileTotalTests
+		fileGroups[i].PassedTests = filePassedTests
+		fileGroups[i].TotalDuration = fileTotalDuration
+		fileGroups[i].TotalTokens = fileTotalTokens
+	}
+
 	// Determine if grouping should be shown (adaptive)
-	showFileGroups := len(fileSet) > 1 || (len(fileSet) == 1 && !fileSet["default"])
-	showSessionGroups := len(sessionSet) > 1 || (len(sessionSet) == 1 && !sessionSet["default"])
+	// Only show file groups if multiple files
+	showFileGroups := len(fileSet) > 1
+	// Only show session groups if multiple sessions
+	showSessionGroups := len(sessionSet) > 1
 
 	return MatrixView{
 		TestNames:         testNames,
