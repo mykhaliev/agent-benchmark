@@ -200,7 +200,9 @@ Required (one of):
   -generate-report <file>  Generate HTML report from existing JSON results file
 
 Optional:
-  -o <file>         Output report filename without extension (default: report)
+  -o <file>         Output report path/filename without extension
+                      Default: <test_dir>/test_results/report
+                      The test_results folder is auto-created and git-ignored
   -l <file>         Log file path (default: stdout)
   -reportType <types> Report format(s): html, json, md (default: html)
                       Multiple formats supported as comma-separated values
@@ -215,10 +217,11 @@ Optional:
 
 ```bash
 # Run single test file with verbose output
-./agent-benchmark -f tests.yaml -verbose
+# Reports saved to: examples/test_results/report.html
+./agent-benchmark -f examples/tests.yaml -verbose
 
-# Run test suite with JSON report
-./agent-benchmark -s suite.yaml -o results -reportType json
+# Run test suite with JSON report (custom output path)
+./agent-benchmark -s suite.yaml -o ./my-reports/results -reportType json
 
 # Run with custom log file
 ./agent-benchmark -f tests.yaml -l test-run.log

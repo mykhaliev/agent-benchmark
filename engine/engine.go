@@ -238,9 +238,36 @@ func Run(testPath *string, verbose *bool, suitePath *string, reportFileName *str
 
 	// Generate and save reports
 	logger.Logger.Info("Generating reports")
+	
+	// Determine report output directory
+	// Default to test_results folder in the test file's directory
+	var reportDir string
 	if *reportFileName == "" {
-		*reportFileName = "report."
+		var testDir string
+		if *testPath != "" {
+			absPath, err := filepath.Abs(*testPath)
+			if err == nil {
+				testDir = filepath.Dir(absPath)
+			}
+		} else if *suitePath != "" {
+			absPath, err := filepath.Abs(*suitePath)
+			if err == nil {
+				testDir = filepath.Dir(absPath)
+			}
+		}
+		if testDir != "" {
+			reportDir = filepath.Join(testDir, "test_results")
+			// Create the directory if it doesn't exist
+			if err := os.MkdirAll(reportDir, 0755); err != nil {
+				logger.Logger.Error("Failed to create test_results directory", "error", err)
+				os.Exit(1)
+			}
+			*reportFileName = filepath.Join(reportDir, "report")
+		} else {
+			*reportFileName = "report"
+		}
 	}
+	
 	for _, rt := range reportTypes {
 		reportFileNameWithExt := *reportFileName + "." + rt
 		if err := GenerateReports(results, rt, reportFileNameWithExt); err != nil {
