@@ -1024,12 +1024,11 @@ func buildTestRunView(run model.TestRun) TestRunView {
 		}
 	}
 
-	// Extract user prompt
+	// Extract user prompt - use the LAST user message (which is the prompt for this specific test)
 	prompt := ""
 	for _, msg := range run.Execution.Messages {
 		if msg.Role == "user" {
 			prompt = msg.Content
-			break
 		}
 	}
 
@@ -1236,12 +1235,11 @@ func buildFileGroups(results []model.TestRun) []FileGroupView {
 			}
 		}
 
-		// Extract user prompt from messages
+		// Extract user prompt from messages - use the LAST user message (which is the prompt for this specific test)
 		prompt := ""
 		for _, msg := range run.Execution.Messages {
 			if msg.Role == "user" {
 				prompt = msg.Content
-				break
 			}
 		}
 
@@ -1390,12 +1388,11 @@ func buildSessionGroups(results []model.TestRun) []SessionGroupView {
 			}
 		}
 
-		// Extract user prompt from messages
+		// Extract user prompt from messages - use the LAST user message (which is the prompt for this specific test)
 		prompt := ""
 		for _, msg := range run.Execution.Messages {
 			if msg.Role == "user" {
 				prompt = msg.Content
-				break
 			}
 		}
 
@@ -1767,26 +1764,19 @@ func buildSequenceDiagram(run model.TestRun) string {
 	sb.WriteString("    participant A as Agent\n")
 	sb.WriteString("    participant M as MCP Server\n")
 
-	// Track if we've shown the initial prompt
-	promptShown := false
-
+	// Find the LAST user message (which is the prompt for this specific test)
+	lastUserMsg := ""
 	for _, msg := range run.Execution.Messages {
-		// Escape special characters for Mermaid
-		content := escapeMermaid(msg.Content)
+		if msg.Role == "user" {
+			lastUserMsg = msg.Content
+		}
+	}
+	if lastUserMsg != "" {
+		content := escapeMermaid(lastUserMsg)
 		if len(content) > 50 {
 			content = content[:47] + "..."
 		}
-
-		switch msg.Role {
-		case "user":
-			if !promptShown {
-				sb.WriteString(fmt.Sprintf("    U->>A: %s\n", content))
-				promptShown = true
-			}
-		case "assistant":
-			// Check if this message triggered tool calls
-			// Will be shown as part of tool call flow
-		}
+		sb.WriteString(fmt.Sprintf("    U->>A: %s\n", content))
 	}
 
 	// Add tool calls with actual execution duration
@@ -1859,17 +1849,20 @@ func buildSessionSequenceDiagram(runs []model.TestRun) string {
 			sb.WriteString(fmt.Sprintf("    note over U,M: Test %d - %s\n", i+1, testName))
 		}
 
-		// User prompt
+		// User prompt - find the LAST user message (which is the prompt for this specific test)
 		if len(run.Execution.Messages) > 0 {
+			lastUserMsg := ""
 			for _, msg := range run.Execution.Messages {
 				if msg.Role == "user" {
-					content := escapeMermaid(msg.Content)
-					if len(content) > 40 {
-						content = content[:37] + "..."
-					}
-					sb.WriteString(fmt.Sprintf("    U->>A: %s\n", content))
-					break
+					lastUserMsg = msg.Content
 				}
+			}
+			if lastUserMsg != "" {
+				content := escapeMermaid(lastUserMsg)
+				if len(content) > 40 {
+					content = content[:37] + "..."
+				}
+				sb.WriteString(fmt.Sprintf("    U->>A: %s\n", content))
 			}
 		}
 
