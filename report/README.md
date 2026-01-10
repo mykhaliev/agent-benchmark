@@ -56,11 +56,11 @@ The `generated_reports/` directory contains sample reports covering all valid co
 |--------|--------|-------|----------|-------|-------------|
 | `01_single_agent_single_test` | 1 | 1 | 1 | 1 | Minimal case - detailed execution view |
 | `02_single_agent_multi_test` | 1 | N | 1 | 1 | Test overview table |
-| `03_multi_agent_single_test` | N | 1 | 1 | 1 | Agent leaderboard focus |
-| `04_multi_agent_multi_test` | N | N | 1 | 1 | Full comparison matrix |
-| `05_single_agent_multi_session` | 1 | N | N | 1 | Session grouping with flow diagrams |
-| `06_multi_agent_multi_session` | N | N | N | 1 | Session grouping (no flow diagrams) |
-| `07_single_agent_multi_file` | 1 | N | N | N | File grouping with flow diagrams |
+| `03_single_agent_multi_session` | 1 | N | N | 1 | Session grouping with flow diagrams |
+| `04_single_agent_multi_file` | 1 | N | N | N | File grouping with flow diagrams |
+| `05_multi_agent_single_test` | N | 1 | 1 | 1 | Agent leaderboard focus |
+| `06_multi_agent_multi_test` | N | N | 1 | 1 | Full comparison matrix |
+| `07_multi_agent_multi_session` | N | N | N | 1 | Session grouping + side-by-side sequences |
 | `08_multi_agent_multi_file` | N | N | N | N | Complete suite with file + session grouping |
 | `09_failed_with_errors` | 1 | 1 | 1 | 1 | Failed test with rate limits & clarifications |
 
@@ -100,7 +100,9 @@ Quick overview of test execution:
 When running suites or multi-session tests, summary sections show:
 - **File Summary** - Per-file pass rate, duration, and token usage
 - **Session Summary** - Per-session stats with source file reference
-- **Session Flow Diagram** - Mermaid sequence diagram (single-agent sessions only)
+- **Session Flow Diagram** - Mermaid sequence diagram showing execution flow
+  - **Single-agent**: One aggregate diagram for the session
+  - **Multi-agent**: Per-agent diagrams in a side-by-side grid (click any diagram to view fullscreen)
 
 ### 3. Comparison Matrix (Multi-Agent)
 
@@ -115,23 +117,25 @@ When testing multiple agents, a matrix shows results at a glance. The matrix **a
 **Grouped (multiple sessions):**
 | Test | gpt5-agent | gpt4o-agent |
 |------|------------|-------------|
-| 🔄 Session A | | |
+| 🔄 Session A — 4/4 passed · 15.6s · 890 tok | | |
 | &nbsp;&nbsp;&nbsp;&nbsp;Setup | ✅ 8.5s | ✅ 12.0s |
 | &nbsp;&nbsp;&nbsp;&nbsp;Cleanup | ✅ 2.0s | ✅ 3.1s |
-| 🔄 Session B | | |
+| 🔄 Session B — 1/2 passed · 4.2s · 456 tok | | |
 | &nbsp;&nbsp;&nbsp;&nbsp;Setup | ✅ 4.2s | ❌ — |
 
 **Fully Grouped (suite with multiple files and sessions):**
 | Test | gpt5-agent | gpt4o-agent |
 |------|------------|-------------|
-| 📁 test-file-1.yaml | | |
-| &nbsp;&nbsp;🔄 Session A | | |
+| 📁 test-file-1.yaml — 4/4 passed · 15.6s · 890 tok | | |
+| &nbsp;&nbsp;🔄 Session A — 4/4 passed · 15.6s · 890 tok | | |
 | &nbsp;&nbsp;&nbsp;&nbsp;Setup | ✅ 8.5s | ✅ 12.0s |
-| 📁 test-file-2.yaml | | |
-| &nbsp;&nbsp;🔄 Session B | | |
+| 📁 test-file-2.yaml — 2/2 passed · 11.4s · 650 tok | | |
+| &nbsp;&nbsp;🔄 Session B — 2/2 passed · 11.4s · 650 tok | | |
 | &nbsp;&nbsp;&nbsp;&nbsp;Deploy | ✅ 5.1s | ✅ 6.3s |
 
 Each cell shows: **status**, **duration**, and **token count**.
+
+Group headers show: **pass count**, **total duration**, and **total tokens** (aggregated across all agents).
 
 ### 4. Agent Leaderboard (Multi-Agent)
 
@@ -148,7 +152,7 @@ Agents ranked by performance:
 Each test shows:
 - **Assertions** - Pass/fail status for each assertion
 - **Tool Calls** - Timeline of MCP tool invocations with parameters and results
-- **Sequence Diagram** - Visual flow of User → Agent → MCP Server interactions
+- **Sequence Diagram** - Visual execution flow (single-agent: inline; multi-agent: side-by-side with click-to-expand)
 - **Messages** - Full conversation history
 - **Final Output** - Agent's final response
 
@@ -162,7 +166,23 @@ When enabled, the report shows:
 
 ## Adaptive Display
 
-The report automatically adapts based on your test configuration:
+The report automatically adapts based on your test configuration.
+
+### Section Visibility Rules
+
+Each report section is shown or hidden based on specific conditions:
+
+| Section | Condition | Description |
+|---------|-----------|-------------|
+| **Comparison Matrix** | agents > 1 | Grid comparing all agents across all tests |
+| **Agent Leaderboard** | agents > 1 | Ranked list of agents by performance |
+| **Test Overview** | tests > 1 AND agents = 1 | Summary table of all tests for single agent |
+| **File Headers** | files > 1 | Group tests by source file |
+| **Session Headers** | sessions > 1 | Group tests by session within files |
+| **Inline Agent Names** | agents > 1 | Show agent name in each test detail row |
+| **Sequence Diagrams** | always | Single-agent: inline; Multi-agent: side-by-side comparison |
+
+### Display Scenarios
 
 | Scenario | What's Shown |
 |----------|--------------|
@@ -171,8 +191,69 @@ The report automatically adapts based on your test configuration:
 | Single agent, multiple sessions | Session summary with flow diagrams |
 | Multiple agents, single test | Comparison matrix + leaderboard |
 | Multiple agents, multiple tests | Full comparison matrix + leaderboard |
-| Multiple agents, multiple sessions | Session grouping (no flow diagrams, shows agent count) |
+| Multiple agents, multiple sessions | Session grouping + side-by-side sequence comparison |
 | Suite run (multiple files) | File + session grouping with per-file/session stats |
+
+### Grouping Rules
+
+Tests are grouped hierarchically when multiple files or sessions exist:
+
+| Report Section | files > 1 | sessions > 1 | Result |
+|----------------|-----------|--------------|--------|
+| **Comparison Matrix** | Group by file | Group by session | File → Session → Test hierarchy |
+| **Test Overview** | Group by file | Group by session | File → Session → Test hierarchy |
+| **Detailed Results** | Show file headers | Show session headers | Collapsible sections per file/session |
+
+**Grouping Hierarchy:**
+
+| Files | Sessions | Hierarchy |
+|-------|----------|-----------|
+| 1 | 1 | Tests (flat list) |
+| 1 | N | Session → Tests |
+| N | 1 per file | File → Tests |
+| N | N | File → Session → Tests |
+
+> **Note:** When a dimension has only one value (single file or single session), its header is omitted to reduce visual clutter.
+
+### Group Header Statistics
+
+File and session group headers display aggregated statistics:
+
+| Statistic | Description | Example |
+|-----------|-------------|--------|
+| **Pass Count** | Tests passed / total in group | `3/4 passed` |
+| **Duration** | Sum of all test durations in group | `12.5s` |
+| **Tokens** | Sum of all tokens used in group | `1,234 tok` |
+
+For multi-agent runs, statistics are aggregated across all agents within the group.
+
+### Sequence Diagram Display
+
+Sequence diagrams visualize the User → Agent → MCP Server interaction flow:
+
+| Location | Single Agent | Multi-Agent |
+|----------|--------------|-------------|
+| **Session Summary** | One aggregate diagram per session | Per-agent diagrams in side-by-side grid |
+| **Test Details** | Inline diagram | Side-by-side grid comparing all agents |
+
+**Interaction:**
+- All diagrams are **click-to-expand** — click any diagram to view it fullscreen for detailed inspection
+- Hover shows "🔍 Click to enlarge" hint
+- Press **Escape** or click outside to close fullscreen view
+
+The side-by-side view enables quick visual comparison of how different agents approached the same task.
+
+### Execution Order
+
+All report sections maintain **execution order** — items appear in the order they were executed, not alphabetically:
+
+- **Files** — ordered by first test execution within each file
+- **Sessions** — ordered by first test execution within each session
+- **Tests** — ordered by execution sequence within their session
+- **Agents** — ordered by first test run for each agent
+
+This ensures the report reflects the actual test flow, making it easier to trace issues.
+
 
 ## How Tests with Same Names are Handled
 

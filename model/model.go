@@ -270,22 +270,22 @@ func (a Assertion) Clone() Assertion {
 // ============================================================================
 
 type ExecutionResult struct {
-	TestName       string              `json:"testName"`
-	AgentName      string              `json:"agentName"`
-	ProviderType   ProviderType        `json:"providerType"`
-	StartTime      time.Time           `json:"startTime"`
-	EndTime        time.Time           `json:"endTime"`
-	Messages       []Message           `json:"messages"`
-	ToolCalls      []ToolCall          `json:"toolCalls"`
-	FinalOutput    string              `json:"finalOutput"`
-	TokensUsed     int                 `json:"tokensUsed"`
-	LatencyMs      int64               `json:"latencyMs"`
-	Errors         []string            `json:"errors"`
-	SourceFile          string               `json:"sourceFile,omitempty"`          // Source test file (for suite runs)
-	SuiteName           string               `json:"suiteName,omitempty"`           // Suite name (for suite runs)
-	SessionName         string               `json:"sessionName,omitempty"`         // Session name
-	RateLimitStats      *RateLimitStats      `json:"rateLimitStats,omitempty"`      // Rate limiting and 429 stats
-	ClarificationStats  *ClarificationStats  `json:"clarificationStats,omitempty"` // Clarification detection stats
+	TestName           string              `json:"testName"`
+	AgentName          string              `json:"agentName"`
+	ProviderType       ProviderType        `json:"providerType"`
+	StartTime          time.Time           `json:"startTime"`
+	EndTime            time.Time           `json:"endTime"`
+	Messages           []Message           `json:"messages"`
+	ToolCalls          []ToolCall          `json:"toolCalls"`
+	FinalOutput        string              `json:"finalOutput"`
+	TokensUsed         int                 `json:"tokensUsed"`
+	LatencyMs          int64               `json:"latencyMs"`
+	Errors             []string            `json:"errors"`
+	SourceFile         string              `json:"sourceFile,omitempty"`         // Source test file (for suite runs)
+	SuiteName          string              `json:"suiteName,omitempty"`          // Suite name (for suite runs)
+	SessionName        string              `json:"sessionName,omitempty"`        // Session name
+	RateLimitStats     *RateLimitStats     `json:"rateLimitStats,omitempty"`     // Rate limiting and 429 stats
+	ClarificationStats *ClarificationStats `json:"clarificationStats,omitempty"` // Clarification detection stats
 }
 
 // ClarificationStats tracks when the LLM asks for clarification instead of acting
@@ -294,7 +294,6 @@ type ClarificationStats struct {
 	Iterations []int    `json:"iterations"` // Which iterations had clarification requests
 	Examples   []string `json:"examples"`   // Sample text from clarification requests (truncated)
 }
-
 
 // RateLimitStats tracks statistics about rate limiting and 429 handling
 type RateLimitStats struct {
@@ -495,6 +494,10 @@ func (e *AssertionEvaluator) evaluateWithDepth(assertions []Assertion, depth int
 			result = e.evalNoErrorMessages(assertion)
 		case "no_hallucinated_tools":
 			result = e.evalNoHallucinatedTools(assertion)
+		case "no_clarification_questions":
+			result = e.evalNoClarificationQuestions(assertion)
+		case "no_rate_limit_errors":
+			result = e.evalNoRateLimitErrors(assertion)
 		default:
 			result = AssertionResult{
 				Type:    assertion.Type,
@@ -913,6 +916,63 @@ func (e *AssertionEvaluator) evalNoErrorMessages(a Assertion) AssertionResult {
 		Details: map[string]interface{}{
 			"errors": e.result.Errors,
 		},
+	}
+}
+
+func (e *AssertionEvaluator) evalNoClarificationQuestions(a Assertion) AssertionResult {
+	// Check if clarification detection was enabled
+	if e.result.ClarificationStats == nil {
+		return AssertionResult{
+			Type:    a.Type,
+			Passed:  true,
+			Message: "Warning: clarification_detection not enabled on agent - assertion skipped",
+			Details: map[string]interface{}{
+				"warning": "Enable clarification_detection on the agent for this assertion to work",
+			},
+		}
+	}
+
+	// Check if clarification detection found any requests
+	if e.result.ClarificationStats.Count > 0 {
+		return AssertionResult{
+			Type:    a.Type,
+			Passed:  false,
+			Message: fmt.Sprintf("Agent asked for clarification %d time(s)", e.result.ClarificationStats.Count),
+			Details: map[string]interface{}{
+				"count":      e.result.ClarificationStats.Count,
+				"iterations": e.result.ClarificationStats.Iterations,
+				"examples":   e.result.ClarificationStats.Examples,
+			},
+		}
+	}
+
+	return AssertionResult{
+		Type:    a.Type,
+		Passed:  true,
+		Message: "No clarification questions detected",
+	}
+}
+
+func (e *AssertionEvaluator) evalNoRateLimitErrors(a Assertion) AssertionResult {
+	// Check if rate limit stats exist and have any 429 errors
+	if e.result.RateLimitStats != nil && e.result.RateLimitStats.RateLimitHits > 0 {
+		return AssertionResult{
+			Type:    a.Type,
+			Passed:  false,
+			Message: fmt.Sprintf("Received %d rate limit error(s) (HTTP 429)", e.result.RateLimitStats.RateLimitHits),
+			Details: map[string]interface{}{
+				"rate_limit_hits":    e.result.RateLimitStats.RateLimitHits,
+				"retry_count":        e.result.RateLimitStats.RetryCount,
+				"retry_wait_time_ms": e.result.RateLimitStats.RetryWaitTimeMs,
+				"retry_success":      e.result.RateLimitStats.RetrySuccessCount,
+			},
+		}
+	}
+
+	return AssertionResult{
+		Type:    a.Type,
+		Passed:  true,
+		Message: "No rate limit errors (HTTP 429)",
 	}
 }
 

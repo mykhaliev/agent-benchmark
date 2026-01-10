@@ -120,8 +120,16 @@
         <div class="summary-label">Pass Rate</div>
     </div>
     <div class="summary-card tokens">
+        <div class="summary-value">{{formatNumber .Summary.TotalTokens}}</div>
+        <div class="summary-label">Total Tokens</div>
+    </div>
+    <div class="summary-card tokens">
         <div class="summary-value">{{formatNumber .Summary.AvgTokensPassed}}</div>
         <div class="summary-label">Avg Tokens ✓</div>
+    </div>
+    <div class="summary-card duration">
+        <div class="summary-value">{{printf "%.1fs" .Summary.TotalDuration}}</div>
+        <div class="summary-label">Total Duration</div>
     </div>
     <div class="summary-card duration">
         <div class="summary-value">{{printf "%.1fs" .Summary.AvgDuration}}</div>
@@ -150,21 +158,41 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {{range .TestOverview}}
-                    <tr class="{{if .Passed}}row-passed{{else}}row-failed{{end}}">
-                        <td>{{.TestName}}</td>
+                    {{range $fileGroup := .TestOverview.FileGroups}}
+                    {{if $.TestOverview.ShowFileGroups}}
+                    <tr class="matrix-file-header">
+                        <td colspan="6">
+                            <span class="matrix-group-icon">📁</span> {{$fileGroup.FileName}}
+                            <span class="group-stats">— {{$fileGroup.PassedTests}}/{{$fileGroup.TotalTests}} passed · {{printf "%.1f" (divFloat $fileGroup.TotalDuration 1000)}}s · {{formatNumber $fileGroup.TotalTokens}} tok</span>
+                        </td>
+                    </tr>
+                    {{end}}
+                    {{range $sessionGroup := $fileGroup.SessionGroups}}
+                    {{if $.TestOverview.ShowSessionGroups}}
+                    <tr class="matrix-session-header">
+                        <td colspan="6">
+                            <span class="matrix-group-icon">🔄</span> {{$sessionGroup.SessionName}}
+                            <span class="group-stats">— {{$sessionGroup.PassedTests}}/{{$sessionGroup.TotalTests}} passed · {{printf "%.1f" (divFloat $sessionGroup.TotalDuration 1000)}}s · {{formatNumber $sessionGroup.TotalTokens}} tok</span>
+                        </td>
+                    </tr>
+                    {{end}}
+                    {{range $test := $sessionGroup.Tests}}
+                    <tr class="{{if $test.Passed}}row-passed{{else}}row-failed{{end}} {{if or $.TestOverview.ShowFileGroups $.TestOverview.ShowSessionGroups}}matrix-test-indented{{end}}">
+                        <td>{{$test.TestName}}</td>
                         <td>
-                            {{if .Passed}}
+                            {{if $test.Passed}}
                             <span class="status-badge status-passed">✓ Passed</span>
                             {{else}}
                             <span class="status-badge status-failed">✗ Failed</span>
                             {{end}}
                         </td>
-                        <td>{{printf "%.1f" (divFloat .DurationMs 1000)}}s</td>
-                        <td>{{formatNumber .TokensUsed}}</td>
-                        <td>{{.ToolCalls}}</td>
-                        <td>{{.Assertions}}{{if gt .ErrorCount 0}} <span class="error-count">({{.ErrorCount}} errors)</span>{{end}}</td>
+                        <td>{{printf "%.1f" (divFloat $test.DurationMs 1000)}}s</td>
+                        <td>{{formatNumber $test.TokensUsed}}</td>
+                        <td>{{$test.ToolCalls}}</td>
+                        <td>{{$test.Assertions}}{{if gt $test.ErrorCount 0}} <span class="error-count">({{$test.ErrorCount}} errors)</span>{{end}}</td>
                     </tr>
+                    {{end}}
+                    {{end}}
                     {{end}}
                 </tbody>
             </table>
@@ -198,6 +226,7 @@
                     <tr class="matrix-file-header">
                         <td colspan="{{add (len $.Matrix.AgentNames) 1}}">
                             <span class="matrix-group-icon">📁</span> {{$fileGroup.FileName}}
+                            <span class="group-stats">— {{$fileGroup.PassedTests}}/{{$fileGroup.TotalTests}} passed · {{printf "%.1f" (divFloat $fileGroup.TotalDuration 1000)}}s · {{formatNumber $fileGroup.TotalTokens}} tok</span>
                         </td>
                     </tr>
                     {{end}}
@@ -206,6 +235,7 @@
                     <tr class="matrix-session-header">
                         <td colspan="{{add (len $.Matrix.AgentNames) 1}}">
                             <span class="matrix-group-icon">🔄</span> {{$sessionGroup.SessionName}}
+                            <span class="group-stats">— {{$sessionGroup.PassedTests}}/{{$sessionGroup.TotalTests}} passed · {{printf "%.1f" (divFloat $sessionGroup.TotalDuration 1000)}}s · {{formatNumber $sessionGroup.TotalTokens}} tok</span>
                         </td>
                     </tr>
                     {{end}}
@@ -273,7 +303,9 @@
                     <th>Agent</th>
                     <th>Success Rate</th>
                     <th>Results</th>
+                    <th>Total Tokens</th>
                     <th>Efficiency</th>
+                    <th>Total Time</th>
                     <th>Avg Time</th>
                 </tr>
             </thead>
@@ -305,7 +337,9 @@
                         <span class="result-fail">✗{{.FailedTests}}</span>
                         {{if gt .ErrorCount 0}}<span class="result-error">⚠{{.ErrorCount}}</span>{{end}}
                     </td>
+                    <td class="stat-value">{{formatNumber .TotalTokens}}</td>
                     <td class="stat-value {{if .IsDisqualified}}text-muted{{end}}">{{.EfficiencyStr}}</td>
+                    <td class="stat-value">{{printf "%.2fs" .TotalDuration}}</td>
                     <td class="stat-value">{{printf "%.2fs" .AvgDuration}}</td>
                 </tr>
             {{end}}
@@ -376,7 +410,24 @@
                 {{if .SequenceDiagram}}
                 <details class="session-diagram-details">
                     <summary class="session-diagram-summary">📊 View Session Flow</summary>
-                    <div class="mermaid">{{.SequenceDiagram}}</div>
+                    <div class="session-single-diagram">
+                        <div class="agent-sequence-box session-diagram-box">
+                            <div class="agent-sequence-header">Session Flow</div>
+                            <div class="mermaid">{{.SequenceDiagram}}</div>
+                        </div>
+                    </div>
+                </details>
+                {{else if .AgentSequenceDiagrams}}
+                <details class="session-diagram-details">
+                    <summary class="session-diagram-summary">📊 View Session Flow ({{len .AgentSequenceDiagrams}} agents)</summary>
+                    <div class="session-agent-diagrams-grid">
+                        {{range .AgentSequenceDiagrams}}
+                        <div class="agent-sequence-box">
+                            <div class="agent-sequence-header">{{.AgentName}}</div>
+                            <div class="mermaid">{{.Diagram}}</div>
+                        </div>
+                        {{end}}
+                    </div>
                 </details>
                 {{end}}
             </div>
@@ -394,20 +445,42 @@
     </div>
     <div class="section-body">
         <div class="test-list">
-            {{range .TestGroups}}
-            <div class="test-group-section">
-                {{template "test-group" .}}
+            {{/* Use Adaptive hierarchy: File -> Session -> Test */}}
+            {{range $fileIdx, $file := .Adaptive.Files}}
+            
+            {{/* Show file header if multiple files */}}
+            {{if $.Adaptive.Flags.ShowFileHeaders}}
+            <div class="test-file-header">
+                <h3 class="test-file-title">📄 {{$file.Name}}</h3>
             </div>
+            {{end}}
+            
+            {{range $sessIdx, $session := $file.Sessions}}
+            
+            {{/* Show session header if multiple sessions */}}
+            {{if $.Adaptive.Flags.ShowSessionHeaders}}
+            <div class="test-session-header">
+                <h4 class="test-session-title">🔄 {{$session.Name}}</h4>
+            </div>
+            {{end}}
+            
+            {{range $testIdx, $test := $session.Tests}}
+            <div class="test-group-section">
+                {{template "adaptive-test-group" $test}}
+            </div>
+            {{end}}
+            
+            {{end}}
             {{end}}
         </div>
     </div>
 </section>
 {{end}}
 
-{{/* ================ Test Group (single or multi-agent) ================ */}}
-{{define "test-group"}}
+{{/* ================ Adaptive Test Group ================ */}}
+{{define "adaptive-test-group"}}
 <div class="test-group-header">
-    <h3 class="test-group-title">{{.TestName}}</h3>
+    <h3 class="test-group-title">{{.Name}}</h3>
     {{if gt (len .Runs) 0}}
     {{with index .Runs 0}}
     {{if .Prompt}}
@@ -422,7 +495,7 @@
 
 {{if gt (len .Runs) 1}}
 {{/* Multi-agent view: comparison table + expandable details */}}
-{{template "multi-agent-comparison" .}}
+{{template "adaptive-multi-agent-comparison" .}}
 {{else}}
 {{/* Single-agent view: detailed layout */}}
 {{range .Runs}}
@@ -431,8 +504,8 @@
 {{end}}
 {{end}}
 
-{{/* ================ Multi-Agent Comparison ================ */}}
-{{define "multi-agent-comparison"}}
+{{/* ================ Adaptive Multi-Agent Comparison ================ */}}
+{{define "adaptive-multi-agent-comparison"}}
 <!-- Multi-agent comparison table (horizontal layout: agents as columns) -->
 <div class="comparison-table-wrapper">
     <table class="agent-comparison-table">
@@ -482,8 +555,8 @@
 </div>
 
 <!-- Side-by-side comparisons -->
-{{template "tool-comparison" .}}
-{{template "sequence-comparison" .}}
+{{template "adaptive-tool-comparison" .}}
+{{template "adaptive-sequence-comparison" .}}
 
 <!-- Hidden detail panels (content source for overlay) -->
 <div class="agent-details-source" style="display: none;">
@@ -495,8 +568,8 @@
 </div>
 {{end}}
 
-{{/* ================ Tool Calls Comparison (expandable) ================ */}}
-{{define "tool-comparison"}}
+{{/* ================ Adaptive Tool Calls Comparison ================ */}}
+{{define "adaptive-tool-comparison"}}
 <details class="tool-comparison-section">
     <summary class="tool-comparison-header">🔧 Compare Tool Calls</summary>
     <div class="tool-comparison-content">
@@ -519,8 +592,8 @@
 </details>
 {{end}}
 
-{{/* ================ Sequence Diagram Comparison (expandable) ================ */}}
-{{define "sequence-comparison"}}
+{{/* ================ Adaptive Sequence Diagram Comparison ================ */}}
+{{define "adaptive-sequence-comparison"}}
 <details class="sequence-comparison-section">
     <summary class="sequence-comparison-header">📊 Execution Flow</summary>
     <div class="sequence-comparison-content">
@@ -775,8 +848,8 @@
 {{/* ================ Scripts ================ */}}
 {{define "scripts"}}
 <script>
-    // Store original mermaid sources before rendering
-    document.querySelectorAll('.agent-sequence-box .mermaid').forEach(el => {
+    // Store original mermaid sources before rendering (for all mermaid elements)
+    document.querySelectorAll('.mermaid').forEach(el => {
         el.setAttribute('data-mermaid-source', el.textContent.trim());
     });
 
@@ -866,6 +939,28 @@
         overlay.classList.remove('active');
         document.body.style.overflow = '';
     }
+
+    // Re-render mermaid diagrams when details elements are opened
+    document.querySelectorAll('details').forEach(details => {
+        details.addEventListener('toggle', async function() {
+            if (this.open) {
+                const unrenderedMermaids = this.querySelectorAll('.mermaid:not([data-processed])');
+                for (const el of unrenderedMermaids) {
+                    const source = el.getAttribute('data-mermaid-source');
+                    if (source) {
+                        try {
+                            const uniqueId = 'mermaid-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+                            const { svg } = await mermaid.render(uniqueId, source);
+                            el.innerHTML = svg;
+                            el.setAttribute('data-processed', 'true');
+                        } catch (e) {
+                            console.error('Mermaid render error:', e);
+                        }
+                    }
+                }
+            }
+        });
+    });
 
     // Close on Escape key
     document.addEventListener('keydown', function(e) {

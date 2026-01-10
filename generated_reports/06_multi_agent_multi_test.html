@@ -275,6 +275,17 @@ body {
     margin-right: 8px;
 }
 
+.group-stats {
+    font-weight: 400;
+    font-size: 12px;
+    color: var(--color-text-muted);
+    margin-left: 8px;
+}
+
+.matrix-file-header .group-stats {
+    color: var(--color-text-light);
+}
+
 /* Provider badge colors */
 .provider-badge.provider-AZURE { background: #0078d4; color: white; }
 .provider-badge.provider-OPENAI { background: #10a37f; color: white; }
@@ -479,6 +490,39 @@ body {
     gap: 24px;
 }
 
+/* File and Session Headers for Detailed Results */
+.test-file-header {
+    margin-top: 24px;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--color-primary);
+}
+
+.test-file-header:first-child {
+    margin-top: 0;
+}
+
+.test-file-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--color-primary);
+    margin: 0;
+}
+
+.test-session-header {
+    margin-top: 16px;
+    margin-bottom: 12px;
+    padding-left: 8px;
+    border-left: 3px solid var(--color-border);
+}
+
+.test-session-title {
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--color-text-muted);
+    margin: 0;
+}
+
 .test-group-section { margin-bottom: 16px; }
 
 .test-group-title {
@@ -677,6 +721,52 @@ body {
     background: rgba(255,255,255,0.6);
     border-radius: var(--radius-md);
     overflow-x: auto;
+}
+
+/* Session Agent Diagrams Grid (multi-agent) */
+.session-agent-diagrams-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+    margin-top: 16px;
+    padding: 12px;
+    background: rgba(255,255,255,0.4);
+    border-radius: var(--radius-md);
+}
+
+.session-agent-diagrams-grid .agent-sequence-box {
+    background: #fafbfc;
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    overflow: hidden;
+}
+
+.session-agent-diagrams-grid .agent-sequence-header {
+    font-weight: 600;
+    font-size: 13px;
+    color: #333;
+    margin-bottom: 8px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.session-agent-diagrams-grid .mermaid {
+    font-size: 11px;
+}
+
+/* Single session diagram container */
+.session-single-diagram {
+    margin-top: 16px;
+    padding: 12px;
+    background: rgba(255,255,255,0.4);
+    border-radius: var(--radius-md);
+}
+
+.session-single-diagram .agent-sequence-box {
+    background: #fafbfc;
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    max-width: 600px;
 }
 
 /* Errors */
@@ -1399,16 +1489,25 @@ body {
 
 .sequence-fullscreen-content {
     background: white;
-    border-radius: var(--radius-lg);
-    padding: 32px;
-    max-width: 95vw;
-    max-height: 95vh;
+    width: 100vw;
+    height: 100vh;
+    padding: 24px 32px;
     overflow: auto;
-    box-shadow: var(--shadow-lg);
+    display: flex;
+    flex-direction: column;
 }
 
 .sequence-fullscreen-content .mermaid {
     font-size: 14px;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sequence-fullscreen-content .mermaid svg {
+    max-width: 100%;
+    max-height: 100%;
 }
 
 .sequence-fullscreen-header {
@@ -1794,7 +1893,7 @@ body {
             <h1>🧪 Agent Benchmark Report</h1>
             <div class="report-meta">
                 <span>📦 Version: 0.0.0-SNAPSHOT</span>
-                <span>📅 Generated: 2026-01-08T10:10:11&#43;01:00</span>
+                <span>📅 Generated: 2026-01-10T14:02:41&#43;01:00</span>
                 
                 
             </div>
@@ -1827,8 +1926,16 @@ body {
         <div class="summary-label">Pass Rate</div>
     </div>
     <div class="summary-card tokens">
+        <div class="summary-value">2,526</div>
+        <div class="summary-label">Total Tokens</div>
+    </div>
+    <div class="summary-card tokens">
         <div class="summary-value">247</div>
         <div class="summary-label">Avg Tokens ✓</div>
+    </div>
+    <div class="summary-card duration">
+        <div class="summary-value">74.5s</div>
+        <div class="summary-label">Total Duration</div>
     </div>
     <div class="summary-card duration">
         <div class="summary-value">9.3s</div>
@@ -1990,7 +2097,9 @@ body {
                     <th>Agent</th>
                     <th>Success Rate</th>
                     <th>Results</th>
+                    <th>Total Tokens</th>
                     <th>Efficiency</th>
+                    <th>Total Time</th>
                     <th>Avg Time</th>
                 </tr>
             </thead>
@@ -2018,7 +2127,9 @@ body {
                         <span class="result-fail">✗0</span>
                         
                     </td>
+                    <td class="stat-value">468</td>
                     <td class="stat-value ">234 tok/✓</td>
+                    <td class="stat-value">13.50s</td>
                     <td class="stat-value">6.75s</td>
                 </tr>
             
@@ -2044,7 +2155,9 @@ body {
                         <span class="result-fail">✗0</span>
                         
                     </td>
+                    <td class="stat-value">523</td>
                     <td class="stat-value ">261 tok/✓</td>
+                    <td class="stat-value">16.00s</td>
                     <td class="stat-value">8.00s</td>
                 </tr>
             
@@ -2070,7 +2183,9 @@ body {
                         <span class="result-fail">✗1</span>
                         
                     </td>
+                    <td class="stat-value">479</td>
                     <td class="stat-value ">479 tok/✓</td>
+                    <td class="stat-value">15.00s</td>
                     <td class="stat-value">7.50s</td>
                 </tr>
             
@@ -2096,7 +2211,9 @@ body {
                         <span class="result-fail">✗2</span>
                         <span class="result-error">⚠2</span>
                     </td>
+                    <td class="stat-value">1,056</td>
                     <td class="stat-value text-muted">—</td>
+                    <td class="stat-value">30.00s</td>
                     <td class="stat-value">15.00s</td>
                 </tr>
             
@@ -2125,6 +2242,17 @@ body {
     </div>
     <div class="section-body">
         <div class="test-list">
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
             
             <div class="test-group-section">
                 
@@ -2345,11 +2473,16 @@ body {
     participant M as MCP Server
     U-&gt;&gt;A: Create a test file at /tmp/test.txt with the co...
     A-&gt;&gt;M: stat() [45ms]
+    M--&gt;&gt;A: result
     A-&gt;&gt;M: mkdir() [82ms]
+    M--&gt;&gt;A: result
     A-&gt;&gt;M: write_file() [156ms]
+    M--&gt;&gt;A: result
     A-&gt;&gt;M: cat() [38ms]
+    M--&gt;&gt;A: result
     A-&gt;&gt;M: ls() [52ms]
-    A--&gt;&gt;U: File created successfully at /tmp/tes... [325 tokens]
+    M--&gt;&gt;A: result
+    A--&gt;&gt;U: [Iteration 1 - 2 tool(s) to execute] ... [325 tokens]
 </div>
             </div>
             
@@ -2363,11 +2496,16 @@ body {
     participant M as MCP Server
     U-&gt;&gt;A: Create a test file at /tmp/test.txt with the co...
     A-&gt;&gt;M: bash() [25ms]
+    M--&gt;&gt;A: result
     A-&gt;&gt;M: bash() [68ms]
+    M--&gt;&gt;A: result
     A-&gt;&gt;M: bash() [32ms]
+    M--&gt;&gt;A: result
     A-&gt;&gt;M: bash() [41ms]
+    M--&gt;&gt;A: result
     A-&gt;&gt;M: bash() [35ms]
-    A--&gt;&gt;U: Done! File created using bash. [256 tokens]
+    M--&gt;&gt;A: result
+    A--&gt;&gt;U: [Iteration 1 - 1 tool(s) to execute] ... [256 tokens]
 </div>
             </div>
             
@@ -2381,11 +2519,16 @@ body {
     participant M as MCP Server
     U-&gt;&gt;A: Create a test file at /tmp/test.txt with the co...
     A-&gt;&gt;M: python() [185ms]
+    M--&gt;&gt;A: result
     A-&gt;&gt;M: python() [142ms]
+    M--&gt;&gt;A: result
     A-&gt;&gt;M: python() [198ms]
+    M--&gt;&gt;A: result
     A-&gt;&gt;M: python() [95ms]
+    M--&gt;&gt;A: result
     A-&gt;&gt;M: python() [78ms]
-    A--&gt;&gt;U: File created via Python. [234 tokens]
+    M--&gt;&gt;A: result
+    A--&gt;&gt;U: [Iteration 1 - 2 tool(s) to execute] ... [234 tokens]
 </div>
             </div>
             
@@ -2399,11 +2542,16 @@ body {
     participant M as MCP Server
     U-&gt;&gt;A: Create a test file at /tmp/test.txt with the co...
     A-&gt;&gt;M: http_post() [2500ms]
+    M--&gt;&gt;A: result
     A-&gt;&gt;M: graphql() [3200ms]
+    M--&gt;&gt;A: result
     A-&gt;&gt;M: database_insert() [1800ms]
+    M--&gt;&gt;A: result
     A-&gt;&gt;M: send_email() [950ms]
+    M--&gt;&gt;A: result
     A-&gt;&gt;M: web_search() [1250ms]
-    A--&gt;&gt;U: Failed to create file. I don&#39;t have t... [567 tokens]
+    M--&gt;&gt;A: result
+    A--&gt;&gt;U: [Iteration 1 - 1 tool(s) to execute] ... [567 tokens]
 </div>
             </div>
             
@@ -2480,11 +2628,16 @@ sequenceDiagram
     participant M as MCP Server
     U-&gt;&gt;A: Create a test file at /tmp/test.txt with the co...
     A-&gt;&gt;M: stat() [45ms]
+    M--&gt;&gt;A: result
     A-&gt;&gt;M: mkdir() [82ms]
+    M--&gt;&gt;A: result
     A-&gt;&gt;M: write_file() [156ms]
+    M--&gt;&gt;A: result
     A-&gt;&gt;M: cat() [38ms]
+    M--&gt;&gt;A: result
     A-&gt;&gt;M: ls() [52ms]
-    A--&gt;&gt;U: File created successfully at /tmp/tes... [325 tokens]
+    M--&gt;&gt;A: result
+    A--&gt;&gt;U: [Iteration 1 - 2 tool(s) to execute] ... [325 tokens]
 
     </div>
 </div>
@@ -2513,6 +2666,16 @@ sequenceDiagram
             </details>
             
             
+            <details class="tool-result-toggle">
+                <summary>Result</summary>
+                <pre class="tool-result-content">[
+  {
+    "text": "{\"ok\":true,\"tool\":\"stat\",\"completed\":true}",
+    "type": "text"
+  }
+]</pre>
+            </details>
+            
         </div>
         
         <div class="timeline-item tool-call">
@@ -2532,6 +2695,16 @@ sequenceDiagram
 }</pre>
             </details>
             
+            
+            <details class="tool-result-toggle">
+                <summary>Result</summary>
+                <pre class="tool-result-content">[
+  {
+    "text": "{\"ok\":true,\"tool\":\"mkdir\",\"completed\":true}",
+    "type": "text"
+  }
+]</pre>
+            </details>
             
         </div>
         
@@ -2553,6 +2726,16 @@ sequenceDiagram
             </details>
             
             
+            <details class="tool-result-toggle">
+                <summary>Result</summary>
+                <pre class="tool-result-content">[
+  {
+    "text": "{\"ok\":true,\"tool\":\"write_file\",\"completed\":true}",
+    "type": "text"
+  }
+]</pre>
+            </details>
+            
         </div>
         
         <div class="timeline-item tool-call">
@@ -2571,6 +2754,16 @@ sequenceDiagram
 }</pre>
             </details>
             
+            
+            <details class="tool-result-toggle">
+                <summary>Result</summary>
+                <pre class="tool-result-content">[
+  {
+    "text": "{\"ok\":true,\"tool\":\"cat\",\"completed\":true}",
+    "type": "text"
+  }
+]</pre>
+            </details>
             
         </div>
         
@@ -2591,6 +2784,16 @@ sequenceDiagram
 }</pre>
             </details>
             
+            
+            <details class="tool-result-toggle">
+                <summary>Result</summary>
+                <pre class="tool-result-content">[
+  {
+    "text": "{\"ok\":true,\"tool\":\"ls\",\"completed\":true}",
+    "type": "text"
+  }
+]</pre>
+            </details>
             
         </div>
         
@@ -2660,7 +2863,10 @@ sequenceDiagram
 
 <details class="final-output-section">
     <summary class="subsection-title">📤 Final Output</summary>
-    <div class="final-output-content">File created successfully at /tmp/test.txt with content &#39;Hello World&#39;</div>
+    <div class="final-output-content">[Iteration 1: 2 tool(s) to execute]
+[Iteration 2: 2 tool(s) to execute]
+[Iteration 3: 1 tool(s) to execute]
+File created successfully at /tmp/test.txt with content &#39;Hello World&#39;</div>
 </details>
 
 
@@ -2733,11 +2939,16 @@ sequenceDiagram
     participant M as MCP Server
     U-&gt;&gt;A: Create a test file at /tmp/test.txt with the co...
     A-&gt;&gt;M: bash() [25ms]
+    M--&gt;&gt;A: result
     A-&gt;&gt;M: bash() [68ms]
+    M--&gt;&gt;A: result
     A-&gt;&gt;M: bash() [32ms]
+    M--&gt;&gt;A: result
     A-&gt;&gt;M: bash() [41ms]
+    M--&gt;&gt;A: result
     A-&gt;&gt;M: bash() [35ms]
-    A--&gt;&gt;U: Done! File created using bash. [256 tokens]
+    M--&gt;&gt;A: result
+    A--&gt;&gt;U: [Iteration 1 - 1 tool(s) to execute] ... [256 tokens]
 
     </div>
 </div>
@@ -2766,6 +2977,16 @@ sequenceDiagram
             </details>
             
             
+            <details class="tool-result-toggle">
+                <summary>Result</summary>
+                <pre class="tool-result-content">[
+  {
+    "text": "{\"ok\":true,\"tool\":\"bash\",\"completed\":true}",
+    "type": "text"
+  }
+]</pre>
+            </details>
+            
         </div>
         
         <div class="timeline-item tool-call">
@@ -2784,6 +3005,16 @@ sequenceDiagram
 }</pre>
             </details>
             
+            
+            <details class="tool-result-toggle">
+                <summary>Result</summary>
+                <pre class="tool-result-content">[
+  {
+    "text": "{\"ok\":true,\"tool\":\"bash\",\"completed\":true}",
+    "type": "text"
+  }
+]</pre>
+            </details>
             
         </div>
         
@@ -2804,6 +3035,16 @@ sequenceDiagram
             </details>
             
             
+            <details class="tool-result-toggle">
+                <summary>Result</summary>
+                <pre class="tool-result-content">[
+  {
+    "text": "{\"ok\":true,\"tool\":\"bash\",\"completed\":true}",
+    "type": "text"
+  }
+]</pre>
+            </details>
+            
         </div>
         
         <div class="timeline-item tool-call">
@@ -2823,6 +3064,16 @@ sequenceDiagram
             </details>
             
             
+            <details class="tool-result-toggle">
+                <summary>Result</summary>
+                <pre class="tool-result-content">[
+  {
+    "text": "{\"ok\":true,\"tool\":\"bash\",\"completed\":true}",
+    "type": "text"
+  }
+]</pre>
+            </details>
+            
         </div>
         
         <div class="timeline-item tool-call">
@@ -2841,6 +3092,16 @@ sequenceDiagram
 }</pre>
             </details>
             
+            
+            <details class="tool-result-toggle">
+                <summary>Result</summary>
+                <pre class="tool-result-content">[
+  {
+    "text": "{\"ok\":true,\"tool\":\"bash\",\"completed\":true}",
+    "type": "text"
+  }
+]</pre>
+            </details>
             
         </div>
         
@@ -2910,7 +3171,10 @@ sequenceDiagram
 
 <details class="final-output-section">
     <summary class="subsection-title">📤 Final Output</summary>
-    <div class="final-output-content">Done! File created using bash.</div>
+    <div class="final-output-content">[Iteration 1: 1 tool(s) to execute]
+[Iteration 2: 2 tool(s) to execute]
+[Iteration 3: 2 tool(s) to execute]
+Done! File created using bash.</div>
 </details>
 
 
@@ -2990,11 +3254,16 @@ sequenceDiagram
     participant M as MCP Server
     U-&gt;&gt;A: Create a test file at /tmp/test.txt with the co...
     A-&gt;&gt;M: python() [185ms]
+    M--&gt;&gt;A: result
     A-&gt;&gt;M: python() [142ms]
+    M--&gt;&gt;A: result
     A-&gt;&gt;M: python() [198ms]
+    M--&gt;&gt;A: result
     A-&gt;&gt;M: python() [95ms]
+    M--&gt;&gt;A: result
     A-&gt;&gt;M: python() [78ms]
-    A--&gt;&gt;U: File created via Python. [234 tokens]
+    M--&gt;&gt;A: result
+    A--&gt;&gt;U: [Iteration 1 - 2 tool(s) to execute] ... [234 tokens]
 
     </div>
 </div>
@@ -3023,6 +3292,16 @@ sequenceDiagram
             </details>
             
             
+            <details class="tool-result-toggle">
+                <summary>Result</summary>
+                <pre class="tool-result-content">[
+  {
+    "text": "{\"ok\":true,\"tool\":\"python\",\"completed\":true}",
+    "type": "text"
+  }
+]</pre>
+            </details>
+            
         </div>
         
         <div class="timeline-item tool-call">
@@ -3041,6 +3320,16 @@ sequenceDiagram
 }</pre>
             </details>
             
+            
+            <details class="tool-result-toggle">
+                <summary>Result</summary>
+                <pre class="tool-result-content">[
+  {
+    "text": "{\"ok\":true,\"tool\":\"python\",\"completed\":true}",
+    "type": "text"
+  }
+]</pre>
+            </details>
             
         </div>
         
@@ -3061,6 +3350,16 @@ sequenceDiagram
             </details>
             
             
+            <details class="tool-result-toggle">
+                <summary>Result</summary>
+                <pre class="tool-result-content">[
+  {
+    "text": "{\"ok\":true,\"tool\":\"python\",\"completed\":true}",
+    "type": "text"
+  }
+]</pre>
+            </details>
+            
         </div>
         
         <div class="timeline-item tool-call">
@@ -3080,6 +3379,16 @@ sequenceDiagram
             </details>
             
             
+            <details class="tool-result-toggle">
+                <summary>Result</summary>
+                <pre class="tool-result-content">[
+  {
+    "text": "{\"ok\":true,\"tool\":\"python\",\"completed\":true}",
+    "type": "text"
+  }
+]</pre>
+            </details>
+            
         </div>
         
         <div class="timeline-item tool-call">
@@ -3098,6 +3407,16 @@ sequenceDiagram
 }</pre>
             </details>
             
+            
+            <details class="tool-result-toggle">
+                <summary>Result</summary>
+                <pre class="tool-result-content">[
+  {
+    "text": "{\"ok\":true,\"tool\":\"python\",\"completed\":true}",
+    "type": "text"
+  }
+]</pre>
+            </details>
             
         </div>
         
@@ -3167,7 +3486,9 @@ sequenceDiagram
 
 <details class="final-output-section">
     <summary class="subsection-title">📤 Final Output</summary>
-    <div class="final-output-content">File created via Python.</div>
+    <div class="final-output-content">[Iteration 1: 2 tool(s) to execute]
+[Iteration 2: 3 tool(s) to execute]
+File created via Python.</div>
 </details>
 
 
@@ -3267,11 +3588,16 @@ sequenceDiagram
     participant M as MCP Server
     U-&gt;&gt;A: Create a test file at /tmp/test.txt with the co...
     A-&gt;&gt;M: http_post() [2500ms]
+    M--&gt;&gt;A: result
     A-&gt;&gt;M: graphql() [3200ms]
+    M--&gt;&gt;A: result
     A-&gt;&gt;M: database_insert() [1800ms]
+    M--&gt;&gt;A: result
     A-&gt;&gt;M: send_email() [950ms]
+    M--&gt;&gt;A: result
     A-&gt;&gt;M: web_search() [1250ms]
-    A--&gt;&gt;U: Failed to create file. I don&#39;t have t... [567 tokens]
+    M--&gt;&gt;A: result
+    A--&gt;&gt;U: [Iteration 1 - 1 tool(s) to execute] ... [567 tokens]
 
     </div>
 </div>
@@ -3300,6 +3626,16 @@ sequenceDiagram
             </details>
             
             
+            <details class="tool-result-toggle">
+                <summary>Result</summary>
+                <pre class="tool-result-content">[
+  {
+    "text": "{\"ok\":true,\"tool\":\"http_post\",\"completed\":true}",
+    "type": "text"
+  }
+]</pre>
+            </details>
+            
         </div>
         
         <div class="timeline-item tool-call">
@@ -3318,6 +3654,16 @@ sequenceDiagram
 }</pre>
             </details>
             
+            
+            <details class="tool-result-toggle">
+                <summary>Result</summary>
+                <pre class="tool-result-content">[
+  {
+    "text": "{\"ok\":true,\"tool\":\"graphql\",\"completed\":true}",
+    "type": "text"
+  }
+]</pre>
+            </details>
             
         </div>
         
@@ -3339,6 +3685,16 @@ sequenceDiagram
             </details>
             
             
+            <details class="tool-result-toggle">
+                <summary>Result</summary>
+                <pre class="tool-result-content">[
+  {
+    "text": "{\"ok\":true,\"tool\":\"database_insert\",\"completed\":true}",
+    "type": "text"
+  }
+]</pre>
+            </details>
+            
         </div>
         
         <div class="timeline-item tool-call">
@@ -3359,6 +3715,16 @@ sequenceDiagram
             </details>
             
             
+            <details class="tool-result-toggle">
+                <summary>Result</summary>
+                <pre class="tool-result-content">[
+  {
+    "text": "{\"ok\":true,\"tool\":\"send_email\",\"completed\":true}",
+    "type": "text"
+  }
+]</pre>
+            </details>
+            
         </div>
         
         <div class="timeline-item tool-call">
@@ -3377,6 +3743,16 @@ sequenceDiagram
 }</pre>
             </details>
             
+            
+            <details class="tool-result-toggle">
+                <summary>Result</summary>
+                <pre class="tool-result-content">[
+  {
+    "text": "{\"ok\":true,\"tool\":\"web_search\",\"completed\":true}",
+    "type": "text"
+  }
+]</pre>
+            </details>
             
         </div>
         
@@ -3446,7 +3822,10 @@ sequenceDiagram
 
 <details class="final-output-section">
     <summary class="subsection-title">📤 Final Output</summary>
-    <div class="final-output-content">Failed to create file. I don&#39;t have the right tools.</div>
+    <div class="final-output-content">[Iteration 1: 1 tool(s) to execute]
+[Iteration 2: 1 tool(s) to execute]
+[Iteration 3: 3 tool(s) to execute]
+Failed to create file. I don&#39;t have the right tools.</div>
 </details>
 
 
@@ -3680,10 +4059,15 @@ sequenceDiagram
     participant M as MCP Server
     U-&gt;&gt;A: Read the configuration file at /etc/config.yaml...
     A-&gt;&gt;M: stat() [38ms]
+    M--&gt;&gt;A: result
     A-&gt;&gt;M: cat() [52ms]
+    M--&gt;&gt;A: result
     A-&gt;&gt;M: grep() [28ms]
+    M--&gt;&gt;A: result
     A-&gt;&gt;M: head() [35ms]
+    M--&gt;&gt;A: result
     A-&gt;&gt;M: wc() [22ms]
+    M--&gt;&gt;A: result
     A--&gt;&gt;U: The port number is 8080. [198 tokens]
 </div>
             </div>
@@ -3698,10 +4082,15 @@ sequenceDiagram
     participant M as MCP Server
     U-&gt;&gt;A: Read the configuration file at /etc/config.yaml...
     A-&gt;&gt;M: bash() [32ms]
+    M--&gt;&gt;A: result
     A-&gt;&gt;M: bash() [45ms]
+    M--&gt;&gt;A: result
     A-&gt;&gt;M: bash() [28ms]
+    M--&gt;&gt;A: result
     A-&gt;&gt;M: bash() [55ms]
+    M--&gt;&gt;A: result
     A-&gt;&gt;M: bash() [18ms]
+    M--&gt;&gt;A: result
     A--&gt;&gt;U: port - 8080 [212 tokens]
 </div>
             </div>
@@ -3716,10 +4105,15 @@ sequenceDiagram
     participant M as MCP Server
     U-&gt;&gt;A: Read the configuration file at /etc/config.yaml...
     A-&gt;&gt;M: python() [165ms]
+    M--&gt;&gt;A: result
     A-&gt;&gt;M: python() [142ms]
+    M--&gt;&gt;A: result
     A-&gt;&gt;M: python() [198ms]
+    M--&gt;&gt;A: result
     A-&gt;&gt;M: python() [85ms]
+    M--&gt;&gt;A: result
     A-&gt;&gt;M: python() [72ms]
+    M--&gt;&gt;A: result
     A--&gt;&gt;U: Config - port=8080 [245 tokens]
 </div>
             </div>
@@ -3734,10 +4128,15 @@ sequenceDiagram
     participant M as MCP Server
     U-&gt;&gt;A: Read the configuration file at /etc/config.yaml...
     A-&gt;&gt;M: http_get() [2850ms]
+    M--&gt;&gt;A: result
     A-&gt;&gt;M: graphql() [2650ms]
+    M--&gt;&gt;A: result
     A-&gt;&gt;M: redis_get() [980ms]
+    M--&gt;&gt;A: result
     A-&gt;&gt;M: database_query() [1850ms]
+    M--&gt;&gt;A: result
     A-&gt;&gt;M: consul_kv() [1250ms]
+    M--&gt;&gt;A: result
     A--&gt;&gt;U: Unable to read configuration file. [489 tokens]
 </div>
             </div>
@@ -3806,10 +4205,15 @@ sequenceDiagram
     participant M as MCP Server
     U-&gt;&gt;A: Read the configuration file at /etc/config.yaml...
     A-&gt;&gt;M: stat() [38ms]
+    M--&gt;&gt;A: result
     A-&gt;&gt;M: cat() [52ms]
+    M--&gt;&gt;A: result
     A-&gt;&gt;M: grep() [28ms]
+    M--&gt;&gt;A: result
     A-&gt;&gt;M: head() [35ms]
+    M--&gt;&gt;A: result
     A-&gt;&gt;M: wc() [22ms]
+    M--&gt;&gt;A: result
     A--&gt;&gt;U: The port number is 8080. [198 tokens]
 
     </div>
@@ -3839,6 +4243,16 @@ sequenceDiagram
             </details>
             
             
+            <details class="tool-result-toggle">
+                <summary>Result</summary>
+                <pre class="tool-result-content">[
+  {
+    "text": "{\"ok\":true,\"tool\":\"stat\",\"completed\":true}",
+    "type": "text"
+  }
+]</pre>
+            </details>
+            
         </div>
         
         <div class="timeline-item tool-call">
@@ -3857,6 +4271,16 @@ sequenceDiagram
 }</pre>
             </details>
             
+            
+            <details class="tool-result-toggle">
+                <summary>Result</summary>
+                <pre class="tool-result-content">[
+  {
+    "text": "{\"ok\":true,\"tool\":\"cat\",\"completed\":true}",
+    "type": "text"
+  }
+]</pre>
+            </details>
             
         </div>
         
@@ -3878,6 +4302,16 @@ sequenceDiagram
             </details>
             
             
+            <details class="tool-result-toggle">
+                <summary>Result</summary>
+                <pre class="tool-result-content">[
+  {
+    "text": "{\"ok\":true,\"tool\":\"grep\",\"completed\":true}",
+    "type": "text"
+  }
+]</pre>
+            </details>
+            
         </div>
         
         <div class="timeline-item tool-call">
@@ -3898,6 +4332,16 @@ sequenceDiagram
             </details>
             
             
+            <details class="tool-result-toggle">
+                <summary>Result</summary>
+                <pre class="tool-result-content">[
+  {
+    "text": "{\"ok\":true,\"tool\":\"head\",\"completed\":true}",
+    "type": "text"
+  }
+]</pre>
+            </details>
+            
         </div>
         
         <div class="timeline-item tool-call">
@@ -3917,6 +4361,16 @@ sequenceDiagram
 }</pre>
             </details>
             
+            
+            <details class="tool-result-toggle">
+                <summary>Result</summary>
+                <pre class="tool-result-content">[
+  {
+    "text": "{\"ok\":true,\"tool\":\"wc\",\"completed\":true}",
+    "type": "text"
+  }
+]</pre>
+            </details>
             
         </div>
         
@@ -4050,10 +4504,15 @@ sequenceDiagram
     participant M as MCP Server
     U-&gt;&gt;A: Read the configuration file at /etc/config.yaml...
     A-&gt;&gt;M: bash() [32ms]
+    M--&gt;&gt;A: result
     A-&gt;&gt;M: bash() [45ms]
+    M--&gt;&gt;A: result
     A-&gt;&gt;M: bash() [28ms]
+    M--&gt;&gt;A: result
     A-&gt;&gt;M: bash() [55ms]
+    M--&gt;&gt;A: result
     A-&gt;&gt;M: bash() [18ms]
+    M--&gt;&gt;A: result
     A--&gt;&gt;U: port - 8080 [212 tokens]
 
     </div>
@@ -4083,6 +4542,16 @@ sequenceDiagram
             </details>
             
             
+            <details class="tool-result-toggle">
+                <summary>Result</summary>
+                <pre class="tool-result-content">[
+  {
+    "text": "{\"ok\":true,\"tool\":\"bash\",\"completed\":true}",
+    "type": "text"
+  }
+]</pre>
+            </details>
+            
         </div>
         
         <div class="timeline-item tool-call">
@@ -4101,6 +4570,16 @@ sequenceDiagram
 }</pre>
             </details>
             
+            
+            <details class="tool-result-toggle">
+                <summary>Result</summary>
+                <pre class="tool-result-content">[
+  {
+    "text": "{\"ok\":true,\"tool\":\"bash\",\"completed\":true}",
+    "type": "text"
+  }
+]</pre>
+            </details>
             
         </div>
         
@@ -4121,6 +4600,16 @@ sequenceDiagram
             </details>
             
             
+            <details class="tool-result-toggle">
+                <summary>Result</summary>
+                <pre class="tool-result-content">[
+  {
+    "text": "{\"ok\":true,\"tool\":\"bash\",\"completed\":true}",
+    "type": "text"
+  }
+]</pre>
+            </details>
+            
         </div>
         
         <div class="timeline-item tool-call">
@@ -4140,6 +4629,16 @@ sequenceDiagram
             </details>
             
             
+            <details class="tool-result-toggle">
+                <summary>Result</summary>
+                <pre class="tool-result-content">[
+  {
+    "text": "{\"ok\":true,\"tool\":\"bash\",\"completed\":true}",
+    "type": "text"
+  }
+]</pre>
+            </details>
+            
         </div>
         
         <div class="timeline-item tool-call">
@@ -4158,6 +4657,16 @@ sequenceDiagram
 }</pre>
             </details>
             
+            
+            <details class="tool-result-toggle">
+                <summary>Result</summary>
+                <pre class="tool-result-content">[
+  {
+    "text": "{\"ok\":true,\"tool\":\"bash\",\"completed\":true}",
+    "type": "text"
+  }
+]</pre>
+            </details>
             
         </div>
         
@@ -4291,10 +4800,15 @@ sequenceDiagram
     participant M as MCP Server
     U-&gt;&gt;A: Read the configuration file at /etc/config.yaml...
     A-&gt;&gt;M: python() [165ms]
+    M--&gt;&gt;A: result
     A-&gt;&gt;M: python() [142ms]
+    M--&gt;&gt;A: result
     A-&gt;&gt;M: python() [198ms]
+    M--&gt;&gt;A: result
     A-&gt;&gt;M: python() [85ms]
+    M--&gt;&gt;A: result
     A-&gt;&gt;M: python() [72ms]
+    M--&gt;&gt;A: result
     A--&gt;&gt;U: Config - port=8080 [245 tokens]
 
     </div>
@@ -4324,6 +4838,16 @@ sequenceDiagram
             </details>
             
             
+            <details class="tool-result-toggle">
+                <summary>Result</summary>
+                <pre class="tool-result-content">[
+  {
+    "text": "{\"ok\":true,\"tool\":\"python\",\"completed\":true}",
+    "type": "text"
+  }
+]</pre>
+            </details>
+            
         </div>
         
         <div class="timeline-item tool-call">
@@ -4342,6 +4866,16 @@ sequenceDiagram
 }</pre>
             </details>
             
+            
+            <details class="tool-result-toggle">
+                <summary>Result</summary>
+                <pre class="tool-result-content">[
+  {
+    "text": "{\"ok\":true,\"tool\":\"python\",\"completed\":true}",
+    "type": "text"
+  }
+]</pre>
+            </details>
             
         </div>
         
@@ -4362,6 +4896,16 @@ sequenceDiagram
             </details>
             
             
+            <details class="tool-result-toggle">
+                <summary>Result</summary>
+                <pre class="tool-result-content">[
+  {
+    "text": "{\"ok\":true,\"tool\":\"python\",\"completed\":true}",
+    "type": "text"
+  }
+]</pre>
+            </details>
+            
         </div>
         
         <div class="timeline-item tool-call">
@@ -4381,6 +4925,16 @@ sequenceDiagram
             </details>
             
             
+            <details class="tool-result-toggle">
+                <summary>Result</summary>
+                <pre class="tool-result-content">[
+  {
+    "text": "{\"ok\":true,\"tool\":\"python\",\"completed\":true}",
+    "type": "text"
+  }
+]</pre>
+            </details>
+            
         </div>
         
         <div class="timeline-item tool-call">
@@ -4399,6 +4953,16 @@ sequenceDiagram
 }</pre>
             </details>
             
+            
+            <details class="tool-result-toggle">
+                <summary>Result</summary>
+                <pre class="tool-result-content">[
+  {
+    "text": "{\"ok\":true,\"tool\":\"python\",\"completed\":true}",
+    "type": "text"
+  }
+]</pre>
+            </details>
             
         </div>
         
@@ -4561,10 +5125,15 @@ sequenceDiagram
     participant M as MCP Server
     U-&gt;&gt;A: Read the configuration file at /etc/config.yaml...
     A-&gt;&gt;M: http_get() [2850ms]
+    M--&gt;&gt;A: result
     A-&gt;&gt;M: graphql() [2650ms]
+    M--&gt;&gt;A: result
     A-&gt;&gt;M: redis_get() [980ms]
+    M--&gt;&gt;A: result
     A-&gt;&gt;M: database_query() [1850ms]
+    M--&gt;&gt;A: result
     A-&gt;&gt;M: consul_kv() [1250ms]
+    M--&gt;&gt;A: result
     A--&gt;&gt;U: Unable to read configuration file. [489 tokens]
 
     </div>
@@ -4594,6 +5163,16 @@ sequenceDiagram
             </details>
             
             
+            <details class="tool-result-toggle">
+                <summary>Result</summary>
+                <pre class="tool-result-content">[
+  {
+    "text": "{\"ok\":true,\"tool\":\"http_get\",\"completed\":true}",
+    "type": "text"
+  }
+]</pre>
+            </details>
+            
         </div>
         
         <div class="timeline-item tool-call">
@@ -4614,6 +5193,16 @@ sequenceDiagram
             </details>
             
             
+            <details class="tool-result-toggle">
+                <summary>Result</summary>
+                <pre class="tool-result-content">[
+  {
+    "text": "{\"ok\":true,\"tool\":\"graphql\",\"completed\":true}",
+    "type": "text"
+  }
+]</pre>
+            </details>
+            
         </div>
         
         <div class="timeline-item tool-call">
@@ -4632,6 +5221,16 @@ sequenceDiagram
 }</pre>
             </details>
             
+            
+            <details class="tool-result-toggle">
+                <summary>Result</summary>
+                <pre class="tool-result-content">[
+  {
+    "text": "{\"ok\":true,\"tool\":\"redis_get\",\"completed\":true}",
+    "type": "text"
+  }
+]</pre>
+            </details>
             
         </div>
         
@@ -4652,6 +5251,16 @@ sequenceDiagram
             </details>
             
             
+            <details class="tool-result-toggle">
+                <summary>Result</summary>
+                <pre class="tool-result-content">[
+  {
+    "text": "{\"ok\":true,\"tool\":\"database_query\",\"completed\":true}",
+    "type": "text"
+  }
+]</pre>
+            </details>
+            
         </div>
         
         <div class="timeline-item tool-call">
@@ -4670,6 +5279,16 @@ sequenceDiagram
 }</pre>
             </details>
             
+            
+            <details class="tool-result-toggle">
+                <summary>Result</summary>
+                <pre class="tool-result-content">[
+  {
+    "text": "{\"ok\":true,\"tool\":\"consul_kv\",\"completed\":true}",
+    "type": "text"
+  }
+]</pre>
+            </details>
             
         </div>
         
@@ -4754,6 +5373,9 @@ sequenceDiagram
 
             </div>
             
+            
+            
+            
         </div>
     </div>
 </section>
@@ -4786,7 +5408,7 @@ sequenceDiagram
     
 <script>
     
-    document.querySelectorAll('.agent-sequence-box .mermaid').forEach(el => {
+    document.querySelectorAll('.mermaid').forEach(el => {
         el.setAttribute('data-mermaid-source', el.textContent.trim());
     });
 
@@ -4876,6 +5498,28 @@ sequenceDiagram
         overlay.classList.remove('active');
         document.body.style.overflow = '';
     }
+
+    
+    document.querySelectorAll('details').forEach(details => {
+        details.addEventListener('toggle', async function() {
+            if (this.open) {
+                const unrenderedMermaids = this.querySelectorAll('.mermaid:not([data-processed])');
+                for (const el of unrenderedMermaids) {
+                    const source = el.getAttribute('data-mermaid-source');
+                    if (source) {
+                        try {
+                            const uniqueId = 'mermaid-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+                            const { svg } = await mermaid.render(uniqueId, source);
+                            el.innerHTML = svg;
+                            el.setAttribute('data-processed', 'true');
+                        } catch (e) {
+                            console.error('Mermaid render error:', e);
+                        }
+                    }
+                }
+            }
+        });
+    });
 
     
     document.addEventListener('keydown', function(e) {

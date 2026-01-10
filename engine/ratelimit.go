@@ -42,9 +42,9 @@ type RateLimitedLLM struct {
 	tpmLimit   int
 	rpmLimit   int
 	// 429 retry handling (reactive) - separate from rate limiting
-	retryOn429          bool               // Whether to retry on 429 errors (default: false)
-	maxRetries          int                // Max number of 429 retries (only used if retryOn429 is true)
-	retryAfterProvider  RetryAfterProvider // Optional provider for Retry-After header values
+	retryOn429         bool               // Whether to retry on 429 errors (default: false)
+	maxRetries         int                // Max number of 429 retries (only used if retryOn429 is true)
+	retryAfterProvider RetryAfterProvider // Optional provider for Retry-After header values
 	// Statistics tracking
 	stats RateLimitStats
 }
@@ -319,8 +319,9 @@ func (rl *RateLimitedLLM) extractRetryAfter(err error) time.Duration {
 					"captured_ago_ms", time.Since(capturedAt).Milliseconds())
 				// Clear the value so it's not reused for subsequent requests
 				rl.retryAfterProvider.ClearRetryAfter()
-				// Add a small buffer to ensure we're past the rate limit window
-				return duration + time.Second
+				// Add a buffer to ensure we're past the rate limit window
+				// Azure OpenAI token buckets refill gradually, so extra buffer helps avoid immediate re-throttling
+				return duration + 10*time.Second
 			}
 		}
 	}
@@ -339,8 +340,8 @@ func (rl *RateLimitedLLM) extractRetryAfter(err error) time.Duration {
 		seconds, parseErr := strconv.Atoi(matches[1])
 		if parseErr == nil && seconds > 0 {
 			logger.Logger.Debug("Using Retry-After from error message", "seconds", seconds)
-			// Add a small buffer to ensure we're past the rate limit window
-			return time.Duration(seconds+1) * time.Second
+			// Add a buffer to ensure we're past the rate limit window
+			return time.Duration(seconds)*time.Second + 10*time.Second
 		}
 	}
 
