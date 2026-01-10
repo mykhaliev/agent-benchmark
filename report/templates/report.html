@@ -120,8 +120,16 @@
         <div class="summary-label">Pass Rate</div>
     </div>
     <div class="summary-card tokens">
+        <div class="summary-value">{{formatNumber .Summary.TotalTokens}}</div>
+        <div class="summary-label">Total Tokens</div>
+    </div>
+    <div class="summary-card tokens">
         <div class="summary-value">{{formatNumber .Summary.AvgTokensPassed}}</div>
         <div class="summary-label">Avg Tokens ✓</div>
+    </div>
+    <div class="summary-card duration">
+        <div class="summary-value">{{printf "%.1fs" .Summary.TotalDuration}}</div>
+        <div class="summary-label">Total Duration</div>
     </div>
     <div class="summary-card duration">
         <div class="summary-value">{{printf "%.1fs" .Summary.AvgDuration}}</div>
@@ -295,7 +303,9 @@
                     <th>Agent</th>
                     <th>Success Rate</th>
                     <th>Results</th>
+                    <th>Total Tokens</th>
                     <th>Efficiency</th>
+                    <th>Total Time</th>
                     <th>Avg Time</th>
                 </tr>
             </thead>
@@ -327,7 +337,9 @@
                         <span class="result-fail">✗{{.FailedTests}}</span>
                         {{if gt .ErrorCount 0}}<span class="result-error">⚠{{.ErrorCount}}</span>{{end}}
                     </td>
+                    <td class="stat-value">{{formatNumber .TotalTokens}}</td>
                     <td class="stat-value {{if .IsDisqualified}}text-muted{{end}}">{{.EfficiencyStr}}</td>
+                    <td class="stat-value">{{printf "%.2fs" .TotalDuration}}</td>
                     <td class="stat-value">{{printf "%.2fs" .AvgDuration}}</td>
                 </tr>
             {{end}}

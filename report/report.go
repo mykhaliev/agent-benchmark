@@ -116,7 +116,9 @@ type SummaryData struct {
 	Failed          int
 	AgentCount      int
 	PassRate        float64 // Percentage 0-100
+	TotalTokens     int     // Total tokens used across all tests
 	AvgTokensPassed int     // Average tokens used by passing tests
+	TotalDuration   float64 // Total duration in seconds
 	AvgDuration     float64
 }
 
@@ -222,6 +224,7 @@ type AgentStatsView struct {
 	ErrorCount       int // Tests that had errors (subset of failed)
 	SuccessRate      float64
 	SuccessRateClass string
+	TotalDuration    float64
 	AvgDuration      float64
 	TotalTokens      int
 	AvgTokens        int
@@ -484,6 +487,7 @@ func GenerateReportFromJSON(jsonPath, outputPath string) error {
 func buildReportData(results []model.TestRun) ReportData {
 	passed := 0
 	failed := 0
+	totalTokens := 0
 	totalTokensPassed := 0
 	totalDuration := 0.0
 
@@ -511,6 +515,7 @@ func buildReportData(results []model.TestRun) ReportData {
 	showSuiteInfo := suiteName != ""
 
 	for _, r := range results {
+		totalTokens += r.Execution.TokensUsed
 		if r.Passed {
 			passed++
 			totalTokensPassed += r.Execution.TokensUsed
@@ -557,7 +562,9 @@ func buildReportData(results []model.TestRun) ReportData {
 			Failed:          failed,
 			AgentCount:      len(agents),
 			PassRate:        passRate,
+			TotalTokens:     totalTokens,
 			AvgTokensPassed: avgTokensPassed,
+			TotalDuration:   totalDuration,
 			AvgDuration:     avgDuration,
 		},
 		AgentStats:    buildAgentStats(results),
@@ -1078,7 +1085,7 @@ func buildAgentStats(results []model.TestRun) []AgentStatsView {
 
 		stats.TotalTokens += result.Execution.TokensUsed
 		duration := result.Execution.EndTime.Sub(result.Execution.StartTime).Seconds()
-		stats.AvgDuration += duration
+		stats.TotalDuration += duration
 	}
 
 	// Calculate averages and convert to slice
@@ -1086,7 +1093,7 @@ func buildAgentStats(results []model.TestRun) []AgentStatsView {
 	for _, stats := range statsMap {
 		if stats.TotalTests > 0 {
 			stats.AvgTokens = stats.TotalTokens / stats.TotalTests
-			stats.AvgDuration = stats.AvgDuration / float64(stats.TotalTests)
+			stats.AvgDuration = stats.TotalDuration / float64(stats.TotalTests)
 			stats.SuccessRate = float64(stats.PassedTests) / float64(stats.TotalTests) * 100
 			stats.SuccessRateClass = getSuccessRateClass(stats.SuccessRate)
 
