@@ -125,12 +125,12 @@ const (
 // ============================================================================
 
 // ClarificationDetection configures how the agent handles LLM clarification requests.
-// When enabled, the agent detects when an LLM asks for confirmation instead of acting.
+// When enabled, the agent uses an LLM to detect when the primary LLM asks for confirmation instead of acting.
+// This approach is more accurate than pattern matching as it can understand context, nuance, and multiple languages.
 type ClarificationDetection struct {
-	Enabled            bool     `yaml:"enabled"`                        // Enable clarification detection (default: false)
-	Level              string   `yaml:"level,omitempty"`                // Log level: "info", "warning", "error" (default: "warning")
-	UseBuiltinPatterns *bool    `yaml:"use_builtin_patterns,omitempty"` // Use built-in heuristics (default: true)
-	CustomPatterns     []string `yaml:"custom_patterns,omitempty"`      // Additional regex patterns
+	Enabled       bool   `yaml:"enabled"`                  // Enable clarification detection (default: false)
+	Level         string `yaml:"level,omitempty"`          // Log level: "info", "warning", "error" (default: "warning")
+	JudgeProvider string `yaml:"judge_provider,omitempty"` // Provider name for the judge LLM. Use "$self" to reuse the agent's provider, or specify a provider name (required when enabled)
 }
 
 type Agent struct {

@@ -201,15 +201,14 @@ providers:
 
 func TestParseAgentClarificationDetection(t *testing.T) {
 	tests := []struct {
-		name                   string
-		yaml                   string
-		expectedEnabled        bool
-		expectedLevel          string
-		expectedUseBuiltin     *bool
-		expectedCustomPatterns []string
+		name                  string
+		yaml                  string
+		expectedEnabled       bool
+		expectedLevel         string
+		expectedJudgeProvider string
 	}{
 		{
-			name: "clarification detection enabled with warning level",
+			name: "clarification detection enabled with warning level and $self provider",
 			yaml: `
 agents:
   - name: test-agent
@@ -217,11 +216,11 @@ agents:
     clarification_detection:
       enabled: true
       level: warning
+      judge_provider: $self
 `,
-			expectedEnabled:        true,
-			expectedLevel:          "warning",
-			expectedUseBuiltin:     nil,
-			expectedCustomPatterns: nil,
+			expectedEnabled:       true,
+			expectedLevel:         "warning",
+			expectedJudgeProvider: "$self",
 		},
 		{
 			name: "clarification detection enabled with error level",
@@ -232,11 +231,11 @@ agents:
     clarification_detection:
       enabled: true
       level: error
+      judge_provider: cheap-provider
 `,
-			expectedEnabled:        true,
-			expectedLevel:          "error",
-			expectedUseBuiltin:     nil,
-			expectedCustomPatterns: nil,
+			expectedEnabled:       true,
+			expectedLevel:         "error",
+			expectedJudgeProvider: "cheap-provider",
 		},
 		{
 			name: "clarification detection enabled with info level",
@@ -247,11 +246,11 @@ agents:
     clarification_detection:
       enabled: true
       level: info
+      judge_provider: azure-openai
 `,
-			expectedEnabled:        true,
-			expectedLevel:          "info",
-			expectedUseBuiltin:     nil,
-			expectedCustomPatterns: nil,
+			expectedEnabled:       true,
+			expectedLevel:         "info",
+			expectedJudgeProvider: "azure-openai",
 		},
 		{
 			name: "clarification detection disabled",
@@ -262,10 +261,9 @@ agents:
     clarification_detection:
       enabled: false
 `,
-			expectedEnabled:        false,
-			expectedLevel:          "",
-			expectedUseBuiltin:     nil,
-			expectedCustomPatterns: nil,
+			expectedEnabled:       false,
+			expectedLevel:         "",
+			expectedJudgeProvider: "",
 		},
 		{
 			name: "clarification detection not specified (defaults)",
@@ -274,13 +272,12 @@ agents:
   - name: test-agent
     provider: test-provider
 `,
-			expectedEnabled:        false,
-			expectedLevel:          "",
-			expectedUseBuiltin:     nil,
-			expectedCustomPatterns: nil,
+			expectedEnabled:       false,
+			expectedLevel:         "",
+			expectedJudgeProvider: "",
 		},
 		{
-			name: "clarification detection enabled without level (uses default)",
+			name: "clarification detection enabled without judge_provider",
 			yaml: `
 agents:
   - name: test-agent
@@ -288,60 +285,9 @@ agents:
     clarification_detection:
       enabled: true
 `,
-			expectedEnabled:        true,
-			expectedLevel:          "",
-			expectedUseBuiltin:     nil,
-			expectedCustomPatterns: nil,
-		},
-		{
-			name: "clarification detection with custom patterns",
-			yaml: `
-agents:
-  - name: test-agent
-    provider: test-provider
-    clarification_detection:
-      enabled: true
-      level: warning
-      custom_patterns:
-        - "(?i)¿te gustaría"
-        - "(?i)möchten sie"
-`,
-			expectedEnabled:        true,
-			expectedLevel:          "warning",
-			expectedUseBuiltin:     nil,
-			expectedCustomPatterns: []string{"(?i)¿te gustaría", "(?i)möchten sie"},
-		},
-		{
-			name: "clarification detection with use_builtin_patterns false",
-			yaml: `
-agents:
-  - name: test-agent
-    provider: test-provider
-    clarification_detection:
-      enabled: true
-      use_builtin_patterns: false
-      custom_patterns:
-        - "(?i)custom pattern"
-`,
-			expectedEnabled:        true,
-			expectedLevel:          "",
-			expectedUseBuiltin:     boolPtr(false),
-			expectedCustomPatterns: []string{"(?i)custom pattern"},
-		},
-		{
-			name: "clarification detection with use_builtin_patterns true explicitly",
-			yaml: `
-agents:
-  - name: test-agent
-    provider: test-provider
-    clarification_detection:
-      enabled: true
-      use_builtin_patterns: true
-`,
-			expectedEnabled:        true,
-			expectedLevel:          "",
-			expectedUseBuiltin:     boolPtr(true),
-			expectedCustomPatterns: nil,
+			expectedEnabled:       true,
+			expectedLevel:         "",
+			expectedJudgeProvider: "",
 		},
 	}
 
@@ -356,17 +302,8 @@ agents:
 				"ClarificationDetection.Enabled mismatch")
 			assert.Equal(t, tt.expectedLevel, agent.ClarificationDetection.Level,
 				"ClarificationDetection.Level mismatch")
-			if tt.expectedUseBuiltin == nil {
-				assert.Nil(t, agent.ClarificationDetection.UseBuiltinPatterns,
-					"ClarificationDetection.UseBuiltinPatterns should be nil")
-			} else {
-				require.NotNil(t, agent.ClarificationDetection.UseBuiltinPatterns,
-					"ClarificationDetection.UseBuiltinPatterns should not be nil")
-				assert.Equal(t, *tt.expectedUseBuiltin, *agent.ClarificationDetection.UseBuiltinPatterns,
-					"ClarificationDetection.UseBuiltinPatterns mismatch")
-			}
-			assert.Equal(t, tt.expectedCustomPatterns, agent.ClarificationDetection.CustomPatterns,
-				"ClarificationDetection.CustomPatterns mismatch")
+			assert.Equal(t, tt.expectedJudgeProvider, agent.ClarificationDetection.JudgeProvider,
+				"ClarificationDetection.JudgeProvider mismatch")
 		})
 	}
 }

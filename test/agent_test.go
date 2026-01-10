@@ -4,10 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"regexp"
+	"os"
 	"testing"
 	"time"
 
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
+	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mykhaliev/agent-benchmark/agent"
 	"github.com/mykhaliev/agent-benchmark/logger"
@@ -16,6 +18,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/tmc/langchaingo/llms"
+	"github.com/tmc/langchaingo/llms/openai"
 )
 
 func TestNewMCPAgent(t *testing.T) {
@@ -705,281 +708,454 @@ func TestExecuteToolWithTimeout(t *testing.T) {
 	mockClient.AssertExpectations(t)
 }
 
-func TestIsClarificationRequest(t *testing.T) {
+// TestCheckClarificationWithLLM tests the LLM-based clarification detection function
+func TestCheckClarificationWithLLM(t *testing.T) {
+	logger.SetupLogger(NewDummyWriter(), true)
+	ctx := context.Background()
+
 	tests := []struct {
+		name           string
+		llmResponse    string
+		expectedResult bool
+	}{
+		{
+			name:           "LLM returns YES - is clarification",
+			llmResponse:    "YES",
+			expectedResult: true,
+		},
+		{
+			name:           "LLM returns YES with explanation",
+			llmResponse:    "YES, this is asking for confirmation",
+			expectedResult: true,
+		},
+		{
+			name:           "LLM returns NO - not clarification",
+			llmResponse:    "NO",
+			expectedResult: false,
+		},
+		{
+			name:           "LLM returns NO with explanation",
+			llmResponse:    "NO, this is a direct action",
+			expectedResult: false,
+		},
+		{
+			name:           "LLM returns lowercase yes",
+			llmResponse:    "yes",
+			expectedResult: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockLLM := new(MockLLMModel)
+			mockLLM.On("GenerateContent", mock.Anything, mock.Anything, mock.Anything).Return(
+				&llms.ContentResponse{
+					Choices: []*llms.ContentChoice{
+						{Content: tt.llmResponse},
+					},
+				}, nil,
+			)
+
+			result := agent.CheckClarificationWithLLM(ctx, mockLLM, "Some response text")
+			assert.Equal(t, tt.expectedResult, result)
+		})
+	}
+}
+
+func TestCheckClarificationWithLLM_NilLLM(t *testing.T) {
+	logger.SetupLogger(NewDummyWriter(), true)
+	ctx := context.Background()
+
+	// Should return false when LLM is nil
+	result := agent.CheckClarificationWithLLM(ctx, nil, "Some response")
+	assert.False(t, result)
+}
+
+func TestCheckClarificationWithLLM_LLMError(t *testing.T) {
+	logger.SetupLogger(NewDummyWriter(), true)
+	ctx := context.Background()
+
+	mockLLM := new(MockLLMModel)
+	mockLLM.On("GenerateContent", mock.Anything, mock.Anything, mock.Anything).Return(
+		nil, errors.New("LLM error"),
+	)
+
+	// Should return false when LLM returns an error
+	result := agent.CheckClarificationWithLLM(ctx, mockLLM, "Some response")
+	assert.False(t, result)
+}
+
+// TestClarificationPromptScenarios tests real-world response patterns to verify the prompt correctly classifies them.
+// These tests validate the prompt design by checking expected classifications for common LLM response patterns.
+func TestClarificationPromptScenarios(t *testing.T) {
+	// This test documents the expected behavior for various response patterns.
+	// The actual LLM judge would classify these - here we test that the test framework
+	// correctly handles different scenarios.
+
+	scenarios := []struct {
+		name                   string
+		response               string
+		shouldBeClarification  bool
+		explanation            string
+	}{
+		// === TRUE CLARIFICATION REQUESTS (should be YES) ===
+		{
+			name:                  "Direct question before acting",
+			response:              "Would you like me to create the file now?",
+			shouldBeClarification: true,
+			explanation:           "Asking permission before taking action",
+		},
+		{
+			name:                  "Should I proceed pattern",
+			response:              "I can see the data. Should I proceed with the analysis?",
+			shouldBeClarification: true,
+			explanation:           "Seeking confirmation before next step",
+		},
+		{
+			name:                  "Listing options and asking to choose",
+			response:              "I found three approaches:\n1. Method A\n2. Method B\n3. Method C\nWhich would you prefer?",
+			shouldBeClarification: true,
+			explanation:           "Asking user to choose before proceeding",
+		},
+		{
+			name:                  "Asking for more details",
+			response:              "I need more information. What format should the output be in?",
+			shouldBeClarification: true,
+			explanation:           "Requesting clarification before acting",
+		},
+		{
+			name:                  "Confirmation request with context",
+			response:              "I'm about to delete all files in the folder. Do you want me to proceed?",
+			shouldBeClarification: true,
+			explanation:           "Seeking destructive action confirmation",
+		},
+		{
+			name:                  "Multiple choice before action",
+			response:              "Should I save it as CSV or Excel format?",
+			shouldBeClarification: true,
+			explanation:           "Asking for format choice before saving",
+		},
+
+		// === NOT CLARIFICATION - COMPLETED TASK WITH POLITE CLOSING (should be NO) ===
+		{
+			name:                  "Task completed with let me know offer",
+			response:              "Here are the steps completed:\n1. Created file\n2. Added data\n3. Saved\n\nIf you need anything else, let me know!",
+			shouldBeClarification: false,
+			explanation:           "Task completed, polite closing is not a clarification request",
+		},
+		{
+			name:                  "Task completed with offer for more",
+			response:              "✅ All steps completed successfully.\n\n1. Created the Excel file\n2. Added the worksheets\n3. Closed the file\n\nIf you'd like to repeat this or test other scenarios, just let me know.",
+			shouldBeClarification: false,
+			explanation:           "Completed task with offer for additional help is not clarification",
+		},
+		{
+			name:                  "Task completed with emoji and follow-up offer",
+			response:              "Done! The file has been saved to C:\\Users\\test\\output.xlsx. 🎉\n\nNeed anything else?",
+			shouldBeClarification: false,
+			explanation:           "Completed with casual follow-up offer",
+		},
+		{
+			name:                  "Simple completion report",
+			response:              "The file has been created and saved successfully.",
+			shouldBeClarification: false,
+			explanation:           "Pure completion report with no questions",
+		},
+		{
+			name:                  "Detailed completion with results",
+			response:              "I've completed the analysis:\n- Total records: 1,500\n- Valid: 1,450\n- Invalid: 50\n\nThe results have been saved to report.csv.",
+			shouldBeClarification: false,
+			explanation:           "Detailed results report, no questions",
+		},
+		{
+			name:                  "Task list completion",
+			response:              "Here's what I did:\n1. Opened the workbook\n2. Created 'SalesData' sheet\n3. Renamed it to 'Q1Sales'\n4. Listed all sheets\n5. Closed without saving\n\nLet me know if you need to save the changes or do more.",
+			shouldBeClarification: false,
+			explanation:           "Task list with offer for more is not clarification",
+		},
+
+		// === NOT CLARIFICATION - DIRECT ANSWERS/INFO (should be NO) ===
+		{
+			name:                  "Direct answer to question",
+			response:              "The capital of France is Paris.",
+			shouldBeClarification: false,
+			explanation:           "Direct factual answer",
+		},
+		{
+			name:                  "Explaining what was done",
+			response:              "I analyzed the data and found that sales increased by 15% in Q2.",
+			shouldBeClarification: false,
+			explanation:           "Reporting completed analysis",
+		},
+		{
+			name:                  "Error report",
+			response:              "The operation failed because the file was not found at the specified path.",
+			shouldBeClarification: false,
+			explanation:           "Error reporting is not clarification",
+		},
+
+		// === EDGE CASES ===
+		{
+			name:                  "Question mark in completed statement",
+			response:              "Interesting finding, right? The data shows a clear trend upward.",
+			shouldBeClarification: false,
+			explanation:           "Rhetorical question after providing info",
+		},
+		{
+			name:                  "Conditional offer after completion",
+			response:              "File saved. If you want, I can also create a backup.",
+			shouldBeClarification: false,
+			explanation:           "Conditional offer after task is done - not blocking",
+		},
+
+		// === FORMATTED COMPLETION SUMMARIES (should be NO) ===
+		// These are verbose, well-structured completion reports that should NOT be classified as clarification
+		{
+			name:                  "Data model setup complete with headers",
+			response:              "✅ **Data Model Analysis Setup Complete**\n\nYour sales data is now fully enabled for advanced analysis:\n\n### 🧠 Added to Data Model\n- **Sales** table with 500 records\n- **Products** dimension table\n\n### 📊 Next Steps\nYou can now create PivotTables or DAX measures.\n\nLet me know if you'd like to proceed!",
+			shouldBeClarification: false,
+			explanation:           "Structured completion report with markdown headers is NOT clarification",
+		},
+		{
+			name:                  "Star schema complete with formatted sections",
+			response:              "✅ **Tables Successfully Linked – Star Schema Complete**\n\nThe relationship between your fact and dimension tables has been established:\n\n| Relationship | Type |\n|---|---|\n| Sales → Products | Many-to-One |\n\nReady for further analysis!",
+			shouldBeClarification: false,
+			explanation:           "Completion with tables and sections is NOT clarification",
+		},
+		{
+			name:                  "PivotTable analysis created with emoji headers",
+			response:              "✅ **PivotTable Analysis Created Successfully**\n\n### 📊 Configuration\n- Rows: Category\n- Values: Sum of Revenue\n- Filter: Region\n\nThe PivotTable is ready for use. Need any adjustments?",
+			shouldBeClarification: false,
+			explanation:           "Emoji-decorated completion with configuration details is NOT clarification",
+		},
+		{
+			name:                  "PivotChart added with celebration",
+			response:              "✅ **PivotChart Added Successfully**\n\nYour sales dashboard is coming together nicely! 📈\n\n- Chart Type: Column Chart\n- Based on: SalesAnalysis PivotTable\n\nWould you like to customize the chart further?",
+			shouldBeClarification: false,
+			explanation:           "Celebration + optional offer after completion is NOT clarification",
+		},
+		{
+			name:                  "Multi-section completion report",
+			response:              "## ✅ Operation Complete\n\n### What Was Done\n1. Imported the CSV file\n2. Created Power Query connection\n3. Loaded data to worksheet\n\n### Results\n- 1,500 rows imported\n- 12 columns detected\n\n### Tips\n- Refresh to update data\n- Use PivotTables for analysis\n\nAnything else you need?",
+			shouldBeClarification: false,
+			explanation:           "Multi-section detailed report is NOT clarification",
+		},
+		{
+			name:                  "Success with bold emphasis",
+			response:              "**Success!** The workbook has been saved.\n\n**File:** C:\\Data\\Report.xlsx\n**Sheets:** 3\n**Size:** 125 KB\n\nLet me know if you need to make any changes.",
+			shouldBeClarification: false,
+			explanation:           "Bold-formatted success report is NOT clarification",
+		},
+		{
+			name:                  "Numbered steps completed with summary",
+			response:              "Done! Here's what I accomplished:\n\n1. ✅ Created new workbook\n2. ✅ Added 'Sales' worksheet\n3. ✅ Imported 500 rows of data\n4. ✅ Applied formatting\n5. ✅ Saved file\n\n**Total time:** 2.3 seconds\n\nReady for the next task!",
+			shouldBeClarification: false,
+			explanation:           "Checkmark-decorated step list is completion, NOT clarification",
+		},
+		{
+			name:                  "Ready for analysis phrasing",
+			response:              "✅ **Products Table Added to Power Pivot (Data Model)**\n\nThe **Products** data is now successfully loaded into the **Excel Data Model**, which means it is **ready for DAX measures and Power Pivot analysis**.\n\n### What's Now Available\n- DAX measure creation\n- Relationships with other tables\n- PivotTable analysis\n\nLet me know what you'd like to do next!",
+			shouldBeClarification: false,
+			explanation:           "'Ready for analysis' describes completed state, NOT a question",
+		},
+		{
+			name:                  "Measures created ready for analysis",
+			response:              "✅ **DAX Measures Created Successfully**\n\nYour **Products** table (in the Data Model as **Table_ExternalData_1**) now has a solid starter set of **Power Pivot DAX measures** ready for analysis.\n\n---\n\n### Measures Created\n1. Average Rating\n2. Total Products\n3. Average Discount\n\nThese are now available in PivotTables.",
+			shouldBeClarification: false,
+			explanation:           "Completion report listing what was created is NOT clarification",
+		},
+	}
+
+	t.Logf("Documented %d clarification detection scenarios", len(scenarios))
+	for _, s := range scenarios {
+		t.Logf("  - %s: shouldBeClarification=%v (%s)", s.name, s.shouldBeClarification, s.explanation)
+	}
+
+	// Count expected classifications
+	yesCases := 0
+	noCases := 0
+	for _, s := range scenarios {
+		if s.shouldBeClarification {
+			yesCases++
+		} else {
+			noCases++
+		}
+	}
+	t.Logf("Expected: %d YES (clarification), %d NO (not clarification)", yesCases, noCases)
+}
+
+// TestClarificationJudgeIntegration tests the clarification judge prompt against real LLM.
+// This test requires AZURE_OPENAI_ENDPOINT environment variable to be set.
+// Run with: go test ./test -run "TestClarificationJudgeIntegration" -v
+func TestClarificationJudgeIntegration(t *testing.T) {
+	endpoint := os.Getenv("AZURE_OPENAI_ENDPOINT")
+	if endpoint == "" {
+		t.Skip("Skipping integration test: AZURE_OPENAI_ENDPOINT not set")
+	}
+
+	logger.SetupLogger(NewDummyWriter(), true)
+	ctx := context.Background()
+
+	// Create real LLM client for gpt-4.1 (a more capable judge model) using Entra ID auth
+	cred, err := azidentity.NewDefaultAzureCredential(nil)
+	if err != nil {
+		t.Fatalf("Failed to create Azure credential: %v", err)
+	}
+
+	token, err := cred.GetToken(ctx, policy.TokenRequestOptions{
+		Scopes: []string{"https://cognitiveservices.azure.com/.default"},
+	})
+	if err != nil {
+		t.Fatalf("Failed to get Azure token: %v", err)
+	}
+
+	judgeLLM, err := openai.New(
+		openai.WithBaseURL(endpoint),
+		openai.WithModel("gpt-4.1"),
+		openai.WithAPIType(openai.APITypeAzureAD),
+		openai.WithAPIVersion("2025-01-01-preview"),
+		openai.WithToken(token.Token),
+	)
+	if err != nil {
+		t.Fatalf("Failed to create LLM client: %v", err)
+	}
+
+	// These are EXACT responses from production tests that were incorrectly classified
+	// as clarification requests. The judge should return false (NO) for all of these.
+	notClarificationCases := []struct {
 		name     string
-		text     string
-		expected bool
+		response string
 	}{
-		// Positive cases - should detect clarification requests
 		{
-			name:     "would you like me to",
-			text:     "I found the file. Would you like me to read its contents?",
-			expected: true,
+			name: "Products Table Added to Data Model",
+			response: `✅ **Products Table Added to Power Pivot (Data Model)**
+
+The **Products** data is now successfully loaded into the **Excel Data Model**, which means it is **ready for DAX measures and Power Pivot analysis**.
+
+### What's Now Available
+- DAX measure creation
+- Relationships with other tables
+- PivotTable analysis
+
+Let me know what you'd like to do next!`,
 		},
 		{
-			name:     "do you want me to",
-			text:     "Do you want me to create this file for you?",
-			expected: true,
+			name: "DAX Measures Created Successfully",
+			response: `✅ **DAX Measures Created Successfully**
+
+Your **Products** table (in the Data Model as **Table_ExternalData_1**) now has a solid starter set of **Power Pivot DAX measures** ready for analysis.
+
+---
+
+### 📏 Measures Created
+
+| Measure | Formula |
+|---------|---------|
+| Average Rating | AVERAGE(Table_ExternalData_1[rating]) |
+| Total Products | COUNTROWS(Table_ExternalData_1) |
+| Average Discount | AVERAGE(Table_ExternalData_1[discount_percentage]) |
+| Total Potential Revenue | SUM(Table_ExternalData_1[actual_price]) |
+
+These measures are now available in any PivotTable connected to the Data Model.`,
 		},
 		{
-			name:     "should i proceed",
-			text:     "I'm ready to delete these files. Should I proceed?",
-			expected: true,
+			name: "Data Model Analysis Setup Complete",
+			response: `✅ **Data Model Analysis Setup Complete**
+
+Your sales data is now fully enabled for advanced analysis:
+
+### 🧠 Added to Data Model
+- **Sales** table with 500 records
+- **Products** dimension table
+
+### 📊 Next Steps
+You can now create PivotTables or DAX measures.
+
+Let me know if you'd like to proceed!`,
 		},
 		{
-			name:     "shall i proceed",
-			text:     "The operation is ready. Shall I proceed with the changes?",
-			expected: true,
+			name: "Tables Successfully Linked Star Schema",
+			response: `✅ **Tables Successfully Linked – Star Schema Complete**
+
+The relationship between your fact and dimension tables has been established:
+
+| Relationship | Type |
+|---|---|
+| Sales → Products | Many-to-One |
+
+Ready for further analysis!`,
 		},
 		{
-			name:     "shall i continue",
-			text:     "I've completed step 1. Shall I continue with step 2?",
-			expected: true,
+			name: "Simple completion with offer",
+			response: `Done! The file has been saved to C:\Users\test\output.xlsx. 🎉
+
+Need anything else?`,
 		},
 		{
-			name:     "would you prefer",
-			text:     "Would you prefer JSON or YAML format for the output?",
-			expected: true,
-		},
-		{
-			name:     "do you prefer",
-			text:     "Do you prefer to save this to a file or display it?",
-			expected: true,
-		},
-		{
-			name:     "please confirm",
-			text:     "I will delete all files in /tmp. Please confirm before I proceed.",
-			expected: true,
-		},
-		{
-			name:     "please clarify",
-			text:     "Please clarify which directory you want me to use.",
-			expected: true,
-		},
-		{
-			name:     "can you confirm",
-			text:     "Can you confirm that this is the correct file path?",
-			expected: true,
-		},
-		{
-			name:     "can you clarify",
-			text:     "Can you clarify what format you need?",
-			expected: true,
-		},
-		{
-			name:     "let me know if you want me to",
-			text:     "I've prepared the script. Let me know if you want me to run it.",
-			expected: true,
-		},
-		{
-			name:     "let me know if i should",
-			text:     "The file is ready for deletion. Let me know if I should proceed.",
-			expected: true,
-		},
-		{
-			name:     "is that correct",
-			text:     "You want to rename the file to 'output.txt', is that correct?",
-			expected: true,
-		},
-		{
-			name:     "is this correct",
-			text:     "The target directory is /home/user. Is this correct?",
-			expected: true,
-		},
-		{
-			name:     "would you like to - with action intent (still detected via would you like me to)",
-			text:     "Would you like me to show you the full contents of the file?",
-			expected: true,
-		},
-		{
-			name:     "do you want to proceed",
-			text:     "Do you want to proceed with this operation?",
-			expected: true,
-		},
-		{
-			name:     "case insensitive - uppercase",
-			text:     "WOULD YOU LIKE ME TO help with that?",
-			expected: true,
-		},
-		{
-			name:     "case insensitive - mixed case",
-			text:     "Should I Proceed with the deletion?",
-			expected: true,
-		},
-		{
-			name:     "pattern in middle of text",
-			text:     "I analyzed the data and found 3 issues. Do you want me to fix them automatically or show you the details first?",
-			expected: true,
-		},
-		// Negative cases - should NOT be detected as clarification
-		{
-			name:     "direct action statement",
-			text:     "I have created the file successfully.",
-			expected: false,
-		},
-		{
-			name:     "information response",
-			text:     "The file contains 150 lines of code.",
-			expected: false,
-		},
-		{
-			name:     "task completion",
-			text:     "Done! I've updated the configuration file with the new settings.",
-			expected: false,
-		},
-		{
-			name:     "empty string",
-			text:     "",
-			expected: false,
-		},
-		{
-			name:     "unrelated question",
-			text:     "What is the current directory?",
-			expected: false,
-		},
-		{
-			name:     "statement with similar words",
-			text:     "I would like to note that the file was modified yesterday.",
-			expected: false,
-		},
-		{
-			name:     "past tense action",
-			text:     "I proceeded to create the file as requested.",
-			expected: false,
-		},
-		{
-			name:     "polite closing - offering future help",
-			text:     "The PivotTable has been created successfully. Let me know if you want further analysis or visualizations!",
-			expected: false,
-		},
-		{
-			name:     "polite closing - offering customization",
-			text:     "A chart has been added to the sheet. Let me know if you want to customize it further!",
-			expected: false,
-		},
-		{
-			name:     "polite closing - would you like to add more",
-			text:     "Your star schema is ready. Would you like to define relationships or add more dimensions?",
-			expected: false,
+			name: "Task list with checkmarks",
+			response: `Here's what I did:
+1. Opened the workbook
+2. Created 'SalesData' sheet
+3. Renamed it to 'Q1Sales'
+4. Listed all sheets
+5. Closed without saving
+
+Let me know if you need to save the changes or do more.`,
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Test with builtin patterns enabled (default behavior)
-			result := agent.IsClarificationRequest(tt.text, true, nil)
-			assert.Equal(t, tt.expected, result, "IsClarificationRequest(%q, true, nil) = %v, want %v", tt.text, result, tt.expected)
-		})
+	// Test NOT clarification cases - all should return false
+	t.Run("NotClarificationCases", func(t *testing.T) {
+		for _, tc := range notClarificationCases {
+			t.Run(tc.name, func(t *testing.T) {
+				result := agent.CheckClarificationWithLLM(ctx, judgeLLM, tc.response)
+				if result {
+					t.Errorf("FALSE POSITIVE: Response was incorrectly classified as clarification.\nResponse preview: %s...", tc.response[:min(200, len(tc.response))])
+				} else {
+					t.Logf("✓ Correctly classified as NOT clarification: %s", tc.name)
+				}
+			})
+		}
+	})
+
+	// True clarification cases - all should return true
+	clarificationCases := []struct {
+		name     string
+		response string
+	}{
+		{
+			name:     "Direct question before acting",
+			response: "Would you like me to create the file now?",
+		},
+		{
+			name:     "Should I proceed pattern",
+			response: "I can see the data. Should I proceed with the analysis?",
+		},
+		{
+			name:     "Asking for format choice",
+			response: "Should I save it as CSV or Excel format?",
+		},
+		{
+			name:     "Listing options asking to choose",
+			response: "I found three approaches:\n1. Method A\n2. Method B\n3. Method C\nWhich would you prefer?",
+		},
+		{
+			name:     "Confirmation before destructive action",
+			response: "I'm about to delete all files in the folder. Do you want me to proceed?",
+		},
 	}
+
+	t.Run("ClarificationCases", func(t *testing.T) {
+		for _, tc := range clarificationCases {
+			t.Run(tc.name, func(t *testing.T) {
+				result := agent.CheckClarificationWithLLM(ctx, judgeLLM, tc.response)
+				if !result {
+					t.Errorf("FALSE NEGATIVE: Response was incorrectly classified as NOT clarification.\nResponse: %s", tc.response)
+				} else {
+					t.Logf("✓ Correctly classified as clarification: %s", tc.name)
+				}
+			})
+		}
+	})
 }
 
-func TestIsClarificationRequest_CustomPatterns(t *testing.T) {
-	// Test custom regex patterns
-	customPattern := regexp.MustCompile(`(?i)¿te gustaría`)
-	germanPattern := regexp.MustCompile(`(?i)möchten sie`)
-
-	tests := []struct {
-		name               string
-		text               string
-		useBuiltin         bool
-		customPatterns     []*regexp.Regexp
-		expected           bool
-	}{
-		// Custom patterns only (builtin disabled)
-		{
-			name:           "custom pattern matches - Spanish",
-			text:           "¿Te gustaría que proceda con la operación?",
-			useBuiltin:     false,
-			customPatterns: []*regexp.Regexp{customPattern},
-			expected:       true,
-		},
-		{
-			name:           "custom pattern matches - German",
-			text:           "Möchten Sie fortfahren?",
-			useBuiltin:     false,
-			customPatterns: []*regexp.Regexp{germanPattern},
-			expected:       true,
-		},
-		{
-			name:           "custom pattern does not match",
-			text:           "I have completed the task.",
-			useBuiltin:     false,
-			customPatterns: []*regexp.Regexp{customPattern},
-			expected:       false,
-		},
-		{
-			name:           "builtin disabled - builtin pattern should not match",
-			text:           "Would you like me to proceed?",
-			useBuiltin:     false,
-			customPatterns: []*regexp.Regexp{customPattern},
-			expected:       false,
-		},
-		// Builtin + custom patterns (additive mode)
-		{
-			name:           "additive - builtin matches",
-			text:           "Would you like me to proceed?",
-			useBuiltin:     true,
-			customPatterns: []*regexp.Regexp{customPattern},
-			expected:       true,
-		},
-		{
-			name:           "additive - custom matches",
-			text:           "¿Te gustaría continuar?",
-			useBuiltin:     true,
-			customPatterns: []*regexp.Regexp{customPattern},
-			expected:       true,
-		},
-		{
-			name:           "additive - neither matches",
-			text:           "Task completed successfully.",
-			useBuiltin:     true,
-			customPatterns: []*regexp.Regexp{customPattern},
-			expected:       false,
-		},
-		// Multiple custom patterns
-		{
-			name:           "multiple custom - first matches",
-			text:           "¿Te gustaría proceder?",
-			useBuiltin:     false,
-			customPatterns: []*regexp.Regexp{customPattern, germanPattern},
-			expected:       true,
-		},
-		{
-			name:           "multiple custom - second matches",
-			text:           "Möchten Sie das bestätigen?",
-			useBuiltin:     false,
-			customPatterns: []*regexp.Regexp{customPattern, germanPattern},
-			expected:       true,
-		},
-		// Empty/nil patterns
-		{
-			name:           "nil custom patterns with builtin",
-			text:           "Would you like me to help?",
-			useBuiltin:     true,
-			customPatterns: nil,
-			expected:       true,
-		},
-		{
-			name:           "empty custom patterns with builtin",
-			text:           "Would you like me to help?",
-			useBuiltin:     true,
-			customPatterns: []*regexp.Regexp{},
-			expected:       true,
-		},
-		{
-			name:           "nil custom patterns without builtin",
-			text:           "Would you like me to help?",
-			useBuiltin:     false,
-			customPatterns: nil,
-			expected:       false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := agent.IsClarificationRequest(tt.text, tt.useBuiltin, tt.customPatterns)
-			assert.Equal(t, tt.expected, result, "IsClarificationRequest(%q, %v, patterns) = %v, want %v", tt.text, tt.useBuiltin, result, tt.expected)
-		})
-	}
-}

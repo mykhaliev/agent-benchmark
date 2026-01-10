@@ -1019,29 +1019,12 @@ This assertion checks if the provider returned any 429 errors during execution. 
 ### Behavior Assertions
 
 #### no_clarification_questions
-Verify the agent executed tasks directly without asking for clarification. Requires `clarification_detection` to be enabled on the agent:
+Verify the agent executed tasks directly without asking for clarification. Requires [`clarification_detection`](docs/clarification-detection.md) to be enabled on the agent:
 
 ```yaml
-agents:
-  - name: my-agent
-    provider: my-provider
-    clarification_detection:
-      enabled: true
-      use_builtin_patterns: true
-
-sessions:
-  - name: Test Session
-    tests:
-      - name: Direct execution test
-        prompt: "Create a file called test.txt"
-        assertions:
-          - type: no_clarification_questions
+assertions:
+  - type: no_clarification_questions
 ```
-
-This assertion fails if the agent asks questions like:
-- "Would you like me to proceed?"
-- "Should I create the file now?"
-- "Do you want me to continue?"
 
 ---
 
@@ -1940,81 +1923,18 @@ Session Start
 
 ### Clarification Request Detection
 
-The agent can detect when an LLM asks for clarification instead of taking action. This is a common issue where LLMs respond with questions like:
-
-- "Would you like me to..."
-- "Do you want me to..."
-- "Should I proceed..."
-- "Please confirm..."
-
-This feature is **disabled by default** and can be enabled per agent using the `clarification_detection` configuration.
-
-**Configuration:**
+The agent can detect when an LLM asks for clarification instead of taking action (e.g., "Would you like me to...", "Should I proceed..."). This feature uses LLM-based semantic classification for accurate detection across any language.
 
 ```yaml
 agents:
   - name: autonomous-agent
     provider: my-provider
     clarification_detection:
-      enabled: true              # Enable detection (default: false)
-      level: warning             # Log level: "info", "warning", or "error" (default: "warning")
-      use_builtin_patterns: true # Use builtin detection patterns (default: true)
-      custom_patterns:           # Additional regex patterns (optional)
-        - "(?i)¿te gustaría"     # Spanish clarification
-        - "(?i)möchten sie"      # German clarification
-    servers:
-      - name: my-server
-```
-
-**Configuration Options:**
-
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `enabled` | bool | `false` | Enable clarification detection |
-| `level` | string | `"warning"` | Log level: `info`, `warning`, or `error` |
-| `use_builtin_patterns` | bool | `true` | Use the 16 builtin English detection patterns |
-| `custom_patterns` | list | `[]` | Additional regex patterns for detection |
-
-**Log Levels:**
-
-| Level | Behavior |
-|-------|----------|
-| `info` | Logs detection at INFO level, does NOT record as error |
-| `warning` | Logs at WARN level and records in test errors (default) |
-| `error` | Logs at ERROR level and records in test errors |
-
-**Custom Patterns:**
-
-Custom patterns are **additive** by default - they are checked in addition to the builtin patterns. To use **only** custom patterns, set `use_builtin_patterns: false`:
-
-```yaml
-agents:
-  - name: multilingual-agent
-    provider: my-provider
-    clarification_detection:
       enabled: true
-      use_builtin_patterns: false  # Disable builtin English patterns
-      custom_patterns:
-        - "(?i)¿desea que"         # Spanish: "Do you want me to"
-        - "(?i)möchten sie dass"   # German: "Would you like me to"
-        - "(?i)voulez-vous que"    # French: "Do you want me to"
+      judge_provider: azure-openai-judge  # Recommend gpt-4.1 for best accuracy
 ```
 
-**Tip:** Combine with `system_prompt` to instruct the LLM to act autonomously:
-
-```yaml
-agents:
-  - name: autonomous-agent
-    provider: my-provider
-    system_prompt: |
-      Execute tasks directly without asking for confirmation.
-      Do not ask "Would you like me to..." or "Should I proceed...".
-    clarification_detection:
-      enabled: true
-      level: error  # Treat clarification requests as errors
-    servers:
-      - name: my-server
-```
+For full documentation, see [docs/clarification-detection.md](docs/clarification-detection.md).
 
 ## License
 

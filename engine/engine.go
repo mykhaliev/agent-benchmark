@@ -6,7 +6,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -117,7 +116,7 @@ func Run(testPath *string, verbose *bool, suitePath *string, reportFileName *str
 
 		// Run tests
 		logger.Logger.Info("Starting test execution")
-		testResults := runTests(ctx, testConfig, agents, maxIterations, toolTimeout, testDelay, *testPath, "")
+		testResults := runTests(ctx, testConfig, agents, providers, maxIterations, toolTimeout, testDelay, *testPath, "")
 		results = append(results, testResults...)
 		if len(testResults) > 0 {
 			criteria = testResults[0].TestCriteria
@@ -230,7 +229,7 @@ func Run(testPath *string, verbose *bool, suitePath *string, reportFileName *str
 				"tests", totalTests)
 			// Run tests
 			logger.Logger.Info("Starting test execution")
-			testResults := runTests(ctx, testConfig, agents, maxIterations, toolTimeout, testDelay, testFile, testSuiteConfig.Name)
+			testResults := runTests(ctx, testConfig, agents, providers, maxIterations, toolTimeout, testDelay, testFile, testSuiteConfig.Name)
 			results = append(results, testResults...)
 		}
 		criteria = testSuiteConfig.TestCriteria
@@ -821,6 +820,7 @@ func runTests(
 	ctx context.Context,
 	testConfig *model.TestConfiguration,
 	agents map[string]*agent.MCPAgent,
+	providers map[string]llms.Model,
 	maxIterations int,
 	toolTimeout time.Duration,
 	testDelay time.Duration,
@@ -964,26 +964,42 @@ func runTests(
 				// Get agent definition for config
 				agentDef := agentDefMap[agentConfig.Name]
 
-				// Compile custom clarification patterns
-				customPatterns := CompileClarificationPatterns(agentDef.ClarificationDetection.CustomPatterns)
-
-				// Determine if builtin patterns should be used (default: true)
-				useBuiltinPatterns := true
-				if agentDef.ClarificationDetection.UseBuiltinPatterns != nil {
-					useBuiltinPatterns = *agentDef.ClarificationDetection.UseBuiltinPatterns
+				// Resolve judge LLM for clarification detection
+				var judgeLLM llms.Model
+				if agentDef.ClarificationDetection.Enabled {
+					judgeProvider := agentDef.ClarificationDetection.JudgeProvider
+					if judgeProvider == "" {
+						logger.Logger.Error("Clarification detection enabled but judge_provider not specified",
+							"agent", agentConfig.Name)
+					} else if judgeProvider == "$self" {
+						// Use the agent's own LLM as the judge
+						judgeLLM = ag.LLMModel
+						logger.Logger.Debug("Using agent's LLM as clarification judge", "agent", agentConfig.Name)
+					} else {
+						// Look up the specified provider
+						if providerLLM, ok := providers[judgeProvider]; ok {
+							judgeLLM = providerLLM
+							logger.Logger.Debug("Using separate provider for clarification judge",
+								"agent", agentConfig.Name,
+								"judge_provider", judgeProvider)
+						} else {
+							logger.Logger.Error("Clarification judge provider not found",
+								"agent", agentConfig.Name,
+								"judge_provider", judgeProvider)
+						}
+					}
 				}
 
 				// Execute test
 				startTime := time.Now()
 				executionResult := ag.GenerateContentWithConfig(ctx, &msgs, agent.AgentConfig{
-					MaxIterations:                   maxIterations,
-					ToolTimeout:                     toolTimeout,
-					AddNotFinalResponses:            true,
-					Verbose:                         testConfig.Settings.Verbose,
-					ClarificationDetectionEnabled:   agentDef.ClarificationDetection.Enabled,
-					ClarificationDetectionLevel:     agent.ClarificationLevel(agentDef.ClarificationDetection.Level),
-					ClarificationUseBuiltinPatterns: useBuiltinPatterns,
-					ClarificationCustomPatterns:     customPatterns,
+					MaxIterations:                 maxIterations,
+					ToolTimeout:                   toolTimeout,
+					AddNotFinalResponses:          true,
+					Verbose:                       testConfig.Settings.Verbose,
+					ClarificationDetectionEnabled: agentDef.ClarificationDetection.Enabled,
+					ClarificationDetectionLevel:   agent.ClarificationLevel(agentDef.ClarificationDetection.Level),
+					ClarificationJudgeLLM:         judgeLLM,
 				}, testTools)
 				executionResult.TestName = test.Name
 				executionResult.SourceFile = sourceFile
@@ -1316,30 +1332,4 @@ func GetServerNames(servers []model.AgentServer) []string {
 		names[i] = s.Name
 	}
 	return names
-}
-
-// CompileClarificationPatterns compiles a list of regex pattern strings into regexp.Regexp objects.
-// Invalid patterns are logged and skipped.
-func CompileClarificationPatterns(patterns []string) []*regexp.Regexp {
-	if len(patterns) == 0 {
-		return nil
-	}
-
-	compiled := make([]*regexp.Regexp, 0, len(patterns))
-	for _, pattern := range patterns {
-		re, err := regexp.Compile(pattern)
-		if err != nil {
-			logger.Logger.Error("Invalid clarification detection pattern",
-				"pattern", pattern,
-				"error", err)
-			continue
-		}
-		compiled = append(compiled, re)
-	}
-
-	if len(compiled) > 0 {
-		logger.Logger.Debug("Compiled custom clarification patterns", "count", len(compiled))
-	}
-
-	return compiled
 }
