@@ -1283,6 +1283,129 @@ func TestAssertionEvaluator_NoHallucinatedTools(t *testing.T) {
 	}
 }
 
+func TestAssertionEvaluator_NoClarificationQuestions(t *testing.T) {
+	tests := []struct {
+		name               string
+		clarificationStats *model.ClarificationStats
+		wantPassed         bool
+		wantMessage        string
+	}{
+		{
+			name:               "No clarification stats (detection not enabled)",
+			clarificationStats: nil,
+			wantPassed:         true,
+			wantMessage:        "Warning: clarification_detection not enabled on agent - assertion skipped",
+		},
+		{
+			name: "No clarification questions detected",
+			clarificationStats: &model.ClarificationStats{
+				Count:      0,
+				Iterations: []int{},
+				Examples:   []string{},
+			},
+			wantPassed:  true,
+			wantMessage: "No clarification questions detected",
+		},
+		{
+			name: "One clarification question detected",
+			clarificationStats: &model.ClarificationStats{
+				Count:      1,
+				Iterations: []int{2},
+				Examples:   []string{"Would you like me to proceed?"},
+			},
+			wantPassed:  false,
+			wantMessage: "Agent asked for clarification 1 time(s)",
+		},
+		{
+			name: "Multiple clarification questions detected",
+			clarificationStats: &model.ClarificationStats{
+				Count:      3,
+				Iterations: []int{1, 3, 5},
+				Examples:   []string{"Should I continue?", "Do you want me to proceed?", "Is this correct?"},
+			},
+			wantPassed:  false,
+			wantMessage: "Agent asked for clarification 3 time(s)",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := &model.ExecutionResult{
+				ClarificationStats: tt.clarificationStats,
+			}
+			evaluator := model.NewAssertionEvaluator(result, map[string]string{}, []string{})
+
+			assertion := model.Assertion{Type: "no_clarification_questions"}
+			results := evaluator.Evaluate([]model.Assertion{assertion})
+			require.Len(t, results, 1)
+			assert.Equal(t, tt.wantPassed, results[0].Passed)
+			assert.Equal(t, tt.wantMessage, results[0].Message)
+		})
+	}
+}
+
+func TestAssertionEvaluator_NoRateLimitErrors(t *testing.T) {
+	tests := []struct {
+		name           string
+		rateLimitStats *model.RateLimitStats
+		wantPassed     bool
+		wantMessage    string
+	}{
+		{
+			name:           "No rate limit stats",
+			rateLimitStats: nil,
+			wantPassed:     true,
+			wantMessage:    "No rate limit errors (HTTP 429)",
+		},
+		{
+			name: "No rate limit errors",
+			rateLimitStats: &model.RateLimitStats{
+				RateLimitHits: 0,
+				RetryCount:    0,
+			},
+			wantPassed:  true,
+			wantMessage: "No rate limit errors (HTTP 429)",
+		},
+		{
+			name: "One rate limit error",
+			rateLimitStats: &model.RateLimitStats{
+				RateLimitHits:     1,
+				RetryCount:        1,
+				RetryWaitTimeMs:   5000,
+				RetrySuccessCount: 1,
+			},
+			wantPassed:  false,
+			wantMessage: "Received 1 rate limit error(s) (HTTP 429)",
+		},
+		{
+			name: "Multiple rate limit errors",
+			rateLimitStats: &model.RateLimitStats{
+				RateLimitHits:     3,
+				RetryCount:        5,
+				RetryWaitTimeMs:   15000,
+				RetrySuccessCount: 2,
+			},
+			wantPassed:  false,
+			wantMessage: "Received 3 rate limit error(s) (HTTP 429)",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := &model.ExecutionResult{
+				RateLimitStats: tt.rateLimitStats,
+			}
+			evaluator := model.NewAssertionEvaluator(result, map[string]string{}, []string{})
+
+			assertion := model.Assertion{Type: "no_rate_limit_errors"}
+			results := evaluator.Evaluate([]model.Assertion{assertion})
+			require.Len(t, results, 1)
+			assert.Equal(t, tt.wantPassed, results[0].Passed)
+			assert.Equal(t, tt.wantMessage, results[0].Message)
+		})
+	}
+}
+
 // ============================================================================
 // Boolean Combinator Tests (anyOf, allOf, not)
 // ============================================================================

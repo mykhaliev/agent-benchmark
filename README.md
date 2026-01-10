@@ -747,6 +747,46 @@ export WORKSPACE_PATH="/tmp/workspace"
 
 ---
 
+### Built-in Template Variables
+
+The framework provides built-in variables available in **all template contexts** (variables, server commands, prompts, assertions, system prompts):
+
+| Variable | Description |
+|----------|-------------|
+| `{{TEST_DIR}}` | Absolute path to the directory containing the test YAML file |
+| `{{AGENT_NAME}}` | Current agent name (context-dependent) |
+| `{{SESSION_NAME}}` | Current session name (context-dependent) |
+| `{{PROVIDER_NAME}}` | Provider name being used (context-dependent) |
+
+**Using TEST_DIR for Portable Paths:**
+
+`{{TEST_DIR}}` enables test configurations that work regardless of where the repository is cloned:
+
+```yaml
+variables:
+  # Paths relative to the test file location
+  data_dir: "{{TEST_DIR}}/test-data"
+  output_dir: "{{TEST_DIR}}/../TestResults"
+  mcp_server: "{{TEST_DIR}}/bin/my-server.exe"
+
+servers:
+  - name: filesystem
+    type: stdio
+    command: npx @modelcontextprotocol/server-filesystem {{output_dir}}
+
+  - name: custom-server
+    type: stdio
+    command: "{{mcp_server}}"
+
+sessions:
+  - name: File Tests
+    tests:
+      - name: Process test data
+        prompt: "Read files from {{data_dir}} and save results to {{output_dir}}"
+```
+
+---
+
 ## Assertions
 
 agent-benchmark provides 20+ assertion types to validate agent behavior:
@@ -935,6 +975,48 @@ Verify execution completed without errors:
 assertions:
   - type: no_error_messages
 ```
+
+#### no_rate_limit_errors
+Verify the test did not encounter any HTTP 429 rate limit errors:
+
+```yaml
+assertions:
+  - type: no_rate_limit_errors
+```
+
+This assertion checks if the provider returned any 429 errors during execution. It's useful for:
+- Ensuring tests stay within API quotas
+- Validating that rate limit configuration is adequate
+- Detecting when throttling is needed
+
+---
+
+### Behavior Assertions
+
+#### no_clarification_questions
+Verify the agent executed tasks directly without asking for clarification. Requires `clarification_detection` to be enabled on the agent:
+
+```yaml
+agents:
+  - name: my-agent
+    provider: my-provider
+    clarification_detection:
+      enabled: true
+      use_builtin_patterns: true
+
+sessions:
+  - name: Test Session
+    tests:
+      - name: Direct execution test
+        prompt: "Create a file called test.txt"
+        assertions:
+          - type: no_clarification_questions
+```
+
+This assertion fails if the agent asks questions like:
+- "Would you like me to proceed?"
+- "Should I create the file now?"
+- "Do you want me to continue?"
 
 ---
 

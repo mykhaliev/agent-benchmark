@@ -604,13 +604,13 @@ func CreateProvider(ctx context.Context, p model.Provider) (llms.Model, error) {
 			"rpm", p.RateLimits.RPM,
 			"retry_on_429", p.Retry.RetryOn429)
 		rateLimitedLLM := NewRateLimitedLLM(llmModel, p.RateLimits, p.Retry)
-		
+
 		// If we created a custom HTTP client for Retry-After header capture, link it
 		if retryAfterClient != nil {
 			rateLimitedLLM.SetRetryAfterProvider(retryAfterClient)
 			logger.Logger.Debug("Retry-After HTTP header capture enabled for provider", "name", p.Name)
 		}
-		
+
 		llmModel = rateLimitedLLM
 	}
 
@@ -854,6 +854,14 @@ func runTests(
 			templateCtx["AGENT_NAME"] = agentConfig.Name
 			templateCtx["SESSION_NAME"] = session.Name
 			templateCtx["PROVIDER_NAME"] = ag.Provider
+			// Add TEST_DIR: absolute path to the directory containing the test file
+			// Enables relative path references in templates (e.g., {{TEST_DIR}}/data)
+			if sourceFile != "" {
+				absPath, err := filepath.Abs(sourceFile)
+				if err == nil {
+					templateCtx["TEST_DIR"] = filepath.Dir(absPath)
+				}
+			}
 
 			// Initialize fresh message history for this session
 			msgs := make([]llms.MessageContent, 0)
@@ -955,7 +963,6 @@ func runTests(
 				executionResult.SourceFile = sourceFile
 				executionResult.SuiteName = suiteName
 				executionResult.SessionName = session.Name
-
 
 				duration := time.Since(startTime)
 
