@@ -966,6 +966,9 @@ func extractInt(v any) int {
 }
 
 // BuiltinClarificationPatterns contains the default patterns for detecting clarification requests.
+// These patterns detect when an LLM is asking for permission/confirmation BEFORE acting.
+// Patterns are intentionally specific to avoid false positives from polite closings like
+// "Let me know if you want anything else" which are offers AFTER task completion.
 var BuiltinClarificationPatterns = []string{
 	"would you like me to",
 	"do you want me to",
@@ -978,7 +981,8 @@ var BuiltinClarificationPatterns = []string{
 	"please clarify",
 	"can you confirm",
 	"can you clarify",
-	"let me know if",
+	"let me know if you want me to",  // More specific than "let me know if" to avoid false positives
+	"let me know if i should",        // More specific than "let me know if" to avoid false positives
 	"is that correct",
 	"is this correct",
 	"would you like to",
