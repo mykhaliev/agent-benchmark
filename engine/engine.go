@@ -76,8 +76,12 @@ func Run(testPath *string, verbose *bool, suitePath *string, reportFileName *str
 			"sessions", len(testConfig.Sessions),
 			"tests", totalTests)
 
+		// Create static template context early - includes env vars, TEST_DIR, user variables
+		// This enables templates like {{TEST_DIR}}/server.exe in server commands
+		staticCtx := CreateStaticTemplateContext(*testPath, testConfig.Variables)
+
 		// Initialize components using the passed context
-		providers, err := InitProviders(ctx, testConfig.Providers)
+		providers, err := InitProviders(ctx, testConfig.Providers, staticCtx)
 		if err != nil {
 			logger.Logger.Error("Failed to initialize providers", "error", err)
 			os.Exit(1)
@@ -86,7 +90,7 @@ func Run(testPath *string, verbose *bool, suitePath *string, reportFileName *str
 		// Collect required servers from agents
 		requiredServers := getRequiredServers(testConfig.Agents, testConfig.Servers)
 		// Initialize only required servers
-		mcpServers, err := InitServers(ctx, requiredServers)
+		mcpServers, err := InitServers(ctx, requiredServers, staticCtx)
 		if err != nil {
 			logger.Logger.Error("Failed to initialize servers", "error", err)
 			os.Exit(1)
@@ -144,8 +148,13 @@ func Run(testPath *string, verbose *bool, suitePath *string, reportFileName *str
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 		logger.Logger.Info("Running test suite", "name", testSuiteConfig.Name)
+
+		// Create static template context early - includes env vars, TEST_DIR, user variables
+		// For suite, TEST_DIR is relative to the suite file (not individual test files)
+		staticCtx := CreateStaticTemplateContext(*suitePath, testSuiteConfig.Variables)
+
 		// Initialize components using the passed context
-		providers, err := InitProviders(ctx, testSuiteConfig.Providers)
+		providers, err := InitProviders(ctx, testSuiteConfig.Providers, staticCtx)
 		if err != nil {
 			logger.Logger.Error("Failed to initialize providers", "error", err)
 			os.Exit(1)
@@ -155,7 +164,7 @@ func Run(testPath *string, verbose *bool, suitePath *string, reportFileName *str
 		requiredServers := getRequiredServers(testSuiteConfig.Agents, testSuiteConfig.Servers)
 
 		// Initialize only required servers
-		mcpServers, err := InitServers(ctx, requiredServers)
+		mcpServers, err := InitServers(ctx, requiredServers, staticCtx)
 		if err != nil {
 			logger.Logger.Error("Failed to initialize servers", "error", err)
 			os.Exit(1)
@@ -391,7 +400,7 @@ func ValidateReportType(reportType string) error {
 	return nil
 }
 
-func InitProviders(ctx context.Context, providerConfigs []model.Provider) (map[string]llms.Model, error) {
+func InitProviders(ctx context.Context, providerConfigs []model.Provider, templateCtx map[string]string) (map[string]llms.Model, error) {
 	if len(providerConfigs) == 0 {
 		return nil, fmt.Errorf("no providers to initialize")
 	}
@@ -400,18 +409,17 @@ func InitProviders(ctx context.Context, providerConfigs []model.Provider) (map[s
 	providers := make(map[string]llms.Model)
 
 	for i, p := range providerConfigs {
-		// resolve ENV variables
-		envs := model.GetAllEnv()
-		// replace ENVs in config
-		p.Name = model.RenderTemplate(p.Name, envs)
-		p.Token = model.RenderTemplate(p.Token, envs)
-		p.Model = model.RenderTemplate(p.Model, envs)
-		p.BaseURL = model.RenderTemplate(p.BaseURL, envs)
-		p.Version = model.RenderTemplate(p.Version, envs)
-		p.ProjectID = model.RenderTemplate(p.ProjectID, envs)
-		p.Location = model.RenderTemplate(p.Location, envs)
-		p.CredentialsPath = model.RenderTemplate(p.CredentialsPath, envs)
-		p.AuthType = model.RenderTemplate(p.AuthType, envs)
+		// Use provided template context (includes env vars, TEST_DIR, user variables)
+		// replace templates in config
+		p.Name = model.RenderTemplate(p.Name, templateCtx)
+		p.Token = model.RenderTemplate(p.Token, templateCtx)
+		p.Model = model.RenderTemplate(p.Model, templateCtx)
+		p.BaseURL = model.RenderTemplate(p.BaseURL, templateCtx)
+		p.Version = model.RenderTemplate(p.Version, templateCtx)
+		p.ProjectID = model.RenderTemplate(p.ProjectID, templateCtx)
+		p.Location = model.RenderTemplate(p.Location, templateCtx)
+		p.CredentialsPath = model.RenderTemplate(p.CredentialsPath, templateCtx)
+		p.AuthType = model.RenderTemplate(p.AuthType, templateCtx)
 		logger.Logger.Debug("Initializing provider",
 			"index", i+1,
 			"total", len(providerConfigs),
@@ -637,7 +645,7 @@ func SetServerFactory(factory ServerFactory) {
 	serverFactory = factory
 }
 
-func InitServers(ctx context.Context, serverConfigs []model.Server) (map[string]*server.MCPServer, error) {
+func InitServers(ctx context.Context, serverConfigs []model.Server, templateCtx map[string]string) (map[string]*server.MCPServer, error) {
 	if len(serverConfigs) == 0 {
 		return nil, fmt.Errorf("no servers to initialize")
 	}
@@ -646,20 +654,18 @@ func InitServers(ctx context.Context, serverConfigs []model.Server) (map[string]
 	servers := make(map[string]*server.MCPServer)
 
 	for i, s := range serverConfigs {
-		// resolve ENV variables
-		envs := model.GetAllEnv()
-		// replace ENVs in config
-		s.Name = model.RenderTemplate(s.Name, envs)
-		s.Command = model.RenderTemplate(s.Command, envs)
-		s.URL = model.RenderTemplate(s.URL, envs)
-		s.ServerDelay = model.RenderTemplate(s.ServerDelay, envs)
-		s.ProcessDelay = model.RenderTemplate(s.ProcessDelay, envs)
+		// Use provided template context (includes env vars, TEST_DIR, user variables)
+		// replace templates in config
+		s.Name = model.RenderTemplate(s.Name, templateCtx)
+		s.Command = model.RenderTemplate(s.Command, templateCtx)
+		s.URL = model.RenderTemplate(s.URL, templateCtx)
+		s.ServerDelay = model.RenderTemplate(s.ServerDelay, templateCtx)
+		s.ProcessDelay = model.RenderTemplate(s.ProcessDelay, templateCtx)
 		if s.Headers != nil {
 			for k := range s.Headers {
-				s.Headers[k] = model.RenderTemplate(s.Headers[k], envs)
+				s.Headers[k] = model.RenderTemplate(s.Headers[k], templateCtx)
 			}
 		}
-		s.Command = model.RenderTemplate(s.Command, envs)
 
 		logger.Logger.Debug("Initializing server",
 			"index", i+1,
@@ -848,20 +854,12 @@ func runTests(
 				"index", sessionIdx+1,
 				"total", len(testConfig.Sessions))
 
-			// Reload variables and reset message history for each session
-			templateCtx := CreateTemplateContext(testConfig.Variables)
-			// Add agent and session context for template substitution
+			// Create static template context with TEST_DIR, env vars, and user variables
+			templateCtx := CreateStaticTemplateContext(sourceFile, testConfig.Variables)
+			// Add runtime variables for this session
 			templateCtx["AGENT_NAME"] = agentConfig.Name
 			templateCtx["SESSION_NAME"] = session.Name
 			templateCtx["PROVIDER_NAME"] = ag.Provider
-			// Add TEST_DIR: absolute path to the directory containing the test file
-			// Enables relative path references in templates (e.g., {{TEST_DIR}}/data)
-			if sourceFile != "" {
-				absPath, err := filepath.Abs(sourceFile)
-				if err == nil {
-					templateCtx["TEST_DIR"] = filepath.Dir(absPath)
-				}
-			}
 
 			// Initialize fresh message history for this session
 			msgs := make([]llms.MessageContent, 0)
@@ -1030,17 +1028,44 @@ func runTests(
 	return results
 }
 
-func CreateTemplateContext(variables map[string]string) map[string]string {
+// CreateStaticTemplateContext creates a template context with all "static" variables
+// that are available before test execution begins. This includes:
+// - Environment variables
+// - TEST_DIR (directory containing the source file)
+// - User-defined variables from the config
+//
+// This context is used during provider and server initialization,
+// enabling templates like {{TEST_DIR}}/server.exe in server commands.
+// Runtime variables (AGENT_NAME, SESSION_NAME, PROVIDER_NAME) are added later
+// during test execution via CreateTemplateContext.
+func CreateStaticTemplateContext(sourceFile string, variables map[string]string) map[string]string {
 	templateCtx := model.GetAllEnv()
+
+	// Add TEST_DIR: absolute path to the directory containing the source file
+	// Enables relative path references in templates (e.g., {{TEST_DIR}}/data)
+	if sourceFile != "" {
+		absPath, err := filepath.Abs(sourceFile)
+		if err == nil {
+			templateCtx["TEST_DIR"] = filepath.Dir(absPath)
+		}
+	}
 
 	if variables == nil {
 		return templateCtx
 	}
 	// Pre-transform variables if they contain templates
+	// This allows variables to reference other variables or TEST_DIR
 	for k, v := range variables {
 		templateCtx[k] = model.RenderTemplate(v, templateCtx)
 	}
 	return templateCtx
+}
+
+// CreateTemplateContext creates the full template context for test execution.
+// It builds on static context and adds runtime variables.
+// This function is kept for backward compatibility.
+func CreateTemplateContext(variables map[string]string) map[string]string {
+	return CreateStaticTemplateContext("", variables)
 }
 
 func GenerateReports(results []model.TestRun, reportType, outputPath string) error {

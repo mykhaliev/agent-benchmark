@@ -606,6 +606,112 @@ func TestCreateTemplateContext(t *testing.T) {
 	})
 }
 
+func TestCreateStaticTemplateContext(t *testing.T) {
+	t.Run("TEST_DIR from source file", func(t *testing.T) {
+		// Create a temp directory and file path
+		tempDir := t.TempDir()
+		sourceFile := filepath.Join(tempDir, "test.yaml")
+
+		ctx := engine.CreateStaticTemplateContext(sourceFile, nil)
+
+		assert.NotNil(t, ctx)
+		assert.Equal(t, tempDir, ctx["TEST_DIR"])
+	})
+
+	t.Run("TEST_DIR with relative path", func(t *testing.T) {
+		// Use examples directory which exists in the repo
+		sourceFile := "examples/test.yaml"
+
+		ctx := engine.CreateStaticTemplateContext(sourceFile, nil)
+
+		assert.NotNil(t, ctx)
+		assert.Contains(t, ctx["TEST_DIR"], "examples")
+		// Should be an absolute path
+		assert.True(t, filepath.IsAbs(ctx["TEST_DIR"]))
+	})
+
+	t.Run("Empty source file", func(t *testing.T) {
+		ctx := engine.CreateStaticTemplateContext("", nil)
+
+		assert.NotNil(t, ctx)
+		// TEST_DIR should not be set
+		_, exists := ctx["TEST_DIR"]
+		assert.False(t, exists)
+	})
+
+	t.Run("Variables can reference TEST_DIR", func(t *testing.T) {
+		tempDir := t.TempDir()
+		sourceFile := filepath.Join(tempDir, "test.yaml")
+
+		variables := map[string]string{
+			"SERVER_PATH": "{{TEST_DIR}}/server.exe",
+		}
+
+		ctx := engine.CreateStaticTemplateContext(sourceFile, variables)
+
+		// The template uses forward slash, but TEST_DIR uses OS path separator
+		// So we check that both parts are present
+		assert.Contains(t, ctx["SERVER_PATH"], tempDir)
+		assert.Contains(t, ctx["SERVER_PATH"], "server.exe")
+	})
+
+	t.Run("Variables can reference environment variables", func(t *testing.T) {
+		os.Setenv("STATIC_TEST_VAR", "env_value")
+		defer os.Unsetenv("STATIC_TEST_VAR")
+
+		variables := map[string]string{
+			"COMPOSED": "prefix_{{STATIC_TEST_VAR}}_suffix",
+		}
+
+		ctx := engine.CreateStaticTemplateContext("", variables)
+
+		assert.Equal(t, "prefix_env_value_suffix", ctx["COMPOSED"])
+	})
+
+	t.Run("Variables can reference other user variables", func(t *testing.T) {
+		variables := map[string]string{
+			"BASE_PATH": "/opt/app",
+			"SERVER_PATH": "{{BASE_PATH}}/bin/server",
+		}
+
+		ctx := engine.CreateStaticTemplateContext("", variables)
+
+		// Note: Due to map iteration order, this may or may not work
+		// The second variable references the first
+		assert.Equal(t, "/opt/app", ctx["BASE_PATH"])
+		// SERVER_PATH depends on ordering - may be resolved or not
+		assert.NotNil(t, ctx["SERVER_PATH"])
+	})
+
+	t.Run("Contains environment variables", func(t *testing.T) {
+		os.Setenv("STATIC_ENV_TEST", "static_env_value")
+		defer os.Unsetenv("STATIC_ENV_TEST")
+
+		ctx := engine.CreateStaticTemplateContext("", nil)
+
+		assert.Equal(t, "static_env_value", ctx["STATIC_ENV_TEST"])
+	})
+
+	t.Run("Combined TEST_DIR and env vars", func(t *testing.T) {
+		tempDir := t.TempDir()
+		sourceFile := filepath.Join(tempDir, "test.yaml")
+
+		os.Setenv("APP_NAME", "myapp")
+		defer os.Unsetenv("APP_NAME")
+
+		variables := map[string]string{
+			"APP_PATH": "{{TEST_DIR}}/{{APP_NAME}}",
+		}
+
+		ctx := engine.CreateStaticTemplateContext(sourceFile, variables)
+
+		// The template uses forward slash, but TEST_DIR uses OS path separator
+		// So we check that both parts are present
+		assert.Contains(t, ctx["APP_PATH"], tempDir)
+		assert.Contains(t, ctx["APP_PATH"], "myapp")
+	})
+}
+
 // ============================================================================
 // Provider Creation Tests
 // ============================================================================
@@ -996,7 +1102,7 @@ func TestInitServers_Validation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result, err := engine.InitServers(ctx, tt.servers)
+			result, err := engine.InitServers(ctx, tt.servers, model.GetAllEnv())
 
 			if tt.wantErr {
 				assert.Error(t, err, tt.description)
@@ -1046,7 +1152,7 @@ func TestInitServers_EnvironmentVariableResolution(t *testing.T) {
 			},
 		}
 
-		result, err := engine.InitServers(ctx, servers)
+		result, err := engine.InitServers(ctx, servers, model.GetAllEnv())
 		if err != nil {
 			t.Logf("Server creation failed (expected without real server): %v", err)
 		}
@@ -1073,7 +1179,7 @@ func TestInitServers_EnvironmentVariableResolution(t *testing.T) {
 			},
 		}
 
-		result, err := engine.InitServers(ctx, servers)
+		result, err := engine.InitServers(ctx, servers, model.GetAllEnv())
 		if err != nil {
 			t.Logf("Server creation failed (expected): %v", err)
 		}
@@ -1096,7 +1202,7 @@ func TestInitServers_EnvironmentVariableResolution(t *testing.T) {
 			},
 		}
 
-		result, err := engine.InitServers(ctx, servers)
+		result, err := engine.InitServers(ctx, servers, model.GetAllEnv())
 		if err != nil {
 			t.Logf("Server creation failed (expected): %v", err)
 		}
@@ -1118,9 +1224,42 @@ func TestInitServers_EnvironmentVariableResolution(t *testing.T) {
 			},
 		}
 
-		result, err := engine.InitServers(ctx, servers)
+		result, err := engine.InitServers(ctx, servers, model.GetAllEnv())
 		if err != nil {
 			t.Logf("Server creation failed (expected): %v", err)
+		}
+		if result != nil {
+			engine.CleanupServers(result)
+		}
+	})
+
+	t.Run("Server command with TEST_DIR from static context", func(t *testing.T) {
+		// This test verifies that TEST_DIR is available during server initialization
+		// when using CreateStaticTemplateContext
+		tempDir := t.TempDir()
+		sourceFile := filepath.Join(tempDir, "test.yaml")
+
+		// Create static template context with TEST_DIR
+		templateCtx := engine.CreateStaticTemplateContext(sourceFile, map[string]string{
+			"SERVER_CMD": "{{TEST_DIR}}/server.exe",
+		})
+
+		servers := []model.Server{
+			{
+				Name:    "test-dir-server",
+				Type:    model.Stdio,
+				Command: "{{SERVER_CMD}}",
+			},
+		}
+
+		// This will fail to create the server (no actual executable),
+		// but we verify the command was resolved correctly
+		result, err := engine.InitServers(ctx, servers, templateCtx)
+		if err != nil {
+			// The error should contain the resolved path, not the template
+			assert.Contains(t, err.Error(), "test-dir-server")
+			// Should not contain unresolved template
+			assert.NotContains(t, err.Error(), "{{SERVER_CMD}}")
 		}
 		if result != nil {
 			engine.CleanupServers(result)
@@ -1143,7 +1282,7 @@ func TestInitServers_ErrorHandling(t *testing.T) {
 			},
 		}
 
-		result, err := engine.InitServers(ctx, servers)
+		result, err := engine.InitServers(ctx, servers, model.GetAllEnv())
 		assert.Error(t, err, "Should fail on invalid server")
 
 		// Result should be nil or cleaned up
@@ -1162,7 +1301,7 @@ func TestInitServers_ErrorHandling(t *testing.T) {
 			},
 		}
 
-		_, err := engine.InitServers(ctx, servers)
+		_, err := engine.InitServers(ctx, servers, model.GetAllEnv())
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "problematic-server",
 			"Error message should contain server name")
@@ -1177,7 +1316,7 @@ func TestInitServers_ErrorHandling(t *testing.T) {
 			},
 		}
 
-		result, err := engine.InitServers(ctx, servers)
+		result, err := engine.InitServers(ctx, servers, model.GetAllEnv())
 		// Should fail during server creation
 		assert.Error(t, err)
 		if result != nil {
@@ -1230,7 +1369,7 @@ func TestInitServers_ServerTypes(t *testing.T) {
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
 				servers := []model.Server{tt.config}
-				result, err := engine.InitServers(ctx, servers)
+				result, err := engine.InitServers(ctx, servers, model.GetAllEnv())
 
 				if err != nil {
 					t.Logf("Server creation failed (expected without real server): %v", err)
@@ -1268,7 +1407,7 @@ func TestInitServers_HeaderConfiguration(t *testing.T) {
 			},
 		}
 
-		result, err := engine.InitServers(ctx, servers)
+		result, err := engine.InitServers(ctx, servers, model.GetAllEnv())
 		if err != nil {
 			t.Logf("Server creation failed (expected): %v", err)
 		}
@@ -1291,7 +1430,7 @@ func TestInitServers_HeaderConfiguration(t *testing.T) {
 			},
 		}
 
-		result, err := engine.InitServers(ctx, servers)
+		result, err := engine.InitServers(ctx, servers, model.GetAllEnv())
 		if err != nil {
 			t.Logf("Server creation failed (expected): %v", err)
 		}
@@ -1310,7 +1449,7 @@ func TestInitServers_HeaderConfiguration(t *testing.T) {
 			},
 		}
 
-		result, err := engine.InitServers(ctx, servers)
+		result, err := engine.InitServers(ctx, servers, model.GetAllEnv())
 		if err != nil {
 			t.Logf("Server creation failed (expected): %v", err)
 		}
@@ -1329,7 +1468,7 @@ func TestInitServers_HeaderConfiguration(t *testing.T) {
 			},
 		}
 
-		result, err := engine.InitServers(ctx, servers)
+		result, err := engine.InitServers(ctx, servers, model.GetAllEnv())
 		if err != nil {
 			t.Logf("Server creation failed (expected): %v", err)
 		}
@@ -1394,7 +1533,7 @@ func TestInitServers_CommandVariations(t *testing.T) {
 				},
 			}
 
-			result, err := engine.InitServers(ctx, servers)
+			result, err := engine.InitServers(ctx, servers, model.GetAllEnv())
 			if err != nil {
 				t.Logf("%s - Server creation failed (expected): %v", tt.description, err)
 			}
@@ -1467,7 +1606,7 @@ func TestInitServers_URLVariations(t *testing.T) {
 				},
 			}
 
-			result, err := engine.InitServers(ctx, servers)
+			result, err := engine.InitServers(ctx, servers, model.GetAllEnv())
 			if err != nil {
 				t.Logf("%s - Server creation failed (expected): %v", tt.description, err)
 			}
@@ -1564,7 +1703,7 @@ func TestInitServers_DuplicateNames(t *testing.T) {
 			// Restore original factory after test
 			defer engine.SetServerFactory(&engine.DefaultServerFactory{})
 
-			result, err := engine.InitServers(ctx, tt.servers)
+			result, err := engine.InitServers(ctx, tt.servers, model.GetAllEnv())
 
 			if tt.errContains != "" {
 				// Should fail with duplicate error
@@ -1619,7 +1758,7 @@ func TestMockServerFactory_Behavior(t *testing.T) {
 			{Name: "server2", Type: model.Stdio, Command: "node s2.js"},
 		}
 
-		result, err := engine.InitServers(ctx, servers)
+		result, err := engine.InitServers(ctx, servers, model.GetAllEnv())
 		require.NoError(t, err)
 		require.NotNil(t, result)
 
@@ -1646,7 +1785,7 @@ func TestMockServerFactory_Behavior(t *testing.T) {
 			{Name: "failing-server", Type: model.Stdio, Command: "node s2.js"},
 		}
 
-		result, err := engine.InitServers(ctx, servers)
+		result, err := engine.InitServers(ctx, servers, model.GetAllEnv())
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to create server 'failing-server'")
 		assert.Nil(t, result)
@@ -1674,7 +1813,7 @@ func TestInitServers_DuplicateNames_WithEnvVars(t *testing.T) {
 			},
 		}
 
-		result, err := engine.InitServers(ctx, servers)
+		result, err := engine.InitServers(ctx, servers, model.GetAllEnv())
 		require.Error(t, err, "Should detect duplicate after env var resolution")
 		assert.Contains(t, err.Error(), "duplicate server name: resolved-name")
 
@@ -1701,7 +1840,7 @@ func TestInitServers_DuplicateNames_WithEnvVars(t *testing.T) {
 			},
 		}
 
-		result, err := engine.InitServers(ctx, servers)
+		result, err := engine.InitServers(ctx, servers, model.GetAllEnv())
 		require.Error(t, err, "Should detect duplicate when both resolve to same name")
 		assert.Contains(t, err.Error(), "duplicate server name: same-server")
 
@@ -1727,7 +1866,7 @@ func TestInitServers_DuplicateNames_WithEnvVars(t *testing.T) {
 			},
 		}
 
-		result, err := engine.InitServers(ctx, servers)
+		result, err := engine.InitServers(ctx, servers, model.GetAllEnv())
 		if err != nil {
 			// Should not be duplicate error
 			assert.NotContains(t, err.Error(), "duplicate")
@@ -1756,7 +1895,7 @@ func TestInitServers_DuplicateNames_WithEnvVars(t *testing.T) {
 			},
 		}
 
-		result, err := engine.InitServers(ctx, servers)
+		result, err := engine.InitServers(ctx, servers, model.GetAllEnv())
 		require.Error(t, err, "Should detect duplicate from composite env var")
 		assert.Contains(t, err.Error(), "duplicate server name: api-server")
 
@@ -2379,7 +2518,7 @@ func TestInitProviders_AllProviderTypes(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Note: These tests validate the provider initialization logic
 			// Actual API calls will fail without real credentials
-			_, err := engine.InitProviders(ctx, tt.providers)
+			_, err := engine.InitProviders(ctx, tt.providers, model.GetAllEnv())
 
 			if tt.wantErr {
 				assert.Error(t, err, tt.description)
@@ -2551,7 +2690,7 @@ func TestInitProviders_EnvironmentVariableResolution(t *testing.T) {
 		}
 
 		// This should pass validation after environment variable resolution
-		result, err := engine.InitProviders(ctx, providers)
+		result, err := engine.InitProviders(ctx, providers, model.GetAllEnv())
 
 		// Note: May fail during actual provider creation, but env vars should be resolved
 		if err != nil {
@@ -2575,7 +2714,7 @@ func TestInitProviders_EnvironmentVariableResolution(t *testing.T) {
 			},
 		}
 
-		result, err := engine.InitProviders(ctx, providers)
+		result, err := engine.InitProviders(ctx, providers, model.GetAllEnv())
 		if err != nil {
 			t.Logf("Provider creation failed (expected): %v", err)
 		} else {

@@ -749,14 +749,34 @@ export WORKSPACE_PATH="/tmp/workspace"
 
 ### Built-in Template Variables
 
-The framework provides built-in variables available in **all template contexts** (variables, server commands, prompts, assertions, system prompts):
+The framework provides built-in variables that are automatically available in template contexts. Variables are divided into two categories based on when they become available:
+
+#### Variable Categories
+
+| Category | Available In | Description |
+|----------|--------------|-------------|
+| **Static** | Everywhere (providers, servers, variables, prompts, assertions) | Available at configuration load time |
+| **Runtime** | Prompts, assertions, system prompts | Available during test execution only |
+
+#### Static Variables (Available Everywhere)
+
+These variables can be used in server commands, provider configs, user variables, prompts, and assertions:
 
 | Variable | Description |
 |----------|-------------|
 | `{{TEST_DIR}}` | Absolute path to the directory containing the test YAML file |
-| `{{AGENT_NAME}}` | Current agent name (context-dependent) |
-| `{{SESSION_NAME}}` | Current session name (context-dependent) |
-| `{{PROVIDER_NAME}}` | Provider name being used (context-dependent) |
+| `{{ANY_ENV_VAR}}` | Any environment variable (e.g., `{{HOME}}`, `{{AZURE_OPENAI_ENDPOINT}}`) |
+| User-defined variables | Variables defined in the `variables:` section of your config |
+
+#### Runtime Variables (Available During Test Execution)
+
+These variables are only available in prompts, assertions, and system prompts—not in server commands or provider configs:
+
+| Variable | Description |
+|----------|-------------|
+| `{{AGENT_NAME}}` | Current agent name |
+| `{{SESSION_NAME}}` | Current session name |
+| `{{PROVIDER_NAME}}` | Provider name being used |
 
 **Using TEST_DIR for Portable Paths:**
 
