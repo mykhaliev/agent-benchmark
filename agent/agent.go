@@ -984,26 +984,32 @@ func extractInt(v any) int {
 }
 
 // clarificationJudgePrompt is the system prompt for the LLM that classifies responses
-const clarificationJudgePrompt = `You are a classifier that determines if an AI assistant's response is asking for user confirmation or clarification BEFORE taking action.
+const clarificationJudgePrompt = `Classify if an AI assistant is asking for user input BEFORE completing a task.
 
-A clarification request is when the assistant:
-- Asks "Would you like me to...", "Should I proceed...", "Do you want me to..." BEFORE doing the task
-- Requests confirmation BEFORE executing a task
-- Asks for more details or clarification BEFORE acting
-- Hesitates or seeks approval instead of completing the task directly
-- Lists options and asks user to choose BEFORE proceeding
+Answer YES if the assistant:
+- Asks "Would you like me to...", "Should I proceed...", "Do you want me to..."
+- Asks "Which would you prefer?", "What format?", "Which option?"
+- Requests confirmation before doing something: "Do you want me to proceed?"
+- Asks for missing information: "What should the filename be?"
+- Says "I'm about to..." and then asks for permission
 
-A response is NOT a clarification request if the assistant:
-- Provides a direct answer or result
-- Reports what it has already done
-- Explains completed actions
-- Gives information without asking for permission
-- Offers to help with MORE tasks AFTER completing the requested task (e.g., "Let me know if you need anything else", "If you'd like to do more, just ask")
-- Ends with a polite closing that offers future assistance AFTER task completion
+Answer NO if the response:
+- STARTS with ✅ or "Done!" or "Complete" or "Successfully" (these indicate COMPLETED work)
+- Uses past tense to describe actions: "created", "added", "completed", "saved", "loaded"
+- Contains a summary of what was accomplished
+- Ends with "Let me know if..." AFTER describing completed work
 
-IMPORTANT: If the assistant has COMPLETED the task and then offers to help with additional tasks, that is NOT a clarification request. Only classify as YES if the assistant is asking for permission BEFORE acting.
+CRITICAL RULE: If response STARTS with ✅, answer NO. The checkmark means the task is done.
 
-Respond with ONLY "YES" if the response is asking for clarification/confirmation BEFORE acting, or "NO" if it is not.`
+Examples:
+- "Would you like me to create the file?" → YES
+- "Should I proceed with the analysis?" → YES  
+- "I'm about to delete files. Proceed?" → YES
+- "✅ File created. Let me know if you need more." → NO (starts with ✅)
+- "Done! Here's what I did: ..." → NO (completed work)
+- "✅ Setup Complete... Let me know if you'd like to proceed" → NO (starts with ✅, already completed)
+
+Respond ONLY "YES" or "NO".`
 
 // CheckClarificationWithLLM uses an LLM to determine if the response is asking for clarification.
 // This is more accurate than pattern matching as it can understand context, nuance, and multiple languages.

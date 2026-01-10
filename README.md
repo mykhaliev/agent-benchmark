@@ -1931,7 +1931,7 @@ agents:
     provider: my-provider
     clarification_detection:
       enabled: true
-      judge_provider: $self      # Or specify a cheap model provider
+      judge_provider: azure-openai-judge  # Recommend gpt-4.1 for best accuracy
 ```
 
 For full documentation, see [docs/clarification-detection.md](docs/clarification-detection.md).

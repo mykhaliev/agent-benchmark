@@ -4,9 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"os"
 	"testing"
 	"time"
 
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
+	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mykhaliev/agent-benchmark/agent"
 	"github.com/mykhaliev/agent-benchmark/logger"
@@ -15,6 +18,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/tmc/langchaingo/llms"
+	"github.com/tmc/langchaingo/llms/openai"
 )
 
 func TestNewMCPAgent(t *testing.T) {
@@ -903,6 +907,63 @@ func TestClarificationPromptScenarios(t *testing.T) {
 			shouldBeClarification: false,
 			explanation:           "Conditional offer after task is done - not blocking",
 		},
+
+		// === FORMATTED COMPLETION SUMMARIES (should be NO) ===
+		// These are verbose, well-structured completion reports that should NOT be classified as clarification
+		{
+			name:                  "Data model setup complete with headers",
+			response:              "✅ **Data Model Analysis Setup Complete**\n\nYour sales data is now fully enabled for advanced analysis:\n\n### 🧠 Added to Data Model\n- **Sales** table with 500 records\n- **Products** dimension table\n\n### 📊 Next Steps\nYou can now create PivotTables or DAX measures.\n\nLet me know if you'd like to proceed!",
+			shouldBeClarification: false,
+			explanation:           "Structured completion report with markdown headers is NOT clarification",
+		},
+		{
+			name:                  "Star schema complete with formatted sections",
+			response:              "✅ **Tables Successfully Linked – Star Schema Complete**\n\nThe relationship between your fact and dimension tables has been established:\n\n| Relationship | Type |\n|---|---|\n| Sales → Products | Many-to-One |\n\nReady for further analysis!",
+			shouldBeClarification: false,
+			explanation:           "Completion with tables and sections is NOT clarification",
+		},
+		{
+			name:                  "PivotTable analysis created with emoji headers",
+			response:              "✅ **PivotTable Analysis Created Successfully**\n\n### 📊 Configuration\n- Rows: Category\n- Values: Sum of Revenue\n- Filter: Region\n\nThe PivotTable is ready for use. Need any adjustments?",
+			shouldBeClarification: false,
+			explanation:           "Emoji-decorated completion with configuration details is NOT clarification",
+		},
+		{
+			name:                  "PivotChart added with celebration",
+			response:              "✅ **PivotChart Added Successfully**\n\nYour sales dashboard is coming together nicely! 📈\n\n- Chart Type: Column Chart\n- Based on: SalesAnalysis PivotTable\n\nWould you like to customize the chart further?",
+			shouldBeClarification: false,
+			explanation:           "Celebration + optional offer after completion is NOT clarification",
+		},
+		{
+			name:                  "Multi-section completion report",
+			response:              "## ✅ Operation Complete\n\n### What Was Done\n1. Imported the CSV file\n2. Created Power Query connection\n3. Loaded data to worksheet\n\n### Results\n- 1,500 rows imported\n- 12 columns detected\n\n### Tips\n- Refresh to update data\n- Use PivotTables for analysis\n\nAnything else you need?",
+			shouldBeClarification: false,
+			explanation:           "Multi-section detailed report is NOT clarification",
+		},
+		{
+			name:                  "Success with bold emphasis",
+			response:              "**Success!** The workbook has been saved.\n\n**File:** C:\\Data\\Report.xlsx\n**Sheets:** 3\n**Size:** 125 KB\n\nLet me know if you need to make any changes.",
+			shouldBeClarification: false,
+			explanation:           "Bold-formatted success report is NOT clarification",
+		},
+		{
+			name:                  "Numbered steps completed with summary",
+			response:              "Done! Here's what I accomplished:\n\n1. ✅ Created new workbook\n2. ✅ Added 'Sales' worksheet\n3. ✅ Imported 500 rows of data\n4. ✅ Applied formatting\n5. ✅ Saved file\n\n**Total time:** 2.3 seconds\n\nReady for the next task!",
+			shouldBeClarification: false,
+			explanation:           "Checkmark-decorated step list is completion, NOT clarification",
+		},
+		{
+			name:                  "Ready for analysis phrasing",
+			response:              "✅ **Products Table Added to Power Pivot (Data Model)**\n\nThe **Products** data is now successfully loaded into the **Excel Data Model**, which means it is **ready for DAX measures and Power Pivot analysis**.\n\n### What's Now Available\n- DAX measure creation\n- Relationships with other tables\n- PivotTable analysis\n\nLet me know what you'd like to do next!",
+			shouldBeClarification: false,
+			explanation:           "'Ready for analysis' describes completed state, NOT a question",
+		},
+		{
+			name:                  "Measures created ready for analysis",
+			response:              "✅ **DAX Measures Created Successfully**\n\nYour **Products** table (in the Data Model as **Table_ExternalData_1**) now has a solid starter set of **Power Pivot DAX measures** ready for analysis.\n\n---\n\n### Measures Created\n1. Average Rating\n2. Total Products\n3. Average Discount\n\nThese are now available in PivotTables.",
+			shouldBeClarification: false,
+			explanation:           "Completion report listing what was created is NOT clarification",
+		},
 	}
 
 	t.Logf("Documented %d clarification detection scenarios", len(scenarios))
@@ -922,3 +983,179 @@ func TestClarificationPromptScenarios(t *testing.T) {
 	}
 	t.Logf("Expected: %d YES (clarification), %d NO (not clarification)", yesCases, noCases)
 }
+
+// TestClarificationJudgeIntegration tests the clarification judge prompt against real LLM.
+// This test requires AZURE_OPENAI_ENDPOINT environment variable to be set.
+// Run with: go test ./test -run "TestClarificationJudgeIntegration" -v
+func TestClarificationJudgeIntegration(t *testing.T) {
+	endpoint := os.Getenv("AZURE_OPENAI_ENDPOINT")
+	if endpoint == "" {
+		t.Skip("Skipping integration test: AZURE_OPENAI_ENDPOINT not set")
+	}
+
+	logger.SetupLogger(NewDummyWriter(), true)
+	ctx := context.Background()
+
+	// Create real LLM client for gpt-4.1 (a more capable judge model) using Entra ID auth
+	cred, err := azidentity.NewDefaultAzureCredential(nil)
+	if err != nil {
+		t.Fatalf("Failed to create Azure credential: %v", err)
+	}
+
+	token, err := cred.GetToken(ctx, policy.TokenRequestOptions{
+		Scopes: []string{"https://cognitiveservices.azure.com/.default"},
+	})
+	if err != nil {
+		t.Fatalf("Failed to get Azure token: %v", err)
+	}
+
+	judgeLLM, err := openai.New(
+		openai.WithBaseURL(endpoint),
+		openai.WithModel("gpt-4.1"),
+		openai.WithAPIType(openai.APITypeAzureAD),
+		openai.WithAPIVersion("2025-01-01-preview"),
+		openai.WithToken(token.Token),
+	)
+	if err != nil {
+		t.Fatalf("Failed to create LLM client: %v", err)
+	}
+
+	// These are EXACT responses from production tests that were incorrectly classified
+	// as clarification requests. The judge should return false (NO) for all of these.
+	notClarificationCases := []struct {
+		name     string
+		response string
+	}{
+		{
+			name: "Products Table Added to Data Model",
+			response: `✅ **Products Table Added to Power Pivot (Data Model)**
+
+The **Products** data is now successfully loaded into the **Excel Data Model**, which means it is **ready for DAX measures and Power Pivot analysis**.
+
+### What's Now Available
+- DAX measure creation
+- Relationships with other tables
+- PivotTable analysis
+
+Let me know what you'd like to do next!`,
+		},
+		{
+			name: "DAX Measures Created Successfully",
+			response: `✅ **DAX Measures Created Successfully**
+
+Your **Products** table (in the Data Model as **Table_ExternalData_1**) now has a solid starter set of **Power Pivot DAX measures** ready for analysis.
+
+---
+
+### 📏 Measures Created
+
+| Measure | Formula |
+|---------|---------|
+| Average Rating | AVERAGE(Table_ExternalData_1[rating]) |
+| Total Products | COUNTROWS(Table_ExternalData_1) |
+| Average Discount | AVERAGE(Table_ExternalData_1[discount_percentage]) |
+| Total Potential Revenue | SUM(Table_ExternalData_1[actual_price]) |
+
+These measures are now available in any PivotTable connected to the Data Model.`,
+		},
+		{
+			name: "Data Model Analysis Setup Complete",
+			response: `✅ **Data Model Analysis Setup Complete**
+
+Your sales data is now fully enabled for advanced analysis:
+
+### 🧠 Added to Data Model
+- **Sales** table with 500 records
+- **Products** dimension table
+
+### 📊 Next Steps
+You can now create PivotTables or DAX measures.
+
+Let me know if you'd like to proceed!`,
+		},
+		{
+			name: "Tables Successfully Linked Star Schema",
+			response: `✅ **Tables Successfully Linked – Star Schema Complete**
+
+The relationship between your fact and dimension tables has been established:
+
+| Relationship | Type |
+|---|---|
+| Sales → Products | Many-to-One |
+
+Ready for further analysis!`,
+		},
+		{
+			name: "Simple completion with offer",
+			response: `Done! The file has been saved to C:\Users\test\output.xlsx. 🎉
+
+Need anything else?`,
+		},
+		{
+			name: "Task list with checkmarks",
+			response: `Here's what I did:
+1. Opened the workbook
+2. Created 'SalesData' sheet
+3. Renamed it to 'Q1Sales'
+4. Listed all sheets
+5. Closed without saving
+
+Let me know if you need to save the changes or do more.`,
+		},
+	}
+
+	// Test NOT clarification cases - all should return false
+	t.Run("NotClarificationCases", func(t *testing.T) {
+		for _, tc := range notClarificationCases {
+			t.Run(tc.name, func(t *testing.T) {
+				result := agent.CheckClarificationWithLLM(ctx, judgeLLM, tc.response)
+				if result {
+					t.Errorf("FALSE POSITIVE: Response was incorrectly classified as clarification.\nResponse preview: %s...", tc.response[:min(200, len(tc.response))])
+				} else {
+					t.Logf("✓ Correctly classified as NOT clarification: %s", tc.name)
+				}
+			})
+		}
+	})
+
+	// True clarification cases - all should return true
+	clarificationCases := []struct {
+		name     string
+		response string
+	}{
+		{
+			name:     "Direct question before acting",
+			response: "Would you like me to create the file now?",
+		},
+		{
+			name:     "Should I proceed pattern",
+			response: "I can see the data. Should I proceed with the analysis?",
+		},
+		{
+			name:     "Asking for format choice",
+			response: "Should I save it as CSV or Excel format?",
+		},
+		{
+			name:     "Listing options asking to choose",
+			response: "I found three approaches:\n1. Method A\n2. Method B\n3. Method C\nWhich would you prefer?",
+		},
+		{
+			name:     "Confirmation before destructive action",
+			response: "I'm about to delete all files in the folder. Do you want me to proceed?",
+		},
+	}
+
+	t.Run("ClarificationCases", func(t *testing.T) {
+		for _, tc := range clarificationCases {
+			t.Run(tc.name, func(t *testing.T) {
+				result := agent.CheckClarificationWithLLM(ctx, judgeLLM, tc.response)
+				if !result {
+					t.Errorf("FALSE NEGATIVE: Response was incorrectly classified as NOT clarification.\nResponse: %s", tc.response)
+				} else {
+					t.Logf("✓ Correctly classified as clarification: %s", tc.name)
+				}
+			})
+		}
+	})
+}
+
