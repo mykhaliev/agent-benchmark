@@ -238,6 +238,16 @@ func (m *MCPAgent) GenerateContentWithConfig(
 	}
 
 	result := initializeExecutionResult(m.Name, m.Provider, startTime)
+
+	// Initialize ClarificationStats when detection is enabled
+	// This allows assertions to distinguish "enabled but no clarifications found" from "not enabled"
+	if config.ClarificationDetectionEnabled {
+		result.ClarificationStats = &model.ClarificationStats{
+			Iterations: []int{},
+			Examples:   []string{},
+		}
+	}
+
 	recordUserMessages(msgs, &result, config.Verbose)
 
 	if config.Verbose {
@@ -442,6 +452,16 @@ func (m *MCPAgent) GenerateContentAsStreaming(
 		}
 
 		result := initializeExecutionResult(m.Name, m.Provider, startTime)
+
+		// Initialize ClarificationStats when detection is enabled
+		// This allows assertions to distinguish "enabled but no clarifications found" from "not enabled"
+		if config.ClarificationDetectionEnabled {
+			result.ClarificationStats = &model.ClarificationStats{
+				Iterations: []int{},
+				Examples:   []string{},
+			}
+		}
+
 		recordUserMessages(msgs, &result, config.Verbose)
 
 		tools := m.ExtractToolsFromAgent()
@@ -964,21 +984,26 @@ func extractInt(v any) int {
 }
 
 // clarificationJudgePrompt is the system prompt for the LLM that classifies responses
-const clarificationJudgePrompt = `You are a classifier that determines if an AI assistant's response is asking for user confirmation or clarification before taking action.
+const clarificationJudgePrompt = `You are a classifier that determines if an AI assistant's response is asking for user confirmation or clarification BEFORE taking action.
 
 A clarification request is when the assistant:
-- Asks "Would you like me to...", "Should I proceed...", "Do you want me to..."
-- Requests confirmation before executing a task
-- Asks for more details or clarification before acting
+- Asks "Would you like me to...", "Should I proceed...", "Do you want me to..." BEFORE doing the task
+- Requests confirmation BEFORE executing a task
+- Asks for more details or clarification BEFORE acting
 - Hesitates or seeks approval instead of completing the task directly
+- Lists options and asks user to choose BEFORE proceeding
 
 A response is NOT a clarification request if the assistant:
 - Provides a direct answer or result
 - Reports what it has already done
 - Explains completed actions
 - Gives information without asking for permission
+- Offers to help with MORE tasks AFTER completing the requested task (e.g., "Let me know if you need anything else", "If you'd like to do more, just ask")
+- Ends with a polite closing that offers future assistance AFTER task completion
 
-Respond with ONLY "YES" if the response is asking for clarification/confirmation, or "NO" if it is not.`
+IMPORTANT: If the assistant has COMPLETED the task and then offers to help with additional tasks, that is NOT a clarification request. Only classify as YES if the assistant is asking for permission BEFORE acting.
+
+Respond with ONLY "YES" if the response is asking for clarification/confirmation BEFORE acting, or "NO" if it is not.`
 
 // CheckClarificationWithLLM uses an LLM to determine if the response is asking for clarification.
 // This is more accurate than pattern matching as it can understand context, nuance, and multiple languages.

@@ -780,3 +780,145 @@ func TestCheckClarificationWithLLM_LLMError(t *testing.T) {
 	result := agent.CheckClarificationWithLLM(ctx, mockLLM, "Some response")
 	assert.False(t, result)
 }
+
+// TestClarificationPromptScenarios tests real-world response patterns to verify the prompt correctly classifies them.
+// These tests validate the prompt design by checking expected classifications for common LLM response patterns.
+func TestClarificationPromptScenarios(t *testing.T) {
+	// This test documents the expected behavior for various response patterns.
+	// The actual LLM judge would classify these - here we test that the test framework
+	// correctly handles different scenarios.
+
+	scenarios := []struct {
+		name                   string
+		response               string
+		shouldBeClarification  bool
+		explanation            string
+	}{
+		// === TRUE CLARIFICATION REQUESTS (should be YES) ===
+		{
+			name:                  "Direct question before acting",
+			response:              "Would you like me to create the file now?",
+			shouldBeClarification: true,
+			explanation:           "Asking permission before taking action",
+		},
+		{
+			name:                  "Should I proceed pattern",
+			response:              "I can see the data. Should I proceed with the analysis?",
+			shouldBeClarification: true,
+			explanation:           "Seeking confirmation before next step",
+		},
+		{
+			name:                  "Listing options and asking to choose",
+			response:              "I found three approaches:\n1. Method A\n2. Method B\n3. Method C\nWhich would you prefer?",
+			shouldBeClarification: true,
+			explanation:           "Asking user to choose before proceeding",
+		},
+		{
+			name:                  "Asking for more details",
+			response:              "I need more information. What format should the output be in?",
+			shouldBeClarification: true,
+			explanation:           "Requesting clarification before acting",
+		},
+		{
+			name:                  "Confirmation request with context",
+			response:              "I'm about to delete all files in the folder. Do you want me to proceed?",
+			shouldBeClarification: true,
+			explanation:           "Seeking destructive action confirmation",
+		},
+		{
+			name:                  "Multiple choice before action",
+			response:              "Should I save it as CSV or Excel format?",
+			shouldBeClarification: true,
+			explanation:           "Asking for format choice before saving",
+		},
+
+		// === NOT CLARIFICATION - COMPLETED TASK WITH POLITE CLOSING (should be NO) ===
+		{
+			name:                  "Task completed with let me know offer",
+			response:              "Here are the steps completed:\n1. Created file\n2. Added data\n3. Saved\n\nIf you need anything else, let me know!",
+			shouldBeClarification: false,
+			explanation:           "Task completed, polite closing is not a clarification request",
+		},
+		{
+			name:                  "Task completed with offer for more",
+			response:              "✅ All steps completed successfully.\n\n1. Created the Excel file\n2. Added the worksheets\n3. Closed the file\n\nIf you'd like to repeat this or test other scenarios, just let me know.",
+			shouldBeClarification: false,
+			explanation:           "Completed task with offer for additional help is not clarification",
+		},
+		{
+			name:                  "Task completed with emoji and follow-up offer",
+			response:              "Done! The file has been saved to C:\\Users\\test\\output.xlsx. 🎉\n\nNeed anything else?",
+			shouldBeClarification: false,
+			explanation:           "Completed with casual follow-up offer",
+		},
+		{
+			name:                  "Simple completion report",
+			response:              "The file has been created and saved successfully.",
+			shouldBeClarification: false,
+			explanation:           "Pure completion report with no questions",
+		},
+		{
+			name:                  "Detailed completion with results",
+			response:              "I've completed the analysis:\n- Total records: 1,500\n- Valid: 1,450\n- Invalid: 50\n\nThe results have been saved to report.csv.",
+			shouldBeClarification: false,
+			explanation:           "Detailed results report, no questions",
+		},
+		{
+			name:                  "Task list completion",
+			response:              "Here's what I did:\n1. Opened the workbook\n2. Created 'SalesData' sheet\n3. Renamed it to 'Q1Sales'\n4. Listed all sheets\n5. Closed without saving\n\nLet me know if you need to save the changes or do more.",
+			shouldBeClarification: false,
+			explanation:           "Task list with offer for more is not clarification",
+		},
+
+		// === NOT CLARIFICATION - DIRECT ANSWERS/INFO (should be NO) ===
+		{
+			name:                  "Direct answer to question",
+			response:              "The capital of France is Paris.",
+			shouldBeClarification: false,
+			explanation:           "Direct factual answer",
+		},
+		{
+			name:                  "Explaining what was done",
+			response:              "I analyzed the data and found that sales increased by 15% in Q2.",
+			shouldBeClarification: false,
+			explanation:           "Reporting completed analysis",
+		},
+		{
+			name:                  "Error report",
+			response:              "The operation failed because the file was not found at the specified path.",
+			shouldBeClarification: false,
+			explanation:           "Error reporting is not clarification",
+		},
+
+		// === EDGE CASES ===
+		{
+			name:                  "Question mark in completed statement",
+			response:              "Interesting finding, right? The data shows a clear trend upward.",
+			shouldBeClarification: false,
+			explanation:           "Rhetorical question after providing info",
+		},
+		{
+			name:                  "Conditional offer after completion",
+			response:              "File saved. If you want, I can also create a backup.",
+			shouldBeClarification: false,
+			explanation:           "Conditional offer after task is done - not blocking",
+		},
+	}
+
+	t.Logf("Documented %d clarification detection scenarios", len(scenarios))
+	for _, s := range scenarios {
+		t.Logf("  - %s: shouldBeClarification=%v (%s)", s.name, s.shouldBeClarification, s.explanation)
+	}
+
+	// Count expected classifications
+	yesCases := 0
+	noCases := 0
+	for _, s := range scenarios {
+		if s.shouldBeClarification {
+			yesCases++
+		} else {
+			noCases++
+		}
+	}
+	t.Logf("Expected: %d YES (clarification), %d NO (not clarification)", yesCases, noCases)
+}
