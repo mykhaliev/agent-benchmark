@@ -607,6 +607,22 @@ func TestCreateTemplateContext(t *testing.T) {
 }
 
 func TestCreateStaticTemplateContext(t *testing.T) {
+	t.Run("RUN_ID is set and is valid UUID", func(t *testing.T) {
+		ctx := engine.CreateStaticTemplateContext("", nil)
+
+		assert.NotNil(t, ctx)
+		assert.NotEmpty(t, ctx["RUN_ID"])
+		// Should be a valid UUID format (8-4-4-4-12)
+		assert.Regexp(t, `^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`, ctx["RUN_ID"])
+	})
+
+	t.Run("RUN_ID is unique per call", func(t *testing.T) {
+		ctx1 := engine.CreateStaticTemplateContext("", nil)
+		ctx2 := engine.CreateStaticTemplateContext("", nil)
+
+		assert.NotEqual(t, ctx1["RUN_ID"], ctx2["RUN_ID"])
+	})
+
 	t.Run("TEMP_DIR is set", func(t *testing.T) {
 		ctx := engine.CreateStaticTemplateContext("", nil)
 
@@ -683,7 +699,7 @@ func TestCreateStaticTemplateContext(t *testing.T) {
 
 	t.Run("Variables can reference other user variables", func(t *testing.T) {
 		variables := map[string]string{
-			"BASE_PATH": "/opt/app",
+			"BASE_PATH":   "/opt/app",
 			"SERVER_PATH": "{{BASE_PATH}}/bin/server",
 		}
 
@@ -2744,10 +2760,10 @@ func TestCompileClarificationPatterns(t *testing.T) {
 	logger.SetupLogger(NewDummyWriter(), true)
 
 	tests := []struct {
-		name           string
-		patterns       []string
-		expectedCount  int
-		description    string
+		name          string
+		patterns      []string
+		expectedCount int
+		description   string
 	}{
 		{
 			name:          "valid patterns",
@@ -2821,9 +2837,9 @@ func TestCompileClarificationPatterns_InvalidPatternsContinue(t *testing.T) {
 	// Test that invalid patterns don't prevent valid ones from being compiled
 	patterns := []string{
 		"(?i)first valid",
-		"[invalid pattern",  // This should be skipped
+		"[invalid pattern", // This should be skipped
 		"(?i)second valid",
-		"(unclosed group",   // This should be skipped
+		"(unclosed group", // This should be skipped
 		"(?i)third valid",
 	}
 

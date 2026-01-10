@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
+	"github.com/google/uuid"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
@@ -1040,6 +1041,10 @@ func runTests(
 // during test execution via CreateTemplateContext.
 func CreateStaticTemplateContext(sourceFile string, variables map[string]string) map[string]string {
 	templateCtx := model.GetAllEnv()
+
+	// Add RUN_ID: unique identifier for this test run (UUID v4)
+	// Useful for creating unique file names, directories, etc.
+	templateCtx["RUN_ID"] = uuid.New().String()
 
 	// Add TEMP_DIR: system temporary directory (cross-platform)
 	// Windows: %TEMP% or %TMP%, Linux/macOS: /tmp or $TMPDIR
