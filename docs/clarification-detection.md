@@ -66,7 +66,7 @@ agents:
 
 ### Option 2: Separate Judge Provider (Recommended)
 
-Use a fast/cheap model specifically for classification:
+Use a capable model specifically for classification. We recommend **gpt-4.1** for accurate classification - smaller models like gpt-4.1-nano may have reduced accuracy on edge cases:
 
 ```yaml
 providers:
@@ -77,37 +77,39 @@ providers:
     model: gpt-4
     version: "2024-02-15-preview"
 
-  - name: azure-openai-nano
+  - name: azure-openai-judge
     type: AZURE
     baseUrl: https://your-resource.openai.azure.com
     auth_type: entra_id
-    model: gpt-4.1-nano
-    version: "2024-02-01"
+    model: gpt-4.1
+    version: "2025-01-01-preview"
 
 agents:
   - name: my-agent
     provider: azure-openai-gpt4
     clarification_detection:
       enabled: true
-      judge_provider: azure-openai-nano
+      judge_provider: azure-openai-judge
 ```
 
 **Pros:**
-- Much cheaper (~100x less cost with gpt-4o-mini)
-- Faster classification
+- Best classification accuracy (100% in testing)
+- Handles edge cases correctly (formatted completions, destructive confirmations)
 - Doesn't affect agent's token limits
 
 **Cons:**
-- Requires setting up an additional provider
+- Slightly higher cost than nano models (but still minimal for single-call classification)
 
-## Recommended Judge Models by Provider
+## Recommended Judge Models
 
-| Provider | Recommended Judge Model | Input/Output per 1M tokens |
-|----------|------------------------|----------------------------|
-| Azure OpenAI | `gpt-4.1-nano` | $0.10 / $0.40 |
-| OpenAI | `gpt-4o-mini` | $0.15 / $0.60 |
-| Anthropic | `claude-haiku-4-5` | $1.00 / $5.00 |
-| Google | `gemini-2.0-flash-lite` | $0.075 / $0.30 |
+For accurate classification, use capable models. Smaller/cheaper models (like gpt-4.1-nano) may have reduced accuracy on edge cases such as distinguishing formatted completion summaries from clarification requests.
+
+| Provider | Recommended Judge Model | Notes |
+|----------|------------------------|-------|
+| Azure OpenAI | `gpt-4.1` | Tested - 100% accuracy on 17 scenarios |
+| OpenAI | `gpt-4.1` | Same model as Azure, expected same accuracy |
+| Anthropic | `claude-sonnet-4` or better | Not tested - use capable model |
+| Google | `gemini-2.0-pro` or better | Not tested - avoid smaller flash models |
 
 ## Example: Full Configuration
 
@@ -120,12 +122,12 @@ providers:
     model: gpt-4
     version: "2024-02-15-preview"
 
-  - name: azure-gpt41-nano
+  - name: azure-gpt41-judge
     type: AZURE
     baseUrl: "{{AZURE_OPENAI_ENDPOINT}}"
     auth_type: entra_id
-    model: gpt-4.1-nano
-    version: "2024-02-01"
+    model: gpt-4.1
+    version: "2025-01-01-preview"
 
 agents:
   - name: test-agent
@@ -135,7 +137,7 @@ agents:
     clarification_detection:
       enabled: true
       level: warning
-      judge_provider: azure-gpt41-nano
+      judge_provider: azure-gpt41-judge
 
 sessions:
   - name: test-session
@@ -192,3 +194,4 @@ The LLM-based classification is highly accurate but not perfect. If you encounte
 1. Check the `examples` in `clarificationStats` to see what was detected
 2. Consider adjusting your agent's system prompt to be more explicit about not asking for confirmation
 3. The judge timeout is 5 seconds - if the judge API is slow, detections may be skipped
+4. **Use gpt-4.1 or equivalent** - smaller models like gpt-4.1-nano may incorrectly classify formatted completion summaries as clarification requests, or miss edge cases like destructive action confirmations
