@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -46,14 +45,13 @@ const (
 )
 
 type AgentConfig struct {
-	MaxIterations                   int
-	AddNotFinalResponses            bool
-	Verbose                         bool
-	ToolTimeout                     time.Duration
-	ClarificationDetectionEnabled   bool
-	ClarificationDetectionLevel     ClarificationLevel
-	ClarificationUseBuiltinPatterns bool
-	ClarificationCustomPatterns     []*regexp.Regexp
+	MaxIterations                 int
+	AddNotFinalResponses          bool
+	Verbose                       bool
+	ToolTimeout                   time.Duration
+	ClarificationDetectionEnabled bool
+	ClarificationDetectionLevel   ClarificationLevel
+	ClarificationJudgeLLM         llms.Model // LLM used to classify if a response is asking for clarification
 }
 
 func NewMCPAgent(
@@ -240,6 +238,16 @@ func (m *MCPAgent) GenerateContentWithConfig(
 	}
 
 	result := initializeExecutionResult(m.Name, m.Provider, startTime)
+
+	// Initialize ClarificationStats when detection is enabled
+	// This allows assertions to distinguish "enabled but no clarifications found" from "not enabled"
+	if config.ClarificationDetectionEnabled {
+		result.ClarificationStats = &model.ClarificationStats{
+			Iterations: []int{},
+			Examples:   []string{},
+		}
+	}
+
 	recordUserMessages(msgs, &result, config.Verbose)
 
 	if config.Verbose {
@@ -311,8 +319,8 @@ func (m *MCPAgent) GenerateContentWithConfig(
 		tokens += GetTokenCount(resp)
 		if len(toolCalls) == 0 {
 			response += assistantText
-			// Check if LLM is asking for clarification instead of acting
-			if config.ClarificationDetectionEnabled && IsClarificationRequest(assistantText, config.ClarificationUseBuiltinPatterns, config.ClarificationCustomPatterns) {
+			// Check if LLM is asking for clarification instead of acting (using LLM-based detection)
+			if config.ClarificationDetectionEnabled && CheckClarificationWithLLM(ctx, config.ClarificationJudgeLLM, assistantText) {
 				recordClarificationRequest(config.ClarificationDetectionLevel, iteration, assistantText, &result)
 			}
 			if config.Verbose {
@@ -444,6 +452,16 @@ func (m *MCPAgent) GenerateContentAsStreaming(
 		}
 
 		result := initializeExecutionResult(m.Name, m.Provider, startTime)
+
+		// Initialize ClarificationStats when detection is enabled
+		// This allows assertions to distinguish "enabled but no clarifications found" from "not enabled"
+		if config.ClarificationDetectionEnabled {
+			result.ClarificationStats = &model.ClarificationStats{
+				Iterations: []int{},
+				Examples:   []string{},
+			}
+		}
+
 		recordUserMessages(msgs, &result, config.Verbose)
 
 		tools := m.ExtractToolsFromAgent()
@@ -965,54 +983,81 @@ func extractInt(v any) int {
 	}
 }
 
-// BuiltinClarificationPatterns contains the default patterns for detecting clarification requests.
-// These patterns detect when an LLM is asking for permission/confirmation BEFORE acting.
-// Patterns are intentionally specific to avoid false positives from polite closings like
-// "Let me know if you want anything else" which are offers AFTER task completion.
-// NOTE: Patterns like "would you like to" and "let me know if" are intentionally excluded
-// as they produce too many false positives from polite closing statements.
-var BuiltinClarificationPatterns = []string{
-	"would you like me to",
-	"do you want me to",
-	"should i proceed",
-	"shall i proceed",
-	"shall i continue",
-	"would you prefer",
-	"do you prefer",
-	"please confirm",
-	"please clarify",
-	"can you confirm",
-	"can you clarify",
-	"let me know if you want me to",  // More specific than "let me know if" to avoid false positives
-	"let me know if i should",        // More specific than "let me know if" to avoid false positives
-	"is that correct",
-	"is this correct",
-	// "would you like to" removed - too many false positives from polite closings like "Would you like to add more?"
-	"do you want to proceed",
-}
+// clarificationJudgePrompt is the system prompt for the LLM that classifies responses
+const clarificationJudgePrompt = `Classify if an AI assistant is asking for user input BEFORE completing a task.
 
-// IsClarificationRequest detects if the LLM is asking for clarification instead of acting.
-// This happens when the LLM returns text with questions like "Would you like me to..." or
-// "Do you want me to..." instead of calling tools to complete the task.
-// The useBuiltinPatterns parameter controls whether built-in heuristics are applied.
-// The customPatterns parameter allows additional regex patterns to be matched.
-func IsClarificationRequest(text string, useBuiltinPatterns bool, customPatterns []*regexp.Regexp) bool {
-	lowerText := strings.ToLower(text)
+Answer YES if the assistant:
+- Asks "Would you like me to...", "Should I proceed...", "Do you want me to..."
+- Asks "Which would you prefer?", "What format?", "Which option?"
+- Requests confirmation before doing something: "Do you want me to proceed?"
+- Asks for missing information: "What should the filename be?"
+- Says "I'm about to..." and then asks for permission
 
-	// Check built-in patterns if enabled
-	if useBuiltinPatterns {
-		for _, pattern := range BuiltinClarificationPatterns {
-			if strings.Contains(lowerText, pattern) {
-				return true
-			}
-		}
+Answer NO if the response:
+- STARTS with ✅ or "Done!" or "Complete" or "Successfully" (these indicate COMPLETED work)
+- Uses past tense to describe actions: "created", "added", "completed", "saved", "loaded"
+- Contains a summary of what was accomplished
+- Ends with "Let me know if..." AFTER describing completed work
+
+CRITICAL RULE: If response STARTS with ✅, answer NO. The checkmark means the task is done.
+
+Examples:
+- "Would you like me to create the file?" → YES
+- "Should I proceed with the analysis?" → YES  
+- "I'm about to delete files. Proceed?" → YES
+- "✅ File created. Let me know if you need more." → NO (starts with ✅)
+- "Done! Here's what I did: ..." → NO (completed work)
+- "✅ Setup Complete... Let me know if you'd like to proceed" → NO (starts with ✅, already completed)
+
+Respond ONLY "YES" or "NO".`
+
+// CheckClarificationWithLLM uses an LLM to determine if the response is asking for clarification.
+// This is more accurate than pattern matching as it can understand context, nuance, and multiple languages.
+// Returns true if the response is detected as a clarification request.
+func CheckClarificationWithLLM(ctx context.Context, judgeLLM llms.Model, responseText string) bool {
+	if judgeLLM == nil {
+		logger.Logger.Warn("Clarification judge LLM is nil, skipping detection")
+		return false
 	}
 
-	// Check custom regex patterns
-	for _, pattern := range customPatterns {
-		if pattern != nil && pattern.MatchString(text) {
-			return true
-		}
+	// Create a context with timeout to avoid blocking too long
+	judgeCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	// Prepare the messages for classification
+	msgs := []llms.MessageContent{
+		{
+			Role: llms.ChatMessageTypeSystem,
+			Parts: []llms.ContentPart{
+				llms.TextContent{Text: clarificationJudgePrompt},
+			},
+		},
+		{
+			Role: llms.ChatMessageTypeHuman,
+			Parts: []llms.ContentPart{
+				llms.TextContent{Text: fmt.Sprintf("Classify this AI assistant response:\n\n%s", responseText)},
+			},
+		},
+	}
+
+	// Call the judge LLM
+	resp, err := judgeLLM.GenerateContent(judgeCtx, msgs)
+	if err != nil {
+		logger.Logger.Warn("Clarification detection LLM call failed", "error", err)
+		return false
+	}
+
+	if len(resp.Choices) == 0 {
+		logger.Logger.Warn("Clarification detection LLM returned no choices")
+		return false
+	}
+
+	// Parse the response - looking for YES or NO
+	answer := strings.TrimSpace(strings.ToUpper(resp.Choices[0].Content))
+
+	// Handle responses that might have extra text
+	if strings.HasPrefix(answer, "YES") {
+		return true
 	}
 
 	return false
