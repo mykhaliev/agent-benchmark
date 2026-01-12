@@ -637,12 +637,33 @@ Global configuration for test execution:
 
 ```yaml
 settings:
-  verbose: true           # Enable detailed logging
-  max_iterations: 10      # Maximum agent reasoning loops
-  timeout: 30s            # Tool execution timeout (legacy, use tool_timeout)
-  tool_timeout: 30s       # Tool execution timeout
-  test_delay: 2s          # Delay between tests
+  verbose: true                 # Enable detailed logging
+  max_iterations: 10            # Maximum agent reasoning loops
+  timeout: 30s                  # Tool execution timeout (legacy, use tool_timeout)
+  tool_timeout: 30s             # Tool execution timeout
+  test_delay: 2s                # Delay between tests
+  variable_policy: suite_only   # Controls are combined (test-only, suite-only, merge-test-priority, merge-suite-priority)
 ```
+---
+
+#### Variable Policy
+
+When running tests as part of a **test suite**, variables can be defined at both
+the **suite level** and the **test level**.
+
+The `variable_policy` setting controls how these variables are resolved.
+
+Available Policies
+
+| Policy | Description |
+|------|-------------|
+| `suite-only` *(default)* | Only suite-level variables are used. Test-level variables are ignored. |
+| `test-only` | Only test-level variables are used. Suite-level variables are ignored. |
+| `merge-test-priority` | Suite and test variables are merged. Test variables override suite variables on key conflicts. |
+| `merge-suite-priority` | Suite and test variables are merged. Suite variables override test variables on key conflicts. |
+
+If `variable_policy` is not set or has an unknown value, it defaults to `suite-only`.
+
 ---
 
 ### Variables

@@ -11,11 +11,11 @@ import (
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
-	"github.com/google/uuid"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/bedrockruntime"
+	"github.com/google/uuid"
 	"github.com/mykhaliev/agent-benchmark/agent"
 	"github.com/mykhaliev/agent-benchmark/logger"
 	"github.com/mykhaliev/agent-benchmark/model"
@@ -151,6 +151,7 @@ func Run(testPath *string, verbose *bool, suitePath *string, reportFileName *str
 
 		// Create static template context early - includes env vars, TEST_DIR, user variables
 		// For suite, TEST_DIR is relative to the suite file (not individual test files)
+		// Test-level variables are not part of the static context.
 		staticCtx := CreateStaticTemplateContext(*suitePath, testSuiteConfig.Variables)
 
 		// Initialize components using the passed context
@@ -208,7 +209,16 @@ func Run(testPath *string, verbose *bool, suitePath *string, reportFileName *str
 			// override settings
 			testConfig.Settings = testSuiteConfig.Settings
 			// override variables
-			if testSuiteConfig.Variables != nil {
+			switch testSuiteConfig.Settings.VariablePolicy {
+			case model.MergeTestPriority:
+				testConfig.Variables = MergeVariables(testConfig.Variables, testSuiteConfig.Variables)
+			case model.MergeSuitePriority:
+				testConfig.Variables = MergeVariables(testSuiteConfig.Variables, testConfig.Variables)
+			case model.TestOnly:
+				break
+			case model.SuiteOnly, "":
+				fallthrough
+			default:
 				testConfig.Variables = testSuiteConfig.Variables
 			}
 			if err := ValidateTestConfig(testConfig, true); err != nil {
@@ -237,7 +247,7 @@ func Run(testPath *string, verbose *bool, suitePath *string, reportFileName *str
 
 	// Generate and save reports
 	logger.Logger.Info("Generating reports")
-	
+
 	// Determine report output directory
 	// Default to test_results folder in the test file's directory
 	var reportDir string
@@ -266,7 +276,7 @@ func Run(testPath *string, verbose *bool, suitePath *string, reportFileName *str
 			*reportFileName = "report"
 		}
 	}
-	
+
 	for _, rt := range reportTypes {
 		reportFileNameWithExt := *reportFileName + "." + rt
 		if err := GenerateReports(results, rt, reportFileNameWithExt); err != nil {
@@ -1332,4 +1342,19 @@ func GetServerNames(servers []model.AgentServer) []string {
 		names[i] = s.Name
 	}
 	return names
+}
+
+func MergeVariables(primary map[string]string, secondary map[string]string) map[string]string {
+	merged := make(map[string]string)
+	if secondary != nil {
+		for key, value := range secondary {
+			merged[key] = value
+		}
+	}
+	if primary != nil {
+		for key, value := range primary {
+			merged[key] = value
+		}
+	}
+	return merged
 }
