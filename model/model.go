@@ -385,7 +385,7 @@ func (e *DataExtractor) Extract(result *ExecutionResult, templateContext map[str
 				continue
 			}
 			logger.Logger.Debug("Extracted", "variable", e.VariableName, "value", fmt.Sprint(res))
-			templateContext[e.VariableName] = fmt.Sprint(res)
+			templateContext[e.VariableName] = normalize(res)
 		default:
 			continue
 		}
@@ -1167,17 +1167,28 @@ func normalize(v interface{}) string {
 	if v == nil {
 		return "null"
 	}
-	rv := reflect.ValueOf(v)
 
-	if rv.Kind() == reflect.Slice || rv.Kind() == reflect.Array {
+	rv := reflect.ValueOf(v)
+	switch rv.Kind() {
+	case reflect.Slice, reflect.Array:
 		var parts []string
 		for i := 0; i < rv.Len(); i++ {
 			parts = append(parts, normalize(rv.Index(i).Interface()))
 		}
 		return "[" + strings.Join(parts, ", ") + "]"
+	case reflect.Float32, reflect.Float64:
+		f := rv.Float()
+		if f == float64(int64(f)) {
+			return fmt.Sprintf("%d", int64(f))
+		}
+		return fmt.Sprintf("%g", f)
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return fmt.Sprintf("%d", rv.Int())
+	case reflect.String:
+		return rv.String()
+	default:
+		return fmt.Sprint(v)
 	}
-
-	return fmt.Sprint(v)
 }
 
 // ============================================================================
