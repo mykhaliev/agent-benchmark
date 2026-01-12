@@ -160,11 +160,21 @@ type Criteria struct {
 // ============================================================================
 
 type Settings struct {
-	Verbose       bool   `yaml:"verbose"`
-	ToolTimeout   string `yaml:"tool_tool_timeout"`
-	MaxIterations int    `yaml:"max_iterations"`
-	TestDelay     string `yaml:"test_delay"`
+	Verbose        bool           `yaml:"verbose"`
+	ToolTimeout    string         `yaml:"tool_tool_timeout"`
+	MaxIterations  int            `yaml:"max_iterations"`
+	TestDelay      string         `yaml:"test_delay"`
+	VariablePolicy VariablePolicy `yaml:"variable_policy"`
 }
+
+type VariablePolicy string
+
+const (
+	TestOnly           VariablePolicy = "test-only"
+	SuiteOnly          VariablePolicy = "suite-only"
+	MergeTestPriority  VariablePolicy = "merge-test-priority"
+	MergeSuitePriority VariablePolicy = "merge-suite-priority"
+)
 
 // ============================================================================
 // SESSION MODEL
