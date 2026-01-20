@@ -106,17 +106,19 @@ func Run(testPath *string, verbose *bool, suitePath *string, reportFileName *str
 		// Parse settings
 		toolTimeout := ParseTimeout(testConfig.Settings.ToolTimeout)
 		testDelay := ParseDelay(testConfig.Settings.TestDelay)
+		sessionDelay := ParseDelay(testConfig.Settings.SessionDelay)
 		maxIterations := GetMaxIterations(testConfig.Settings.MaxIterations)
 
 		logger.Logger.Info("Test settings configured",
 			"max_iterations", maxIterations,
 			"tool_timeout", toolTimeout,
 			"test_delay", testDelay,
+			"session_delay", sessionDelay,
 			"verbose", testConfig.Settings.Verbose)
 
 		// Run tests
 		logger.Logger.Info("Starting test execution")
-		testResults := runTests(ctx, testConfig, agents, providers, maxIterations, toolTimeout, testDelay, *testPath, "")
+		testResults := runTests(ctx, testConfig, agents, providers, maxIterations, toolTimeout, testDelay, sessionDelay, *testPath, "")
 		results = append(results, testResults...)
 		if len(testResults) > 0 {
 			criteria = testResults[0].TestCriteria
@@ -181,12 +183,14 @@ func Run(testPath *string, verbose *bool, suitePath *string, reportFileName *str
 		// Parse settings
 		toolTimeout := ParseTimeout(testSuiteConfig.Settings.ToolTimeout)
 		testDelay := ParseDelay(testSuiteConfig.Settings.TestDelay)
+		sessionDelay := ParseDelay(testSuiteConfig.Settings.SessionDelay)
 		maxIterations := GetMaxIterations(testSuiteConfig.Settings.MaxIterations)
 
 		logger.Logger.Info("Test settings configured",
 			"max_iterations", maxIterations,
 			"tool_timeout", toolTimeout,
 			"test_delay", testDelay,
+			"session_delay", sessionDelay,
 			"verbose", testSuiteConfig.Settings.Verbose)
 
 		for _, testFile := range testSuiteConfig.TestFiles {
@@ -239,10 +243,102 @@ func Run(testPath *string, verbose *bool, suitePath *string, reportFileName *str
 				"tests", totalTests)
 			// Run tests
 			logger.Logger.Info("Starting test execution")
-			testResults := runTests(ctx, testConfig, agents, providers, maxIterations, toolTimeout, testDelay, testFile, testSuiteConfig.Name)
+			testResults := runTests(ctx, testConfig, agents, providers, maxIterations, toolTimeout, testDelay, sessionDelay, testFile, testSuiteConfig.Name)
 			results = append(results, testResults...)
 		}
 		criteria = testSuiteConfig.TestCriteria
+	}
+
+	// AI Summary (optional LLM-powered executive summary)
+	var aiSummaryResult *agent.AISummaryResult
+	aiSummaryConfig := getAISummaryConfig(*testPath, *suitePath)
+	if aiSummaryConfig != nil && aiSummaryConfig.Enabled {
+		logger.Logger.Info("Generating AI summary")
+
+		// Create a context for AI summary
+		analysisBaseCtx := context.Background()
+
+		// Resolve judge LLM for AI summary
+		var judgeLLM llms.Model
+		judgeProvider := aiSummaryConfig.JudgeProvider
+		if judgeProvider == "" {
+			logger.Logger.Error("AI summary enabled but judge_provider not specified")
+		} else if judgeProvider == "$self" {
+			// "$self" means use the same provider as the first agent that ran
+			// Extract from first test result
+			if len(results) > 0 {
+				firstProvider := string(results[0].Execution.ProviderType)
+				logger.Logger.Debug("Using first agent's provider for AI summary", "provider", firstProvider)
+				// Re-initialize just this provider for analysis
+				staticCtx := CreateStaticTemplateContext(*testPath, nil)
+				if *suitePath != "" {
+					staticCtx = CreateStaticTemplateContext(*suitePath, nil)
+				}
+				// Load config to get provider settings
+				var providerConfig []model.Provider
+				if *testPath != "" {
+					if tc, err := model.ParseTestConfig(*testPath); err == nil {
+						providerConfig = tc.Providers
+					}
+				} else if *suitePath != "" {
+					if sc, err := model.ParseSuiteConfig(*suitePath); err == nil {
+						providerConfig = sc.Providers
+					}
+				}
+				for _, p := range providerConfig {
+					if p.Name == firstProvider {
+						initProviders, err := InitProviders(analysisBaseCtx, []model.Provider{p}, staticCtx)
+						if err == nil {
+							judgeLLM = initProviders[p.Name]
+						}
+						break
+					}
+				}
+			}
+		} else {
+			// Look up the specified provider by name and initialize it
+			staticCtx := CreateStaticTemplateContext(*testPath, nil)
+			if *suitePath != "" {
+				staticCtx = CreateStaticTemplateContext(*suitePath, nil)
+			}
+			var providerConfig []model.Provider
+			if *testPath != "" {
+				if tc, err := model.ParseTestConfig(*testPath); err == nil {
+					providerConfig = tc.Providers
+				}
+			} else if *suitePath != "" {
+				if sc, err := model.ParseSuiteConfig(*suitePath); err == nil {
+					providerConfig = sc.Providers
+				}
+			}
+			for _, p := range providerConfig {
+				if p.Name == judgeProvider {
+					initProviders, err := InitProviders(analysisBaseCtx, []model.Provider{p}, staticCtx)
+					if err == nil {
+						judgeLLM = initProviders[p.Name]
+						logger.Logger.Debug("Using separate provider for AI summary", "judge_provider", judgeProvider)
+					} else {
+						logger.Logger.Error("Failed to initialize judge provider", "error", err)
+					}
+					break
+				}
+			}
+			if judgeLLM == nil {
+				logger.Logger.Error("AI summary judge provider not found", "judge_provider", judgeProvider)
+			}
+		}
+
+		if judgeLLM != nil {
+			analysisCtx, cancel := context.WithTimeout(analysisBaseCtx, 90*time.Second)
+			analysisResult := agent.GenerateAISummary(analysisCtx, judgeLLM, results)
+			cancel()
+			aiSummaryResult = &analysisResult
+			if analysisResult.Success {
+				logger.Logger.Info("AI summary completed successfully")
+			} else {
+				logger.Logger.Warn("AI summary failed", "error", analysisResult.Error)
+			}
+		}
 	}
 
 	// Generate and save reports
@@ -279,7 +375,7 @@ func Run(testPath *string, verbose *bool, suitePath *string, reportFileName *str
 
 	for _, rt := range reportTypes {
 		reportFileNameWithExt := *reportFileName + "." + rt
-		if err := GenerateReports(results, rt, reportFileNameWithExt); err != nil {
+		if err := GenerateReports(results, rt, reportFileNameWithExt, aiSummaryResult); err != nil {
 			logger.Logger.Error("Failed to generate reports", "error", err)
 			os.Exit(1)
 		}
@@ -834,6 +930,7 @@ func runTests(
 	maxIterations int,
 	toolTimeout time.Duration,
 	testDelay time.Duration,
+	sessionDelay time.Duration,
 	sourceFile string, // Source test file (empty for single file runs)
 	suiteName string, // Suite name (empty for single file runs)
 ) []model.TestRun {
@@ -1076,6 +1173,12 @@ func runTests(
 			logger.Logger.Info("Session completed",
 				"session", session.Name,
 				"agent", agentConfig.Name)
+
+			// Delay between sessions if configured (allows external processes like Excel to clean up)
+			if sessionDelay > 0 && sessionIdx < len(testConfig.Sessions)-1 {
+				logger.Logger.Info("Waiting before next session", "delay", sessionDelay)
+				time.Sleep(sessionDelay)
+			}
 		}
 	}
 
@@ -1130,7 +1233,7 @@ func CreateTemplateContext(variables map[string]string) map[string]string {
 	return CreateStaticTemplateContext("", variables)
 }
 
-func GenerateReports(results []model.TestRun, reportType, outputPath string) error {
+func GenerateReports(results []model.TestRun, reportType, outputPath string, aiSummary *agent.AISummaryResult) error {
 	if len(results) == 0 {
 		return fmt.Errorf("no test results to generate report")
 	}
@@ -1142,17 +1245,39 @@ func GenerateReports(results []model.TestRun, reportType, outputPath string) err
 	reporter.GenerateConsoleReport(results)
 	// Print summary
 	PrintTestSummary(results)
+
+	// Print AI summary if available
+	if aiSummary != nil && aiSummary.Success {
+		fmt.Println("\n" + strings.Repeat("=", 80))
+		fmt.Println("AI SUMMARY (LLM-Generated)")
+		fmt.Println(strings.Repeat("-", 80))
+		fmt.Println(aiSummary.Analysis)
+		fmt.Println(strings.Repeat("=", 80))
+	}
+
 	reportContent := ""
 	switch reportType {
 	case "json":
-		reportContent = reporter.GenerateJSONReport(results)
+		// Convert agent.AISummaryResult to model.AISummaryData (avoiding circular import)
+		var analysisData *model.AISummaryData
+		if aiSummary != nil {
+			analysisData = &model.AISummaryData{
+				Success:   aiSummary.Success,
+				Analysis:  aiSummary.Analysis,
+				Error:     aiSummary.Error,
+				Retryable: aiSummary.Retryable,
+				Guidance:  aiSummary.Guidance,
+			}
+		}
+		reportContent = reporter.GenerateJSONReportWithAnalysis(results, analysisData)
 	case "html":
 		// Use the new template-based HTML generator
 		gen, err := report.NewGenerator()
 		if err != nil {
 			return fmt.Errorf("failed to create report generator: %w", err)
 		}
-		htmlContent, err := gen.GenerateHTML(results)
+		// Pass AI summary to HTML generator
+		htmlContent, err := gen.GenerateHTMLWithAnalysis(results, aiSummary)
 		if err != nil {
 			return fmt.Errorf("failed to generate HTML report: %w", err)
 		}
@@ -1357,4 +1482,26 @@ func MergeVariables(primary map[string]string, secondary map[string]string) map[
 		}
 	}
 	return merged
+}
+
+// getAISummaryConfig retrieves the AISummary configuration from either
+// a single test file or a suite configuration file.
+func getAISummaryConfig(testPath, suitePath string) *model.AISummary {
+	// Try suite config first
+	if suitePath != "" {
+		suiteConfig, err := model.ParseSuiteConfig(suitePath)
+		if err == nil && suiteConfig.AISummary.Enabled {
+			return &suiteConfig.AISummary
+		}
+	}
+
+	// Fall back to test config
+	if testPath != "" {
+		testConfig, err := model.ParseTestConfig(testPath)
+		if err == nil && testConfig.AISummary.Enabled {
+			return &testConfig.AISummary
+		}
+	}
+
+	return nil
 }

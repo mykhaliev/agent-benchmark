@@ -27,6 +27,10 @@
 criteria:
   success_rate: 1 # 100%
 
+ai_summary:
+  enabled: true
+  judge_provider: azure-openai-gpt5  # Use most powerful model for analyzing results
+
 # Use TEST_DIR for portable paths - no hardcoded paths needed
 variables:
   MCP_SERVER_PATH: "{{TEST_DIR}}/Sbroenne.WindowsMcp.exe"
@@ -69,6 +73,7 @@ agents:
       - Report results after completion, not before starting
     clarification_detection:
       enabled: true
+      judge_provider: azure-openai-gpt5  # Use most powerful model for judging
 
   - name: gpt4o-agent
     servers:
@@ -86,6 +91,7 @@ agents:
       - Report results after completion, not before starting
     clarification_detection:
       enabled: true
+      judge_provider: azure-openai-gpt5  # Use most powerful model for judging
 
 settings:
   verbose: true

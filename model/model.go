@@ -31,6 +31,7 @@ type TestSuiteConfiguration struct {
 	Settings     Settings          `yaml:"settings"`
 	Variables    map[string]string `yaml:"variables,omitempty"`
 	TestCriteria Criteria          `yaml:"criteria"`
+	AISummary    AISummary         `yaml:"ai_summary,omitempty"`
 }
 
 // ============================================================================
@@ -45,6 +46,7 @@ type TestConfiguration struct {
 	Settings     Settings          `yaml:"settings"`
 	Variables    map[string]string `yaml:"variables,omitempty"`
 	TestCriteria Criteria          `yaml:"criteria"`
+	AISummary    AISummary         `yaml:"ai_summary,omitempty"`
 }
 
 // ============================================================================
@@ -133,6 +135,14 @@ type ClarificationDetection struct {
 	JudgeProvider string `yaml:"judge_provider,omitempty"` // Provider name for the judge LLM. Use "$self" to reuse the agent's provider, or specify a provider name (required when enabled)
 }
 
+// AISummary configures automatic LLM-generated analysis of test results.
+// When enabled, the system uses an LLM to generate an executive summary of the test run.
+// The analysis appears as the first section in generated reports.
+type AISummary struct {
+	Enabled       bool   `yaml:"enabled"`                  // Enable AI summary (default: false)
+	JudgeProvider string `yaml:"judge_provider,omitempty"` // Provider name for the judge LLM. Use "$self" to reuse a test agent's provider, or specify a provider name (required when enabled)
+}
+
 type Agent struct {
 	Name                   string                 `yaml:"name"`
 	Settings               Settings               `yaml:"settings"`
@@ -164,6 +174,7 @@ type Settings struct {
 	ToolTimeout    string         `yaml:"tool_tool_timeout"`
 	MaxIterations  int            `yaml:"max_iterations"`
 	TestDelay      string         `yaml:"test_delay"`
+	SessionDelay   string         `yaml:"session_delay"`
 	VariablePolicy VariablePolicy `yaml:"variable_policy"`
 }
 
@@ -1595,7 +1606,21 @@ func (rg *ReportGenerator) GenerateMarkdownReport(results []TestRun) string {
 	return md
 }
 
+// AISummaryData represents the AI summary to include in reports.
+// This is a simple struct to avoid circular imports with the agent package.
+type AISummaryData struct {
+	Success   bool   `json:"success"`
+	Analysis  string `json:"analysis,omitempty"`
+	Error     string `json:"error,omitempty"`
+	Retryable bool   `json:"retryable,omitempty"`
+	Guidance  string `json:"guidance,omitempty"`
+}
+
 func (rg *ReportGenerator) GenerateJSONReport(results []TestRun) string {
+	return rg.GenerateJSONReportWithAnalysis(results, nil)
+}
+
+func (rg *ReportGenerator) GenerateJSONReportWithAnalysis(results []TestRun, aiSummary *AISummaryData) string {
 	comparisons := rg.GenerateComparisonSummary(results)
 
 	// Create a structured report with comparison
@@ -1609,6 +1634,21 @@ func (rg *ReportGenerator) GenerateJSONReport(results []TestRun) string {
 		},
 		"comparison_summary": comparisons,
 		"detailed_results":   results,
+	}
+
+	// Add ai_summary if available
+	if aiSummary != nil && aiSummary.Success && aiSummary.Analysis != "" {
+		reportData["ai_summary"] = map[string]interface{}{
+			"success":  aiSummary.Success,
+			"analysis": aiSummary.Analysis,
+		}
+	} else if aiSummary != nil && !aiSummary.Success {
+		reportData["ai_summary"] = map[string]interface{}{
+			"success":   aiSummary.Success,
+			"error":     aiSummary.Error,
+			"retryable": aiSummary.Retryable,
+			"guidance":  aiSummary.Guidance,
+		}
 	}
 
 	report, err := json.MarshalIndent(reportData, "", "  ")

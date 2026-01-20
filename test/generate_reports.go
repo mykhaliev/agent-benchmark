@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/mykhaliev/agent-benchmark/agent"
 	"github.com/mykhaliev/agent-benchmark/model"
 	"github.com/mykhaliev/agent-benchmark/report"
 )
@@ -287,10 +288,149 @@ func main() {
 		os.Exit(1)
 	}
 
+	reporter := model.NewReportGenerator()
+
 	outDir := "generated_reports"
 	if err := os.MkdirAll(outDir, 0755); err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to create output directory: %v\n", err)
 		os.Exit(1)
+	}
+
+	// Fixture-specific analysis data that matches the actual test results
+	analysis05 := &agent.AISummaryResult{
+		Success: true,
+		Analysis: `### Overall Results
+- **Pass Rate:** 67% (2 of 3 agents passed)
+- **Total Tests:** 3 (one test per agent)
+- **Duration:** ~12.8 seconds total
+
+### Agent Performance Comparison
+
+| Agent | Pass Rate | Avg Latency | Notes |
+|-------|-----------|-------------|-------|
+| claude-agent | 100% | 3.5s | Passed with correct content |
+| gemini-agent | 100% | 4.2s | Passed with correct content |
+| gpt-agent | 0% | 5.1s | Failed - content case mismatch |
+
+### Key Findings
+
+1. **Case Sensitivity Matters**: gpt-agent wrote 'hello world' instead of 'Hello World'
+2. **Claude Fastest**: Best latency at 3.5s with correct output
+3. **All Used Correct Tool**: Every agent correctly chose write_file
+
+### Recommendations
+
+1. **Add Case Validation**: Include explicit case requirements in prompts
+2. **Parameter Validation**: Add assertions to check exact parameter values`,
+	}
+
+	analysis06 := &agent.AISummaryResult{
+		Success: true,
+		Analysis: `### Overall Results
+- **Pass Rate:** 75% (3 of 4 agents passed)
+- **Total Tests:** 8 across 4 agents
+- **Duration:** ~15 seconds total
+
+### Agent Performance Comparison
+
+| Agent | Pass Rate | Avg Latency | Notes |
+|-------|-----------|-------------|-------|
+| claude-agent | 100% | 8.0s | Best overall - used filesystem tools |
+| gemini-agent | 100% | 6.0s | Fastest - used bash commands |
+| gpt-agent | 100% | 6.0s | Good - used Python execution |
+| phoenix-agent | 0% | 12.0s | **DISQUALIFIED** - Used wrong tools |
+
+### Key Findings
+
+1. **Tool Selection Matters**: phoenix-agent used HTTP/GraphQL APIs instead of filesystem tools
+2. **Latency Patterns**: Agents using bash were faster than Python wrappers
+3. **Approach Diversity**: Each passing agent used different tools (filesystem, bash, python)
+
+### Recommendations
+
+1. **For Tool Authors**: Clearly specify when to use each tool type
+2. **For phoenix-agent**: Needs retraining - consistently chose API calls over direct access`,
+	}
+
+	analysis07 := &agent.AISummaryResult{
+		Success: true,
+		Analysis: `### Overall Results
+- **Pass Rate:** 89% (8 of 9 tests passed)
+- **Total Tests:** 9 across 3 agents in multiple sessions
+- **Duration:** ~45 seconds total
+
+### Agent Performance Comparison
+
+| Agent | Pass Rate | Avg Latency | Notes |
+|-------|-----------|-------------|-------|
+| claude-agent | 100% | 4.0s | Perfect across all sessions |
+| gemini-agent | 100% | 4.5s | Consistent performance |
+| gpt-agent | 67% | 5.0s | One failure in config reading |
+
+### Key Findings
+
+1. **Session Isolation Works**: Each session maintained proper state
+2. **Config Reading Challenge**: gpt-agent struggled with YAML parsing
+3. **Consistent Winners**: claude and gemini agents reliable across sessions
+
+### Recommendations
+
+1. **Config Test Clarity**: Add more explicit format expectations
+2. **Session Naming**: Use descriptive session names for debugging`,
+	}
+
+	analysis08 := &agent.AISummaryResult{
+		Success: true,
+		Analysis: `### Overall Results
+- **Pass Rate:** 85% (17 of 20 tests passed)
+- **Total Tests:** 20 across 4 agents, multiple files and sessions
+- **Duration:** ~2 minutes total
+
+### Agent Performance Comparison
+
+| Agent | Pass Rate | Avg Latency | Notes |
+|-------|-----------|-------------|-------|
+| claude-agent | 100% | 4.2s | Perfect score, efficient tools |
+| gemini-agent | 90% | 4.8s | One timeout on large file |
+| gpt-agent | 80% | 5.5s | Struggled with complex prompts |
+| phoenix-agent | 70% | 6.2s | Inconsistent tool selection |
+
+### Key Findings
+
+1. **File Complexity**: Larger test files revealed performance differences
+2. **Tool Chain Length**: Agents using fewer tool calls were faster
+3. **Error Recovery**: Only claude-agent handled errors gracefully
+
+### Recommendations
+
+1. **Optimize Tool Chains**: Combine operations where possible
+2. **Add Timeout Handling**: Implement retry logic for large operations
+3. **Improve Error Messages**: More specific failure reasons needed`,
+	}
+
+	analysis09 := &agent.AISummaryResult{
+		Success: true,
+		Analysis: `### Overall Results
+- **Pass Rate:** 0% (0 of 1 tests passed)
+- **Total Tests:** 1
+- **Status:** Complete failure with errors
+
+### Error Analysis
+
+The test failed due to multiple issues:
+1. **Tool Execution Error**: write_file returned permission denied
+2. **Assertion Failures**: Both tool_called and output_contains failed
+3. **No Recovery**: Agent did not attempt alternative approaches
+
+### Root Cause
+
+Permission denied error suggests the test environment was not properly configured with write access to /tmp directory.
+
+### Recommendations
+
+1. **Environment Setup**: Verify file permissions before test execution
+2. **Error Handling**: Add fallback paths for common failure modes
+3. **Diagnostic Output**: Include more context in error messages`,
 	}
 
 	// Hierarchical test reports - progressive complexity:
@@ -304,43 +444,75 @@ func main() {
 	// Level 8: Multiple agents, multiple files (full complexity)
 	// Bonus: Failed test with errors
 	fixtures := []struct {
-		name    string
-		level   int
-		results []model.TestRun
+		name     string
+		level    int
+		results  []model.TestRun
+		analysis *agent.AISummaryResult // nil means no analysis
 	}{
-		{"01_single_agent_single_test", 1, createSingleAgentOneTest()},
-		{"02_single_agent_multi_test", 2, createSingleAgentTwoTests()},
-		{"03_single_agent_multi_session", 3, createSingleAgentMultiSession()},
-		{"04_single_agent_multi_file", 4, createSingleAgentMultiFile()},
-		{"05_multi_agent_single_test", 5, createMultiAgentSingleTest()},
-		{"06_multi_agent_multi_test", 6, createMultiAgent()},
-		{"07_multi_agent_multi_session", 7, createMultiAgentMultiSession()},
-		{"08_multi_agent_multi_file", 8, createFullSuite()},
-		{"09_failed_with_errors", 0, createFailedTest()},
+		{"01_single_agent_single_test", 1, createSingleAgentOneTest(), nil},
+		{"02_single_agent_multi_test", 2, createSingleAgentTwoTests(), nil},
+		{"03_single_agent_multi_session", 3, createSingleAgentMultiSession(), nil},
+		{"04_single_agent_multi_file", 4, createSingleAgentMultiFile(), nil},
+		{"05_multi_agent_single_test", 5, createMultiAgentSingleTest(), analysis05},
+		{"06_multi_agent_multi_test", 6, createMultiAgent(), analysis06},
+		{"07_multi_agent_multi_session", 7, createMultiAgentMultiSession(), analysis07},
+		{"08_multi_agent_multi_file", 8, createFullSuite(), analysis08},
+		{"09_failed_with_errors", 0, createFailedTest(), analysis09},
 	}
 
 	fmt.Println("Generating hierarchical test reports...")
 	fmt.Println("=========================================")
 	for _, f := range fixtures {
-		html, err := gen.GenerateHTML(f.results)
+		// Generate HTML report
+		var html string
+		var err error
+		if f.analysis != nil {
+			html, err = gen.GenerateHTMLWithAnalysis(f.results, f.analysis)
+		} else {
+			html, err = gen.GenerateHTML(f.results)
+		}
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Failed to generate %s: %v\n", f.name, err)
+			fmt.Fprintf(os.Stderr, "Failed to generate HTML for %s: %v\n", f.name, err)
 			continue
 		}
 
-		outPath := filepath.Join(outDir, f.name+".html")
-		if err := os.WriteFile(outPath, []byte(html), 0644); err != nil {
-			fmt.Fprintf(os.Stderr, "Failed to write %s: %v\n", outPath, err)
+		htmlPath := filepath.Join(outDir, f.name+".html")
+		if err := os.WriteFile(htmlPath, []byte(html), 0644); err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to write %s: %v\n", htmlPath, err)
 			continue
 		}
+
+		// Generate JSON report
+		var jsonContent string
+		if f.analysis != nil {
+			analysisData := &model.AISummaryData{
+				Success:  f.analysis.Success,
+				Analysis: f.analysis.Analysis,
+			}
+			jsonContent = reporter.GenerateJSONReportWithAnalysis(f.results, analysisData)
+		} else {
+			jsonContent = reporter.GenerateJSONReport(f.results)
+		}
+
+		jsonPath := filepath.Join(outDir, f.name+".json")
+		if err := os.WriteFile(jsonPath, []byte(jsonContent), 0644); err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to write %s: %v\n", jsonPath, err)
+			continue
+		}
+
 		levelStr := ""
 		if f.level > 0 {
 			levelStr = fmt.Sprintf(" (Level %d)", f.level)
 		}
-		fmt.Printf("✓ %s%s - %d bytes\n", f.name, levelStr, len(html))
+		analysisStr := ""
+		if f.analysis != nil {
+			analysisStr = " [+analysis]"
+		}
+		fmt.Printf("✓ %s%s%s - HTML: %d bytes, JSON: %d bytes\n", f.name, levelStr, analysisStr, len(html), len(jsonContent))
 	}
 	fmt.Println("=========================================")
 	fmt.Println("Done! Open generated_reports/*.html to view.")
+	fmt.Println("JSON reports also generated in generated_reports/*.json")
 }
 
 func createSingleAgentOneTest() []model.TestRun {

@@ -642,6 +642,7 @@ settings:
   timeout: 30s                  # Tool execution timeout (legacy, use tool_timeout)
   tool_timeout: 30s             # Tool execution timeout
   test_delay: 2s                # Delay between tests
+  session_delay: 30s            # Delay between sessions (for COM cleanup, resource release)
   variable_policy: suite_only   # Controls are combined (test-only, suite-only, merge-test-priority, merge-suite-priority)
 ```
 ---
@@ -713,6 +714,21 @@ settings:
 - Respect API rate limits
 - Allow system state to settle
 - Prevent resource exhaustion
+
+#### Session Delay
+
+Pause between sessions to allow resource cleanup:
+
+```yaml
+settings:
+  session_delay: 30s  # 30 second pause between sessions
+```
+
+**Use Cases:**
+- Allow external applications and resources to fully release between sessions
+- Prevent resource contention when tests interact with stateful applications
+- Avoid lingering processes from previous sessions affecting new sessions
+- Give MCP servers time to cleanly shut down between sessions
 
 ---
 
@@ -1683,6 +1699,20 @@ graph LR
 | `outputs-comparison` | Final outputs side-by-side | Multi-agent |
 | `fullscreen-overlay` | Modal overlay for enlarged diagrams | All reports |
 | `scripts` | Mermaid init, expand/collapse, fullscreen JS | All reports |
+
+### AI Summary (LLM-Generated Executive Summary)
+
+Generate an AI-powered executive summary of test results by adding `ai_summary` to your test YAML:
+
+```yaml
+ai_summary:
+  enabled: true
+  judge_provider: azure-gpt  # Provider name from your providers section
+```
+
+The analysis appears as an "AI Summary" section in HTML reports with a verdict, trade-offs analysis, notable observations, failure patterns, and actionable recommendations.
+
+📖 **[Full AI Summary Documentation](report/README.md#2-ai-summary)**
 
 ### JSON Report
 

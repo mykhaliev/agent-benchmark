@@ -95,7 +95,74 @@ Quick overview of test execution:
 - **Avg Tokens** - Average tokens used by passing tests
 - **Avg Duration** - Average test execution time
 
-### 2. File & Session Summary
+### 2. AI Summary
+
+When `ai_summary` is enabled in your test YAML, an LLM-generated executive summary appears after the summary cards.
+
+#### Configuration
+
+Add `ai_summary` to your test or suite YAML:
+
+```yaml
+ai_summary:
+  enabled: true
+  judge_provider: azure-gpt  # Provider name for generating the analysis
+```
+
+**Configuration Options:**
+
+| Option | Description | Required |
+|--------|-------------|----------|
+| `enabled` | Enable AI summary | Yes |
+| `judge_provider` | Provider name for the analysis LLM (must be defined in `providers` section) | Yes (when enabled) |
+
+**Example Configuration:**
+
+```yaml
+providers:
+  - name: azure-gpt
+    type: AZURE
+    auth_type: entra_id
+    model: gpt-4
+    baseUrl: https://your-resource.openai.azure.com
+    version: 2024-02-15-preview
+
+ai_summary:
+  enabled: true
+  judge_provider: azure-gpt  # Use the azure-gpt provider for analysis
+
+agents:
+  - name: test-agent
+    provider: azure-gpt
+    # ...
+```
+
+#### What's Included
+
+The AI summary provides interpretation-focused analysis:
+
+- **Verdict** - Clear recommendation with confidence level: "Use Agent X" with justification
+- **Trade-offs** - Most accurate, most cost-effective, and agents to avoid
+- **Notable Observations** - Unexpected positives (✅) and passing-but-risky patterns (⚠️)
+- **Failure Analysis** - Patterns grouped by root cause (test quality, tool issues, agent behavior)
+- **Recommendations** - 2-3 actionable items to improve results
+
+#### Output Formats
+
+**HTML Reports:** The analysis appears as an "AI Summary" section after the summary cards.
+
+**JSON Reports:** The analysis is included in the `ai_summary` field:
+
+```json
+{
+  "ai_summary": {
+    "success": true,
+    "analysis": "### Verdict\n\n**Use Agent X** - 95% pass rate with best efficiency..."
+  }
+}
+```
+
+### 3. File & Session Summary
 
 When running suites or multi-session tests, summary sections show:
 - **File Summary** - Per-file pass rate, duration, and token usage
@@ -104,7 +171,7 @@ When running suites or multi-session tests, summary sections show:
   - **Single-agent**: One aggregate diagram for the session
   - **Multi-agent**: Per-agent diagrams in a side-by-side grid (click any diagram to view fullscreen)
 
-### 3. Comparison Matrix (Multi-Agent)
+### 4. Comparison Matrix (Multi-Agent)
 
 When testing multiple agents, a matrix shows results at a glance. The matrix **adapts automatically** based on your test structure:
 
@@ -137,7 +204,7 @@ Each cell shows: **status**, **duration**, and **token count**.
 
 Group headers show: **pass count**, **total duration**, and **total tokens** (aggregated across all agents).
 
-### 4. Agent Leaderboard (Multi-Agent)
+### 5. Agent Leaderboard (Multi-Agent)
 
 Agents ranked by performance:
 
@@ -147,7 +214,7 @@ Agents ranked by performance:
 | 🥈 | claude-agent | 75% | 589 tok/✓ | 10.2s |
 | 🥉 | gpt4o-agent | 50% | 723 tok/✓ | 12.0s |
 
-### 5. Detailed Test Results
+### 6. Detailed Test Results
 
 Each test shows:
 - **Assertions** - Pass/fail status for each assertion
@@ -156,7 +223,7 @@ Each test shows:
 - **Messages** - Full conversation history
 - **Final Output** - Agent's final response
 
-### 6. Rate Limit & Clarification Stats
+### 7. Rate Limit & Clarification Stats
 
 When enabled, the report shows:
 - **Throttle Count** - Times request was proactively delayed
@@ -286,5 +353,13 @@ Reports can be output in multiple formats:
 Example:
 ```bash
 go run . -f examples/test.yaml -reportType html,json
+```
+
+To enable LLM-generated summary, configure `ai_summary` in your test YAML:
+
+```yaml
+ai_summary:
+  enabled: true
+  judge_provider: your-provider-name
 ```
 

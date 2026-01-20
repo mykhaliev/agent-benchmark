@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mykhaliev/agent-benchmark/agent"
 	"github.com/mykhaliev/agent-benchmark/logger"
 	"github.com/mykhaliev/agent-benchmark/model"
 	"github.com/mykhaliev/agent-benchmark/version"
@@ -39,6 +40,9 @@ type ReportData struct {
 	TestOverview  TestOverviewView
 	// Unified adaptive view
 	Adaptive AdaptiveView
+	// AI Summary - LLM-generated executive summary (optional)
+	AISummary    string // Markdown content from LLM analysis
+	HasAISummary bool   // Whether AI summary is available
 }
 
 // AdaptiveView is the unified hierarchical structure for all report sections
@@ -372,6 +376,10 @@ func NewGenerator() (*Generator, error) {
 			// Return JSON as safe HTML to avoid double-escaping
 			return template.HTML(s)
 		},
+		"safeHTML": func(s string) template.HTML {
+			// Return string as safe HTML to preserve markdown for client-side rendering
+			return template.HTML(s)
+		},
 		"prettyJSON": func(s string) template.HTML {
 			// Pretty print JSON for display
 			var obj interface{}
@@ -417,6 +425,24 @@ func NewGenerator() (*Generator, error) {
 // GenerateHTML generates an HTML report from test results
 func (g *Generator) GenerateHTML(results []model.TestRun) (string, error) {
 	data := buildReportData(results)
+
+	var buf bytes.Buffer
+	if err := g.tmpl.Execute(&buf, data); err != nil {
+		return "", fmt.Errorf("failed to execute template: %w", err)
+	}
+
+	return buf.String(), nil
+}
+
+// GenerateHTMLWithAnalysis generates an HTML report with optional LLM-generated analysis
+func (g *Generator) GenerateHTMLWithAnalysis(results []model.TestRun, analysis *agent.AISummaryResult) (string, error) {
+	data := buildReportData(results)
+
+	// Add AI summary if available
+	if analysis != nil && analysis.Analysis != "" {
+		data.AISummary = analysis.Analysis
+		data.HasAISummary = true
+	}
 
 	var buf bytes.Buffer
 	if err := g.tmpl.Execute(&buf, data); err != nil {

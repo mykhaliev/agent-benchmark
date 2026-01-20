@@ -6,6 +6,7 @@
     <meta charset="UTF-8">
     <title>Test Results - Agent Benchmark</title>
     <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
     <style>
 /* Agent Benchmark Report Styles - Enhanced Version */
 
@@ -1866,6 +1867,84 @@ body {
     padding: 6px 0;
 }
 
+/* AI Summary Content (inside standard .section) */
+.analysis-content {
+    line-height: 1.7;
+    color: var(--color-text);
+}
+
+.analysis-content h1,
+.analysis-content h2,
+.analysis-content h3,
+.analysis-content h4 {
+    margin-top: 1.2em;
+    margin-bottom: 0.6em;
+    color: var(--color-text);
+}
+
+.analysis-content h1:first-child,
+.analysis-content h2:first-child,
+.analysis-content h3:first-child {
+    margin-top: 0;
+}
+
+.analysis-content ul,
+.analysis-content ol {
+    margin: 0.8em 0;
+    padding-left: 1.5em;
+}
+
+.analysis-content li {
+    margin: 0.4em 0;
+}
+
+.analysis-content table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1em 0;
+}
+
+.analysis-content th,
+.analysis-content td {
+    border: 1px solid var(--color-border);
+    padding: 8px 12px;
+    text-align: left;
+}
+
+.analysis-content th {
+    background: var(--color-bg);
+    font-weight: 600;
+}
+
+.analysis-content code {
+    background: #f0f0f0;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 0.9em;
+}
+
+.analysis-content pre {
+    background: #f5f5f5;
+    padding: 12px 16px;
+    border-radius: var(--radius-sm);
+    overflow-x: auto;
+}
+
+.analysis-content pre code {
+    background: none;
+    padding: 0;
+}
+
+.analysis-content strong {
+    color: var(--color-text);
+    font-weight: 600;
+}
+
+.analysis-content em {
+    color: var(--color-text-light);
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     body { padding: 10px; }
@@ -1893,14 +1972,14 @@ body {
             <h1>🧪 Agent Benchmark Report</h1>
             <div class="report-meta">
                 <span>📦 Version: 0.0.0-SNAPSHOT</span>
-                <span>📅 Generated: 2026-01-10T14:02:41&#43;01:00</span>
+                <span>📅 Generated: 2026-01-19T18:27:17&#43;01:00</span>
                 
                 
                 <span>📄 Files: 4</span>
                 
             </div>
         </header>
-        
+
         
         
 <div class="summary-grid">
@@ -1945,6 +2024,42 @@ body {
     </div>
 </div>
 
+        
+        
+        
+        <section class="section">
+            <div class="section-header">
+                <h2 class="section-title">🤖 AI Summary</h2>
+            </div>
+            <div class="section-body">
+                <div class="analysis-content markdown-content">### Overall Results
+- **Pass Rate:** 85% (17 of 20 tests passed)
+- **Total Tests:** 20 across 4 agents, multiple files and sessions
+- **Duration:** ~2 minutes total
+
+### Agent Performance Comparison
+
+| Agent | Pass Rate | Avg Latency | Notes |
+|-------|-----------|-------------|-------|
+| claude-agent | 100% | 4.2s | Perfect score, efficient tools |
+| gemini-agent | 90% | 4.8s | One timeout on large file |
+| gpt-agent | 80% | 5.5s | Struggled with complex prompts |
+| phoenix-agent | 70% | 6.2s | Inconsistent tool selection |
+
+### Key Findings
+
+1. **File Complexity**: Larger test files revealed performance differences
+2. **Tool Chain Length**: Agents using fewer tool calls were faster
+3. **Error Recovery**: Only claude-agent handled errors gracefully
+
+### Recommendations
+
+1. **Optimize Tool Chains**: Combine operations where possible
+2. **Add Timeout Handling**: Implement retry logic for large operations
+3. **Improve Error Messages**: More specific failure reasons needed</div>
+            </div>
+        </section>
+        
 
         
         
@@ -7849,6 +7964,19 @@ sequenceDiagram
             closeDetailsOverlay();
         }
     });
+
+    
+    
+    (function() {
+        const markdownElements = document.querySelectorAll('.markdown-content');
+        markdownElements.forEach(el => {
+            
+            const rawContent = (el.textContent || el.innerText || '').trim();
+            if (rawContent) {
+                el.innerHTML = marked.parse(rawContent);
+            }
+        });
+    })();
 </script>
 
 </body>
