@@ -2,6 +2,7 @@ package agent
 
 import (
 	"context"
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"strconv"
@@ -1127,4 +1128,226 @@ func recordClarificationRequest(level ClarificationLevel, iteration int, text st
 			"response_preview", preview)
 		result.Errors = append(result.Errors, msg)
 	}
+}
+
+// ============================================================================
+// AI SUMMARY - LLM-GENERATED EXECUTIVE SUMMARY
+// ============================================================================
+
+// aiSummaryPrompt is embedded from prompts/ai_summary.md at compile time.
+// Edit that file to modify the prompt - changes require recompilation.
+//
+//go:embed prompts/ai_summary.md
+var aiSummaryPrompt string
+
+// AISummaryResult contains the generated analysis or error information
+type AISummaryResult struct {
+	Success   bool   `json:"success"`
+	Analysis  string `json:"analysis,omitempty"`  // Markdown content if successful
+	Error     string `json:"error,omitempty"`     // Error message if failed
+	Retryable bool   `json:"retryable,omitempty"` // Whether the error is retryable
+	Guidance  string `json:"guidance,omitempty"`  // Actionable suggestion for the user
+}
+
+// GenerateAISummary uses an LLM to generate an executive summary of test results.
+// It takes the full test results and produces a markdown analysis.
+// Returns an AISummaryResult with either the analysis or error information.
+func GenerateAISummary(ctx context.Context, judgeLLM llms.Model, results []model.TestRun) AISummaryResult {
+	if judgeLLM == nil {
+		return AISummaryResult{
+			Success:   false,
+			Error:     "AI summary LLM is nil",
+			Retryable: false,
+			Guidance:  "Configure a valid judge_provider in ai_summary settings. Use '$self' to reuse an agent's provider, or specify a provider name.",
+		}
+	}
+
+	// Create a context with 60-second timeout for large test suites
+	analysisCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	defer cancel()
+
+	// Prepare a summary of the test results for the LLM
+	resultsSummary := prepareResultsSummary(results)
+
+	// Prepare the messages for analysis
+	msgs := []llms.MessageContent{
+		{
+			Role: llms.ChatMessageTypeSystem,
+			Parts: []llms.ContentPart{
+				llms.TextContent{Text: aiSummaryPrompt},
+			},
+		},
+		{
+			Role: llms.ChatMessageTypeHuman,
+			Parts: []llms.ContentPart{
+				llms.TextContent{Text: fmt.Sprintf("Analyze these test results:\n\n%s", resultsSummary)},
+			},
+		},
+	}
+
+	// Call the analysis LLM
+	resp, err := judgeLLM.GenerateContent(analysisCtx, msgs)
+	if err != nil {
+		// Check if it's a context timeout
+		if ctx.Err() == context.DeadlineExceeded || analysisCtx.Err() == context.DeadlineExceeded {
+			return AISummaryResult{
+				Success:   false,
+				Error:     "Analysis timed out after 60 seconds",
+				Retryable: true,
+				Guidance:  "The test results may be too large. Try running with fewer tests, or use a model with higher throughput.",
+			}
+		}
+		return AISummaryResult{
+			Success:   false,
+			Error:     fmt.Sprintf("LLM call failed: %v", err),
+			Retryable: true,
+			Guidance:  "Check API connectivity and credentials. Ensure the judge_provider is correctly configured.",
+		}
+	}
+
+	if len(resp.Choices) == 0 {
+		return AISummaryResult{
+			Success:   false,
+			Error:     "LLM returned no response",
+			Retryable: true,
+			Guidance:  "The model may be overloaded. Try again, or use a different judge_provider.",
+		}
+	}
+
+	analysis := resp.Choices[0].Content
+	if strings.TrimSpace(analysis) == "" {
+		return AISummaryResult{
+			Success:   false,
+			Error:     "LLM returned empty analysis",
+			Retryable: true,
+			Guidance:  "The model returned an empty response. Try a different model with better instruction following.",
+		}
+	}
+
+	return AISummaryResult{
+		Success:  true,
+		Analysis: analysis,
+	}
+}
+
+// prepareResultsSummary creates a structured summary of test results for the LLM
+func prepareResultsSummary(results []model.TestRun) string {
+	if len(results) == 0 {
+		return "No test results available."
+	}
+
+	var sb strings.Builder
+
+	// Overall stats
+	total := len(results)
+	passed := 0
+	failed := 0
+	totalDuration := time.Duration(0)
+	totalTokens := 0
+
+	for _, r := range results {
+		if r.Passed {
+			passed++
+		} else {
+			failed++
+		}
+		totalDuration += r.Execution.EndTime.Sub(r.Execution.StartTime)
+		totalTokens += r.Execution.TokensUsed
+	}
+
+	sb.WriteString(fmt.Sprintf("## Test Run Overview\n"))
+	sb.WriteString(fmt.Sprintf("- Total Tests: %d\n", total))
+	sb.WriteString(fmt.Sprintf("- Passed: %d (%.1f%%)\n", passed, float64(passed)/float64(total)*100))
+	sb.WriteString(fmt.Sprintf("- Failed: %d (%.1f%%)\n", failed, float64(failed)/float64(total)*100))
+	sb.WriteString(fmt.Sprintf("- Total Duration: %.1fs\n", totalDuration.Seconds()))
+	sb.WriteString(fmt.Sprintf("- Total Tokens: %d\n\n", totalTokens))
+
+	// Agent breakdown with efficiency metrics
+	type agentMetrics struct {
+		total, passed, failed int
+		provider              string
+		totalTokens           int
+		totalDurationMs       int64
+	}
+	agentStats := make(map[string]*agentMetrics)
+
+	for _, r := range results {
+		stats, exists := agentStats[r.Execution.AgentName]
+		if !exists {
+			stats = &agentMetrics{provider: string(r.Execution.ProviderType)}
+			agentStats[r.Execution.AgentName] = stats
+		}
+		stats.total++
+		if r.Passed {
+			stats.passed++
+		} else {
+			stats.failed++
+		}
+		stats.totalTokens += r.Execution.TokensUsed
+		stats.totalDurationMs += r.Execution.LatencyMs
+	}
+
+	sb.WriteString("## Agent Performance\n")
+	for agent, stats := range agentStats {
+		passRate := float64(stats.passed) / float64(stats.total) * 100
+		avgTokens := float64(stats.totalTokens) / float64(stats.total)
+		avgDuration := float64(stats.totalDurationMs) / float64(stats.total) / 1000.0 // Convert to seconds
+
+		// Calculate tokens per successful test (efficiency metric)
+		tokensPerSuccess := 0.0
+		if stats.passed > 0 {
+			tokensPerSuccess = float64(stats.totalTokens) / float64(stats.passed)
+		}
+
+		sb.WriteString(fmt.Sprintf("### %s (%s)\n", agent, stats.provider))
+		sb.WriteString(fmt.Sprintf("- Pass Rate: %.1f%% (%d/%d)\n", passRate, stats.passed, stats.total))
+		sb.WriteString(fmt.Sprintf("- Total Tokens: %d\n", stats.totalTokens))
+		sb.WriteString(fmt.Sprintf("- Avg Tokens/Test: %.0f\n", avgTokens))
+		if stats.passed > 0 {
+			sb.WriteString(fmt.Sprintf("- Tokens/Success: %.0f (efficiency metric)\n", tokensPerSuccess))
+		}
+		sb.WriteString(fmt.Sprintf("- Avg Duration: %.2fs\n", avgDuration))
+		sb.WriteString(fmt.Sprintf("- Failed: %d\n\n", stats.failed))
+	}
+
+	// Failure details
+	if failed > 0 {
+		sb.WriteString("## Failure Details\n")
+		for _, r := range results {
+			if !r.Passed {
+				sb.WriteString(fmt.Sprintf("### %s (Agent: %s)\n", r.Execution.TestName, r.Execution.AgentName))
+
+				// Show failed assertions
+				for _, a := range r.Assertions {
+					if !a.Passed {
+						sb.WriteString(fmt.Sprintf("- **%s**: %s\n", a.Type, a.Message))
+					}
+				}
+
+				// Show errors
+				if len(r.Execution.Errors) > 0 {
+					sb.WriteString("- Errors:\n")
+					for _, e := range r.Execution.Errors {
+						// Truncate long error messages
+						if len(e) > 200 {
+							e = e[:200] + "..."
+						}
+						sb.WriteString(fmt.Sprintf("  - %s\n", e))
+					}
+				}
+
+				// Show clarification stats if relevant
+				if r.Execution.ClarificationStats != nil && r.Execution.ClarificationStats.Count > 0 {
+					sb.WriteString(fmt.Sprintf("- Clarification requests: %d\n", r.Execution.ClarificationStats.Count))
+					if len(r.Execution.ClarificationStats.Examples) > 0 {
+						sb.WriteString("  - Example: " + r.Execution.ClarificationStats.Examples[0] + "\n")
+					}
+				}
+
+				sb.WriteString("\n")
+			}
+		}
+	}
+
+	return sb.String()
 }

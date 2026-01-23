@@ -33,6 +33,7 @@
     <meta charset="UTF-8">
     <title>Test Results - Agent Benchmark</title>
     <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
     <style>
 {{.CSS}}
     </style>
@@ -52,9 +53,21 @@
                 {{end}}
             </div>
         </header>
-        
+
         <!-- Summary Cards -->
         {{template "summary-cards" .}}
+        
+        {{/* AI Summary - LLM-generated executive summary */}}
+        {{if .HasAISummary}}
+        <section class="section">
+            <div class="section-header">
+                <h2 class="section-title">🤖 AI Summary</h2>
+            </div>
+            <div class="section-body">
+                <div class="analysis-content markdown-content">{{.AISummary | safeHTML}}</div>
+            </div>
+        </section>
+        {{end}}
 
         <!-- Test Overview (for single-agent with multiple tests) -->
         {{if .Adaptive.Flags.ShowTestOverview}}
@@ -969,5 +982,18 @@
             closeDetailsOverlay();
         }
     });
+
+    // Render Markdown content for run analysis
+    // Execute immediately since script is at end of body (DOM already loaded)
+    (function() {
+        const markdownElements = document.querySelectorAll('.markdown-content');
+        markdownElements.forEach(el => {
+            // Get raw text and trim leading/trailing whitespace that comes from HTML indentation
+            const rawContent = (el.textContent || el.innerText || '').trim();
+            if (rawContent) {
+                el.innerHTML = marked.parse(rawContent);
+            }
+        });
+    })();
 </script>
 {{end}}

@@ -2165,3 +2165,101 @@ func TestAssertionEvaluator_OutputNotContains(t *testing.T) {
 		})
 	}
 }
+
+// ============================================================================
+// JSON Report with AI Summary Tests
+// ============================================================================
+
+func TestGenerateJSONReportWithAnalysis(t *testing.T) {
+	t.Run("JSON report includes ai_summary when successful", func(t *testing.T) {
+		reporter := model.NewReportGenerator()
+		results := []model.TestRun{
+			{
+				Passed: true,
+				Execution: &model.ExecutionResult{
+					TestName:  "test1",
+					AgentName: "agent1",
+				},
+			},
+		}
+
+		analysis := &model.AISummaryData{
+			Success:  true,
+			Analysis: "## Summary\n\nAll tests passed successfully.",
+		}
+
+		jsonOutput := reporter.GenerateJSONReportWithAnalysis(results, analysis)
+
+		// Verify JSON contains ai_summary
+		assert.Contains(t, jsonOutput, `"ai_summary"`)
+		assert.Contains(t, jsonOutput, `"success": true`)
+		assert.Contains(t, jsonOutput, `"analysis": "## Summary`)
+	})
+
+	t.Run("JSON report includes ai_summary error when failed", func(t *testing.T) {
+		reporter := model.NewReportGenerator()
+		results := []model.TestRun{
+			{
+				Passed: true,
+				Execution: &model.ExecutionResult{
+					TestName:  "test1",
+					AgentName: "agent1",
+				},
+			},
+		}
+
+		analysis := &model.AISummaryData{
+			Success:   false,
+			Error:     "LLM rate limited",
+			Retryable: true,
+			Guidance:  "Try again later",
+		}
+
+		jsonOutput := reporter.GenerateJSONReportWithAnalysis(results, analysis)
+
+		// Verify JSON contains ai_summary error info
+		assert.Contains(t, jsonOutput, `"ai_summary"`)
+		assert.Contains(t, jsonOutput, `"success": false`)
+		assert.Contains(t, jsonOutput, `"error": "LLM rate limited"`)
+		assert.Contains(t, jsonOutput, `"retryable": true`)
+		assert.Contains(t, jsonOutput, `"guidance": "Try again later"`)
+	})
+
+	t.Run("JSON report without ai_summary when nil", func(t *testing.T) {
+		reporter := model.NewReportGenerator()
+		results := []model.TestRun{
+			{
+				Passed: true,
+				Execution: &model.ExecutionResult{
+					TestName:  "test1",
+					AgentName: "agent1",
+				},
+			},
+		}
+
+		jsonOutput := reporter.GenerateJSONReportWithAnalysis(results, nil)
+
+		// Verify JSON does NOT contain ai_summary
+		assert.NotContains(t, jsonOutput, `"ai_summary"`)
+	})
+
+	t.Run("Backwards compatibility - GenerateJSONReport still works", func(t *testing.T) {
+		reporter := model.NewReportGenerator()
+		results := []model.TestRun{
+			{
+				Passed: true,
+				Execution: &model.ExecutionResult{
+					TestName:  "test1",
+					AgentName: "agent1",
+				},
+			},
+		}
+
+		jsonOutput := reporter.GenerateJSONReport(results)
+
+		// Verify JSON works without ai_summary
+		assert.Contains(t, jsonOutput, `"summary"`)
+		assert.Contains(t, jsonOutput, `"detailed_results"`)
+		assert.NotContains(t, jsonOutput, `"ai_summary"`)
+	})
+}
