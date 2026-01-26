@@ -624,6 +624,38 @@
                 <td class="metric-value">{{len .ToolCalls}}</td>
                 {{end}}
             </tr>
+            <tr class="metric-row assertions-row">
+                <td class="metric-label">✓✗ Assertions</td>
+                {{range .Runs}}
+                <td class="metric-value">
+                    {{$passed := 0}}{{$failed := 0}}
+                    {{range .Assertions}}{{if .Passed}}{{$passed = add $passed 1}}{{else}}{{$failed = add $failed 1}}{{end}}{{end}}
+                    {{if gt $passed 0}}<span class="result-pass">✓{{$passed}}</span>{{end}}
+                    {{if gt $failed 0}}<span class="result-fail">✗{{$failed}}</span>{{end}}
+                    {{if and (eq $passed 0) (eq $failed 0)}}<span class="text-muted">—</span>{{end}}
+                </td>
+                {{end}}
+            </tr>
+            {{/* Show failed assertion details inline - only if any agent has failures */}}
+            {{$hasFailures := false}}
+            {{range .Runs}}{{range .Assertions}}{{if not .Passed}}{{$hasFailures = true}}{{end}}{{end}}{{end}}
+            {{if $hasFailures}}
+            <tr class="metric-row failure-details-row">
+                <td class="metric-label">❌ Why Failed</td>
+                {{range .Runs}}
+                <td class="metric-value failure-reasons">
+                    {{$hasAgentFailure := false}}
+                    {{range .Assertions}}
+                    {{if not .Passed}}
+                    {{$hasAgentFailure = true}}
+                    <div class="failure-reason">• {{.Message}}</div>
+                    {{end}}
+                    {{end}}
+                    {{if not $hasAgentFailure}}<span class="text-muted">—</span>{{end}}
+                </td>
+                {{end}}
+            </tr>
+            {{end}}
             <tr class="metric-row details-row">
                 <td class="metric-label">📋 Details</td>
                 {{range $idx, $run := .Runs}}

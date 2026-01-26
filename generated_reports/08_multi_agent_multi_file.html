@@ -1406,6 +1406,29 @@ body {
     color: var(--color-text);
 }
 
+/* Failure reasons in comparison table */
+.failure-reasons {
+    text-align: left !important;
+    font-family: inherit;
+}
+
+.failure-reason {
+    font-size: 12px;
+    color: var(--color-fail);
+    margin-bottom: 4px;
+    line-height: 1.4;
+}
+
+.failure-reason:last-child {
+    margin-bottom: 0;
+}
+
+.failure-details-row td {
+    vertical-align: top;
+    padding-top: 8px;
+    padding-bottom: 8px;
+}
+
 /* Details toggle button in comparison table */
 .details-toggle-btn {
     background: transparent;
@@ -2209,7 +2232,7 @@ body {
             <h1>🧪 Agent Benchmark Report</h1>
             <div class="report-meta">
                 <span>📦 Version: 0.0.0-SNAPSHOT</span>
-                <span>📅 Generated: 2026-01-26T12:55:12&#43;01:00</span>
+                <span>📅 Generated: 2026-01-26T13:04:40&#43;01:00</span>
                 
                 
                 <span>📄 Files: 4</span>
@@ -3295,6 +3318,94 @@ phoenix-agent (70%): Inconsistent tool selection. Sometimes chose http_get when 
                 <td class="metric-value">1</td>
                 
             </tr>
+            <tr class="metric-row assertions-row">
+                <td class="metric-label">✓✗ Assertions</td>
+                
+                <td class="metric-value">
+                    
+                    
+                    <span class="result-pass">✓2</span>
+                    
+                    
+                </td>
+                
+                <td class="metric-value">
+                    
+                    
+                    <span class="result-pass">✓2</span>
+                    
+                    
+                </td>
+                
+                <td class="metric-value">
+                    
+                    
+                    <span class="result-pass">✓2</span>
+                    
+                    
+                </td>
+                
+                <td class="metric-value">
+                    
+                    
+                    <span class="result-pass">✓1</span>
+                    <span class="result-fail">✗1</span>
+                    
+                </td>
+                
+            </tr>
+            
+            
+            
+            
+            <tr class="metric-row failure-details-row">
+                <td class="metric-label">❌ Why Failed</td>
+                
+                <td class="metric-value failure-reasons">
+                    
+                    
+                    
+                    
+                    
+                    
+                    <span class="text-muted">—</span>
+                </td>
+                
+                <td class="metric-value failure-reasons">
+                    
+                    
+                    
+                    
+                    
+                    
+                    <span class="text-muted">—</span>
+                </td>
+                
+                <td class="metric-value failure-reasons">
+                    
+                    
+                    
+                    
+                    
+                    
+                    <span class="text-muted">—</span>
+                </td>
+                
+                <td class="metric-value failure-reasons">
+                    
+                    
+                    
+                    
+                    
+                    
+                    <div class="failure-reason">• Path parameter is wrong</div>
+                    
+                    
+                    
+                </td>
+                
+            </tr>
+            
             <tr class="metric-row details-row">
                 <td class="metric-label">📋 Details</td>
                 
@@ -4100,6 +4211,89 @@ sequenceDiagram
                 <td class="metric-value">1</td>
                 
             </tr>
+            <tr class="metric-row assertions-row">
+                <td class="metric-label">✓✗ Assertions</td>
+                
+                <td class="metric-value">
+                    
+                    
+                    <span class="result-pass">✓1</span>
+                    
+                    
+                </td>
+                
+                <td class="metric-value">
+                    
+                    
+                    <span class="result-pass">✓1</span>
+                    
+                    
+                </td>
+                
+                <td class="metric-value">
+                    
+                    
+                    
+                    <span class="result-fail">✗1</span>
+                    
+                </td>
+                
+                <td class="metric-value">
+                    
+                    
+                    
+                    <span class="result-fail">✗1</span>
+                    
+                </td>
+                
+            </tr>
+            
+            
+            
+            
+            <tr class="metric-row failure-details-row">
+                <td class="metric-label">❌ Why Failed</td>
+                
+                <td class="metric-value failure-reasons">
+                    
+                    
+                    
+                    
+                    <span class="text-muted">—</span>
+                </td>
+                
+                <td class="metric-value failure-reasons">
+                    
+                    
+                    
+                    
+                    <span class="text-muted">—</span>
+                </td>
+                
+                <td class="metric-value failure-reasons">
+                    
+                    
+                    
+                    
+                    <div class="failure-reason">• Output does not contain port number</div>
+                    
+                    
+                    
+                </td>
+                
+                <td class="metric-value failure-reasons">
+                    
+                    
+                    
+                    
+                    <div class="failure-reason">• Output does not contain port number</div>
+                    
+                    
+                    
+                </td>
+                
+            </tr>
+            
             <tr class="metric-row details-row">
                 <td class="metric-label">📋 Details</td>
                 
@@ -5085,6 +5279,97 @@ sequenceDiagram
                 <td class="metric-value">1</td>
                 
             </tr>
+            <tr class="metric-row assertions-row">
+                <td class="metric-label">✓✗ Assertions</td>
+                
+                <td class="metric-value">
+                    
+                    
+                    <span class="result-pass">✓2</span>
+                    
+                    
+                </td>
+                
+                <td class="metric-value">
+                    
+                    
+                    <span class="result-pass">✓1</span>
+                    <span class="result-fail">✗1</span>
+                    
+                </td>
+                
+                <td class="metric-value">
+                    
+                    
+                    <span class="result-pass">✓2</span>
+                    
+                    
+                </td>
+                
+                <td class="metric-value">
+                    
+                    
+                    <span class="result-pass">✓1</span>
+                    <span class="result-fail">✗1</span>
+                    
+                </td>
+                
+            </tr>
+            
+            
+            
+            
+            <tr class="metric-row failure-details-row">
+                <td class="metric-label">❌ Why Failed</td>
+                
+                <td class="metric-value failure-reasons">
+                    
+                    
+                    
+                    
+                    
+                    
+                    <span class="text-muted">—</span>
+                </td>
+                
+                <td class="metric-value failure-reasons">
+                    
+                    
+                    
+                    
+                    
+                    
+                    <div class="failure-reason">• Connection failed with error</div>
+                    
+                    
+                    
+                </td>
+                
+                <td class="metric-value failure-reasons">
+                    
+                    
+                    
+                    
+                    
+                    
+                    <span class="text-muted">—</span>
+                </td>
+                
+                <td class="metric-value failure-reasons">
+                    
+                    
+                    
+                    
+                    
+                    
+                    <div class="failure-reason">• Connection failed with error</div>
+                    
+                    
+                    
+                </td>
+                
+            </tr>
+            
             <tr class="metric-row details-row">
                 <td class="metric-label">📋 Details</td>
                 
@@ -5901,6 +6186,86 @@ sequenceDiagram
                 <td class="metric-value">1</td>
                 
             </tr>
+            <tr class="metric-row assertions-row">
+                <td class="metric-label">✓✗ Assertions</td>
+                
+                <td class="metric-value">
+                    
+                    
+                    <span class="result-pass">✓1</span>
+                    
+                    
+                </td>
+                
+                <td class="metric-value">
+                    
+                    
+                    <span class="result-pass">✓1</span>
+                    
+                    
+                </td>
+                
+                <td class="metric-value">
+                    
+                    
+                    <span class="result-pass">✓1</span>
+                    
+                    
+                </td>
+                
+                <td class="metric-value">
+                    
+                    
+                    
+                    <span class="result-fail">✗1</span>
+                    
+                </td>
+                
+            </tr>
+            
+            
+            
+            
+            <tr class="metric-row failure-details-row">
+                <td class="metric-label">❌ Why Failed</td>
+                
+                <td class="metric-value failure-reasons">
+                    
+                    
+                    
+                    
+                    <span class="text-muted">—</span>
+                </td>
+                
+                <td class="metric-value failure-reasons">
+                    
+                    
+                    
+                    
+                    <span class="text-muted">—</span>
+                </td>
+                
+                <td class="metric-value failure-reasons">
+                    
+                    
+                    
+                    
+                    <span class="text-muted">—</span>
+                </td>
+                
+                <td class="metric-value failure-reasons">
+                    
+                    
+                    
+                    
+                    <div class="failure-reason">• Output contains SQL error</div>
+                    
+                    
+                    
+                </td>
+                
+            </tr>
+            
             <tr class="metric-row details-row">
                 <td class="metric-label">📋 Details</td>
                 
@@ -6850,6 +7215,86 @@ sequenceDiagram
                 <td class="metric-value">1</td>
                 
             </tr>
+            <tr class="metric-row assertions-row">
+                <td class="metric-label">✓✗ Assertions</td>
+                
+                <td class="metric-value">
+                    
+                    
+                    <span class="result-pass">✓1</span>
+                    
+                    
+                </td>
+                
+                <td class="metric-value">
+                    
+                    
+                    <span class="result-pass">✓1</span>
+                    
+                    
+                </td>
+                
+                <td class="metric-value">
+                    
+                    
+                    <span class="result-pass">✓1</span>
+                    
+                    
+                </td>
+                
+                <td class="metric-value">
+                    
+                    
+                    
+                    <span class="result-fail">✗1</span>
+                    
+                </td>
+                
+            </tr>
+            
+            
+            
+            
+            <tr class="metric-row failure-details-row">
+                <td class="metric-label">❌ Why Failed</td>
+                
+                <td class="metric-value failure-reasons">
+                    
+                    
+                    
+                    
+                    <span class="text-muted">—</span>
+                </td>
+                
+                <td class="metric-value failure-reasons">
+                    
+                    
+                    
+                    
+                    <span class="text-muted">—</span>
+                </td>
+                
+                <td class="metric-value failure-reasons">
+                    
+                    
+                    
+                    
+                    <span class="text-muted">—</span>
+                </td>
+                
+                <td class="metric-value failure-reasons">
+                    
+                    
+                    
+                    
+                    <div class="failure-reason">• Output does not contain &#39;healthy&#39;</div>
+                    
+                    
+                    
+                </td>
+                
+            </tr>
+            
             <tr class="metric-row details-row">
                 <td class="metric-label">📋 Details</td>
                 
@@ -7803,6 +8248,100 @@ sequenceDiagram
                 <td class="metric-value">2</td>
                 
             </tr>
+            <tr class="metric-row assertions-row">
+                <td class="metric-label">✓✗ Assertions</td>
+                
+                <td class="metric-value">
+                    
+                    
+                    <span class="result-pass">✓1</span>
+                    <span class="result-fail">✗1</span>
+                    
+                </td>
+                
+                <td class="metric-value">
+                    
+                    
+                    <span class="result-pass">✓2</span>
+                    
+                    
+                </td>
+                
+                <td class="metric-value">
+                    
+                    
+                    <span class="result-pass">✓2</span>
+                    
+                    
+                </td>
+                
+                <td class="metric-value">
+                    
+                    
+                    
+                    <span class="result-fail">✗2</span>
+                    
+                </td>
+                
+            </tr>
+            
+            
+            
+            
+            <tr class="metric-row failure-details-row">
+                <td class="metric-label">❌ Why Failed</td>
+                
+                <td class="metric-value failure-reasons">
+                    
+                    
+                    
+                    
+                    
+                    
+                    <div class="failure-reason">• Output mentions remaining file or error</div>
+                    
+                    
+                    
+                </td>
+                
+                <td class="metric-value failure-reasons">
+                    
+                    
+                    
+                    
+                    
+                    
+                    <span class="text-muted">—</span>
+                </td>
+                
+                <td class="metric-value failure-reasons">
+                    
+                    
+                    
+                    
+                    
+                    
+                    <span class="text-muted">—</span>
+                </td>
+                
+                <td class="metric-value failure-reasons">
+                    
+                    
+                    
+                    
+                    <div class="failure-reason">• Tool called with wrong path</div>
+                    
+                    
+                    
+                    
+                    <div class="failure-reason">• Output mentions remaining file or error</div>
+                    
+                    
+                    
+                </td>
+                
+            </tr>
+            
             <tr class="metric-row details-row">
                 <td class="metric-label">📋 Details</td>
                 
