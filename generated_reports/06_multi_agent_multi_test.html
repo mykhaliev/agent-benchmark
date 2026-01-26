@@ -1415,12 +1415,30 @@ body {
 .failure-reason {
     font-size: 12px;
     color: var(--color-fail);
-    margin-bottom: 4px;
+    margin-bottom: 8px;
     line-height: 1.4;
 }
 
 .failure-reason:last-child {
     margin-bottom: 0;
+}
+
+.failure-type {
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.failure-details {
+    margin-top: 4px;
+    padding: 6px 10px;
+    background: #fff5f5;
+    border-left: 3px solid var(--color-fail);
+    border-radius: 0 4px 4px 0;
+    font-family: 'SF Mono', Monaco, monospace;
+    font-size: 11px;
+    color: #666;
+    overflow-x: auto;
+    white-space: pre-wrap;
 }
 
 .failure-details-row td {
@@ -2232,7 +2250,7 @@ body {
             <h1>🧪 Agent Benchmark Report</h1>
             <div class="report-meta">
                 <span>📦 Version: 0.0.0-SNAPSHOT</span>
-                <span>📅 Generated: 2026-01-26T13:04:40&#43;01:00</span>
+                <span>📅 Generated: 2026-01-26T13:13:45&#43;01:00</span>
                 
                 
             </div>
@@ -2803,7 +2821,15 @@ phoenix-agent consistently chose network APIs for local file operations. This su
                     
                     
                     
-                    <div class="failure-reason">• Parameter mismatch</div>
+                    <div class="failure-reason">
+                        <span class="failure-type">tool_param_equals:</span> Parameter mismatch
+                        
+                        <pre class="failure-details">{
+  "actual": "hello world",
+  "expected": "Hello World"
+}</pre>
+                        
+                    </div>
                     
                     
                     
@@ -2814,17 +2840,31 @@ phoenix-agent consistently chose network APIs for local file operations. This su
                     
                     
                     
-                    <div class="failure-reason">• Expected &#39;write_file&#39; but got &#39;API calls&#39;</div>
+                    <div class="failure-reason">
+                        <span class="failure-type">tool_called:</span> Expected &#39;write_file&#39; but got &#39;API calls&#39;
+                        
+                    </div>
                     
                     
                     
                     
-                    <div class="failure-reason">• Path mismatch</div>
+                    <div class="failure-reason">
+                        <span class="failure-type">tool_param_equals:</span> Path mismatch
+                        
+                        <pre class="failure-details">{
+  "actual": "http://files.api/create",
+  "expected": "/tmp/test.txt"
+}</pre>
+                        
+                    </div>
                     
                     
                     
                     
-                    <div class="failure-reason">• Multiple errors encountered</div>
+                    <div class="failure-reason">
+                        <span class="failure-type">no_error_messages:</span> Multiple errors encountered
+                        
+                    </div>
                     
                     
                     
@@ -4514,17 +4554,26 @@ Failed to create file. I don&#39;t have the right tools.</div>
                     
                     
                     
-                    <div class="failure-reason">• Expected &#39;read_file&#39; but got &#39;API/database calls&#39;</div>
+                    <div class="failure-reason">
+                        <span class="failure-type">tool_called:</span> Expected &#39;read_file&#39; but got &#39;API/database calls&#39;
+                        
+                    </div>
                     
                     
                     
                     
-                    <div class="failure-reason">• Output should contain &#39;port number&#39;</div>
+                    <div class="failure-reason">
+                        <span class="failure-type">output_contains:</span> Output should contain &#39;port number&#39;
+                        
+                    </div>
                     
                     
                     
                     
-                    <div class="failure-reason">• Multiple connection errors encountered</div>
+                    <div class="failure-reason">
+                        <span class="failure-type">no_error_messages:</span> Multiple connection errors encountered
+                        
+                    </div>
                     
                     
                     

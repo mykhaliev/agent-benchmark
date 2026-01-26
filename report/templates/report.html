@@ -648,7 +648,12 @@
                     {{range .Assertions}}
                     {{if not .Passed}}
                     {{$hasAgentFailure = true}}
-                    <div class="failure-reason">• {{.Message}}</div>
+                    <div class="failure-reason">
+                        <span class="failure-type">{{.Type}}:</span> {{.Message}}
+                        {{if hasDetails .Details}}
+                        <pre class="failure-details">{{prettyJSON .Details}}</pre>
+                        {{end}}
+                    </div>
                     {{end}}
                     {{end}}
                     {{if not $hasAgentFailure}}<span class="text-muted">—</span>{{end}}
