@@ -198,6 +198,7 @@ Required (one of):
   -f <file>         Path to test configuration file (YAML)
   -s <file>         Path to suite configuration file (YAML)
   -generate-report <file>  Generate HTML report from existing JSON results file
+                           (reads test_file from JSON to load AI summary config)
 
 Optional:
   -o <file>         Output report path/filename without extension
@@ -230,6 +231,7 @@ Optional:
 ./agent-benchmark -f tests.yaml -o report -reportType md
 
 # Generate HTML report from existing JSON results (fast iteration)
+# Reads test_file from JSON to load AI summary configuration
 ./agent-benchmark -generate-report results.json -o new-report
 
 # Generate both JSON and HTML reports (for later regeneration)

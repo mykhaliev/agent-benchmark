@@ -375,7 +375,14 @@ func Run(testPath *string, verbose *bool, suitePath *string, reportFileName *str
 
 	for _, rt := range reportTypes {
 		reportFileNameWithExt := *reportFileName + "." + rt
-		if err := GenerateReports(results, rt, reportFileNameWithExt, aiSummaryResult); err != nil {
+		// Determine source test file path for JSON metadata
+		configFilePath := ""
+		if *testPath != "" {
+			configFilePath = *testPath
+		} else if *suitePath != "" {
+			configFilePath = *suitePath
+		}
+		if err := GenerateReports(results, rt, reportFileNameWithExt, aiSummaryResult, configFilePath); err != nil {
 			logger.Logger.Error("Failed to generate reports", "error", err)
 			os.Exit(1)
 		}
@@ -1233,12 +1240,13 @@ func CreateTemplateContext(variables map[string]string) map[string]string {
 	return CreateStaticTemplateContext("", variables)
 }
 
-func GenerateReports(results []model.TestRun, reportType, outputPath string, aiSummary *agent.AISummaryResult) error {
+func GenerateReports(results []model.TestRun, reportType, outputPath string, aiSummary *agent.AISummaryResult, testFilePath string) error {
 	if len(results) == 0 {
 		return fmt.Errorf("no test results to generate report")
 	}
 
 	reporter := model.NewReportGenerator()
+	reporter.TestFile = testFilePath
 
 	// Generate console report
 	fmt.Println("\n" + strings.Repeat("=", 80))

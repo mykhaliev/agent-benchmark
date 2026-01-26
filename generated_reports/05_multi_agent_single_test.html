@@ -1972,7 +1972,7 @@ body {
             <h1>🧪 Agent Benchmark Report</h1>
             <div class="report-meta">
                 <span>📦 Version: 0.0.0-SNAPSHOT</span>
-                <span>📅 Generated: 2026-01-19T18:27:17&#43;01:00</span>
+                <span>📅 Generated: 2026-01-26T09:45:32&#43;01:00</span>
                 
                 
             </div>
@@ -2005,19 +2005,19 @@ body {
         <div class="summary-label">Pass Rate</div>
     </div>
     <div class="summary-card tokens">
-        <div class="summary-value">946</div>
+        <div class="summary-value">95,985</div>
         <div class="summary-label">Total Tokens</div>
     </div>
     <div class="summary-card tokens">
-        <div class="summary-value">300</div>
+        <div class="summary-value">35,492</div>
         <div class="summary-label">Avg Tokens ✓</div>
     </div>
     <div class="summary-card duration">
-        <div class="summary-value">12.8s</div>
+        <div class="summary-value">35.3s</div>
         <div class="summary-label">Total Duration</div>
     </div>
     <div class="summary-card duration">
-        <div class="summary-value">4.3s</div>
+        <div class="summary-value">11.8s</div>
         <div class="summary-label">Avg Duration</div>
     </div>
 </div>
@@ -2030,29 +2030,32 @@ body {
                 <h2 class="section-title">🤖 AI Summary</h2>
             </div>
             <div class="section-body">
-                <div class="analysis-content markdown-content">### Overall Results
-- **Pass Rate:** 67% (2 of 3 agents passed)
-- **Total Tests:** 3 (one test per agent)
-- **Duration:** ~12.8 seconds total
+                <div class="analysis-content markdown-content">**Overall Verdict: gpt41-agent recommended for Notepad automation**
 
-### Agent Performance Comparison
+Testing Notepad automation across 3 agents revealed different approaches to text input and window management.
 
-| Agent | Pass Rate | Avg Latency | Notes |
-|-------|-----------|-------------|-------|
-| claude-agent | 100% | 3.5s | Passed with correct content |
-| gemini-agent | 100% | 4.2s | Passed with correct content |
-| gpt-agent | 0% | 5.1s | Failed - content case mismatch |
+**Agent Comparison**
 
-### Key Findings
+gpt41-agent (PASSED): Used semantic UI automation (ui_type) for text input. Clean approach that targets the Document control directly. Latency: 12.0s.
 
-1. **Case Sensitivity Matters**: gpt-agent wrote 'hello world' instead of 'Hello World'
-2. **Claude Fastest**: Best latency at 3.5s with correct output
-3. **All Used Correct Tool**: Every agent correctly chose write_file
+gpt52-agent (PASSED): Used raw keyboard input (keyboard_control). Faster but less semantic. Latency: 14.7s.
 
-### Recommendations
+gemini-agent (FAILED): Task incomplete - took screenshot instead of closing Notepad. Window left open.
 
-1. **Add Case Validation**: Include explicit case requirements in prompts
-2. **Parameter Validation**: Add assertions to check exact parameter values</div>
+**Tool Usage Patterns**
+- gpt41-agent: app → ui_type → ui_read → window_management(close) → window_management(list)
+- gpt52-agent: app → keyboard_control → window_management(close) → window_management(list)
+- gemini-agent: app → ui_type → screenshot_control (WRONG - should have closed window)
+
+**Key Differentiation**
+1. gpt41-agent used ui_type with controlType="Document" to target the text editor semantically
+2. gpt52-agent used keyboard_control for raw text input - works but less reliable
+3. gemini-agent failed to complete the task - verified the text but didn't close the window
+
+**When to Choose Each**
+- gpt41-agent: Best for UI automation requiring semantic element targeting
+- gpt52-agent: Good when raw keyboard input is acceptable
+- gemini-agent: Not recommended for window lifecycle management tasks</div>
             </div>
         </section>
         
@@ -2074,11 +2077,11 @@ body {
                     <tr>
                         <th>Test</th>
                         
-                        <th>claude-agent</th>
+                        <th>gpt41-agent</th>
+                        
+                        <th>gpt52-agent</th>
                         
                         <th>gemini-agent</th>
-                        
-                        <th>gpt-agent</th>
                         
                     </tr>
                 </thead>
@@ -2087,15 +2090,15 @@ body {
                     
                     
                     <tr>
-                        <td>Create test file</td>
+                        <td>Complete Notepad automation (discard)</td>
                         
                         
                         <td>
                             
                             <div class="matrix-cell">
                                 <span class="matrix-status">✅</span>
-                                <span class="matrix-duration">3.5s</span>
-                                <span class="matrix-tokens">289</span>
+                                <span class="matrix-duration">12.1s</span>
+                                <span class="matrix-tokens">38,595</span>
                             </div>
                             
                         </td>
@@ -2105,8 +2108,8 @@ body {
                             
                             <div class="matrix-cell">
                                 <span class="matrix-status">✅</span>
-                                <span class="matrix-duration">4.2s</span>
-                                <span class="matrix-tokens">312</span>
+                                <span class="matrix-duration">14.7s</span>
+                                <span class="matrix-tokens">32,390</span>
                             </div>
                             
                         </td>
@@ -2116,8 +2119,8 @@ body {
                             
                             <div class="matrix-cell">
                                 <span class="matrix-status">❌</span>
-                                <span class="matrix-duration">5.1s</span>
-                                <span class="matrix-tokens">345</span>
+                                <span class="matrix-duration">8.5s</span>
+                                <span class="matrix-tokens">25,000</span>
                             </div>
                             
                         </td>
@@ -2163,8 +2166,8 @@ body {
                     </td>
                     <td>
                         <div class="agent-info">
-                            <span class="agent-name">claude-agent</span>
-                            <span class="provider-badge provider-ANTHROPIC">ANTHROPIC</span>
+                            <span class="agent-name">gpt52-agent</span>
+                            <span class="provider-badge provider-AZURE">AZURE</span>
                         </div>
                     </td>
                     <td>
@@ -2178,10 +2181,10 @@ body {
                         <span class="result-fail">✗0</span>
                         
                     </td>
-                    <td class="stat-value">289</td>
-                    <td class="stat-value ">289 tok/✓</td>
-                    <td class="stat-value">3.50s</td>
-                    <td class="stat-value">3.50s</td>
+                    <td class="stat-value">32,390</td>
+                    <td class="stat-value ">32390 tok/✓</td>
+                    <td class="stat-value">14.71s</td>
+                    <td class="stat-value">14.71s</td>
                 </tr>
             
                 <tr class="leaderboard-row-perfect">
@@ -2191,8 +2194,8 @@ body {
                     </td>
                     <td>
                         <div class="agent-info">
-                            <span class="agent-name">gemini-agent</span>
-                            <span class="provider-badge provider-GOOGLE">GOOGLE</span>
+                            <span class="agent-name">gpt41-agent</span>
+                            <span class="provider-badge provider-AZURE">AZURE</span>
                         </div>
                     </td>
                     <td>
@@ -2206,10 +2209,10 @@ body {
                         <span class="result-fail">✗0</span>
                         
                     </td>
-                    <td class="stat-value">312</td>
-                    <td class="stat-value ">312 tok/✓</td>
-                    <td class="stat-value">4.20s</td>
-                    <td class="stat-value">4.20s</td>
+                    <td class="stat-value">38,595</td>
+                    <td class="stat-value ">38595 tok/✓</td>
+                    <td class="stat-value">12.09s</td>
+                    <td class="stat-value">12.09s</td>
                 </tr>
             
                 <tr class="leaderboard-row-dq">
@@ -2219,8 +2222,8 @@ body {
                     </td>
                     <td>
                         <div class="agent-info">
-                            <span class="agent-name">gpt-agent</span>
-                            <span class="provider-badge provider-OPENAI">OPENAI</span>
+                            <span class="agent-name">gemini-agent</span>
+                            <span class="provider-badge provider-GOOGLE">GOOGLE</span>
                         </div>
                     </td>
                     <td>
@@ -2234,10 +2237,10 @@ body {
                         <span class="result-fail">✗1</span>
                         <span class="result-error">⚠1</span>
                     </td>
-                    <td class="stat-value">345</td>
+                    <td class="stat-value">25,000</td>
                     <td class="stat-value text-muted">—</td>
-                    <td class="stat-value">5.10s</td>
-                    <td class="stat-value">5.10s</td>
+                    <td class="stat-value">8.50s</td>
+                    <td class="stat-value">8.50s</td>
                 </tr>
             
             </tbody>
@@ -2280,13 +2283,16 @@ body {
             <div class="test-group-section">
                 
 <div class="test-group-header">
-    <h3 class="test-group-title">Create test file</h3>
+    <h3 class="test-group-title">Complete Notepad automation (discard)</h3>
     
     
     
     <div class="test-group-prompt">
         <span class="prompt-label">📝 Prompt:</span>
-        <span class="prompt-text">Create a test file at /tmp/test.txt with the content &#39;Hello World&#39;</span>
+        <span class="prompt-text">1. Launch Notepad
+2. Type &#34;Hello World&#34;
+3. Close Notepad and click &#34;Don&#39;t Save&#34; if prompted
+4. Verify no Notepad window is open</span>
     </div>
     
     
@@ -2305,20 +2311,20 @@ body {
                 
                 <th class="agent-col passed">
                     <span class="agent-status">✅</span>
-                    <span class="agent-name">claude-agent</span>
-                    <span class="provider-badge provider-ANTHROPIC">ANTHROPIC</span>
+                    <span class="agent-name">gpt41-agent</span>
+                    <span class="provider-badge provider-AZURE">AZURE</span>
                 </th>
                 
                 <th class="agent-col passed">
                     <span class="agent-status">✅</span>
-                    <span class="agent-name">gemini-agent</span>
-                    <span class="provider-badge provider-GOOGLE">GOOGLE</span>
+                    <span class="agent-name">gpt52-agent</span>
+                    <span class="provider-badge provider-AZURE">AZURE</span>
                 </th>
                 
                 <th class="agent-col failed">
                     <span class="agent-status">❌</span>
-                    <span class="agent-name">gpt-agent</span>
-                    <span class="provider-badge provider-OPENAI">OPENAI</span>
+                    <span class="agent-name">gemini-agent</span>
+                    <span class="provider-badge provider-GOOGLE">GOOGLE</span>
                 </th>
                 
             </tr>
@@ -2327,31 +2333,31 @@ body {
             <tr class="metric-row">
                 <td class="metric-label">⏱️ Duration</td>
                 
-                <td class="metric-value">3.50s</td>
+                <td class="metric-value">12.09s</td>
                 
-                <td class="metric-value">4.20s</td>
+                <td class="metric-value">14.71s</td>
                 
-                <td class="metric-value">5.10s</td>
+                <td class="metric-value">8.50s</td>
                 
             </tr>
             <tr class="metric-row">
                 <td class="metric-label">🎯 Tokens</td>
                 
-                <td class="metric-value">289</td>
+                <td class="metric-value">38,595</td>
                 
-                <td class="metric-value">312</td>
+                <td class="metric-value">32,390</td>
                 
-                <td class="metric-value">345</td>
+                <td class="metric-value">25,000</td>
                 
             </tr>
             <tr class="metric-row">
                 <td class="metric-label">🔧 Tool Calls</td>
                 
-                <td class="metric-value">1</td>
+                <td class="metric-value">5</td>
                 
-                <td class="metric-value">1</td>
+                <td class="metric-value">4</td>
                 
-                <td class="metric-value">1</td>
+                <td class="metric-value">3</td>
                 
             </tr>
             <tr class="metric-row details-row">
@@ -2388,10 +2394,34 @@ body {
         <div class="tool-lists-grid">
             
             <div class="agent-tool-list">
-                <div class="agent-tool-header">claude-agent</div>
+                <div class="agent-tool-header">gpt41-agent</div>
                 <ol class="tool-sequence">
                     
-                    <li class="tool-item">write_file</li>
+                    <li class="tool-item">app</li>
+                    
+                    <li class="tool-item">ui_type</li>
+                    
+                    <li class="tool-item">ui_read</li>
+                    
+                    <li class="tool-item">window_management</li>
+                    
+                    <li class="tool-item">window_management</li>
+                    
+                    
+                </ol>
+            </div>
+            
+            <div class="agent-tool-list">
+                <div class="agent-tool-header">gpt52-agent</div>
+                <ol class="tool-sequence">
+                    
+                    <li class="tool-item">app</li>
+                    
+                    <li class="tool-item">keyboard_control</li>
+                    
+                    <li class="tool-item">window_management</li>
+                    
+                    <li class="tool-item">window_management</li>
                     
                     
                 </ol>
@@ -2401,17 +2431,11 @@ body {
                 <div class="agent-tool-header">gemini-agent</div>
                 <ol class="tool-sequence">
                     
-                    <li class="tool-item">write_file</li>
+                    <li class="tool-item">app</li>
                     
+                    <li class="tool-item">ui_type</li>
                     
-                </ol>
-            </div>
-            
-            <div class="agent-tool-list">
-                <div class="agent-tool-header">gpt-agent</div>
-                <ol class="tool-sequence">
-                    
-                    <li class="tool-item">write_file</li>
+                    <li class="tool-item">screenshot_control</li>
                     
                     
                 </ol>
@@ -2429,15 +2453,44 @@ body {
             
             
             <div class="agent-sequence-box">
-                <div class="agent-sequence-header">claude-agent</div>
+                <div class="agent-sequence-header">gpt41-agent</div>
                 <div class="mermaid">sequenceDiagram
     participant U as User
     participant A as Agent
     participant M as MCP Server
-    U-&gt;&gt;A: Create a test file at /tmp/test.txt with the co...
-    A-&gt;&gt;M: write_file() [45ms]
+    U-&gt;&gt;A: 1. Launch Notepad 2. Type &#39;Hello World&#39; 3. Clos...
+    A-&gt;&gt;M: app() [585ms]
     M--&gt;&gt;A: result
-    A--&gt;&gt;U: File created successfully! [289 tokens]
+    A-&gt;&gt;M: ui_type() [161ms]
+    M--&gt;&gt;A: result
+    A-&gt;&gt;M: ui_read() [34ms]
+    M--&gt;&gt;A: result
+    A-&gt;&gt;M: window_management() [550ms]
+    M--&gt;&gt;A: result
+    A-&gt;&gt;M: window_management() [6ms]
+    M--&gt;&gt;A: result
+    A--&gt;&gt;U: 1. Notepad was launched. 2. &#39;Hello Wo... [38595 tokens]
+</div>
+            </div>
+            
+            
+            
+            <div class="agent-sequence-box">
+                <div class="agent-sequence-header">gpt52-agent</div>
+                <div class="mermaid">sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    U-&gt;&gt;A: 1. Launch Notepad 2. Type &#39;Hello World&#39; 3. Clos...
+    A-&gt;&gt;M: app() [453ms]
+    M--&gt;&gt;A: result
+    A-&gt;&gt;M: keyboard_control() [288ms]
+    M--&gt;&gt;A: result
+    A-&gt;&gt;M: window_management() [511ms]
+    M--&gt;&gt;A: result
+    A-&gt;&gt;M: window_management() [3ms]
+    M--&gt;&gt;A: result
+    A--&gt;&gt;U: **Execution Report**  1. **Notepad la... [32390 tokens]
 </div>
             </div>
             
@@ -2449,25 +2502,14 @@ body {
     participant U as User
     participant A as Agent
     participant M as MCP Server
-    U-&gt;&gt;A: Create a test file at /tmp/test.txt with the co...
-    A-&gt;&gt;M: write_file() [52ms]
+    U-&gt;&gt;A: 1. Launch Notepad 2. Type &#39;Hello World&#39; 3. Clos...
+    A-&gt;&gt;M: app() [600ms]
     M--&gt;&gt;A: result
-    A--&gt;&gt;U: Done! File created at /tmp/test.txt [312 tokens]
-</div>
-            </div>
-            
-            
-            
-            <div class="agent-sequence-box">
-                <div class="agent-sequence-header">gpt-agent</div>
-                <div class="mermaid">sequenceDiagram
-    participant U as User
-    participant A as Agent
-    participant M as MCP Server
-    U-&gt;&gt;A: Create a test file at /tmp/test.txt with the co...
-    A-&gt;&gt;M: write_file() [68ms]
+    A-&gt;&gt;M: ui_type() [180ms]
     M--&gt;&gt;A: result
-    A--&gt;&gt;U: I wrote &#39;hello world&#39; to the file. [345 tokens]
+    A-&gt;&gt;M: screenshot_control() [250ms]
+    M--&gt;&gt;A: result
+    A--&gt;&gt;U: Screenshot captured. Notepad window i... [25000 tokens]
 </div>
             </div>
             
@@ -2480,18 +2522,18 @@ body {
 
 <div class="agent-details-source" style="display: none;">
     
-    <div class="agent-detail-panel" data-agent-idx="0" data-agent-name="claude-agent">
+    <div class="agent-detail-panel" data-agent-idx="0" data-agent-name="gpt41-agent">
         
 <details class="test-item passed" open>
     <summary class="test-header">
         <div class="test-info">
             <span class="test-status-icon">✅</span>
-            <span class="test-agent">claude-agent</span>
-            <span class="provider-badge">ANTHROPIC</span>
+            <span class="test-agent">gpt41-agent</span>
+            <span class="provider-badge">AZURE</span>
         </div>
         <div class="test-meta">
-            <span class="duration">3.50s</span>
-            <span class="tokens">289 tokens</span>
+            <span class="duration">12.09s</span>
+            <span class="tokens">38,595 tokens</span>
             <span class="expand-icon">▼</span>
         </div>
     </summary>
@@ -2505,8 +2547,62 @@ body {
         <div class="assertion-item passed">
             <span class="assertion-icon">✓</span>
             <div class="assertion-content">
-                <span class="assertion-type">tool_called</span>
-                <span class="assertion-message">Tool &#39;write_file&#39; was called</span>
+                <span class="assertion-type">anyOf</span>
+                <span class="assertion-message">anyOf passed: 1 of 2 assertions passed</span>
+                
+            </div>
+        </div>
+        
+        <div class="assertion-item passed">
+            <span class="assertion-icon">✓</span>
+            <div class="assertion-content">
+                <span class="assertion-type">output_regex</span>
+                <span class="assertion-message">Output matches regex &#39;(?i)hello\s*world&#39;: true</span>
+                
+            </div>
+        </div>
+        
+        <div class="assertion-item passed">
+            <span class="assertion-icon">✓</span>
+            <div class="assertion-content">
+                <span class="assertion-type">output_regex</span>
+                <span class="assertion-message">Output matches regex &#39;(?i)(no.*(notepad|window).*(open|found)|verified)&#39;: true</span>
+                
+            </div>
+        </div>
+        
+        <div class="assertion-item passed">
+            <span class="assertion-icon">✓</span>
+            <div class="assertion-content">
+                <span class="assertion-type">no_hallucinated_tools</span>
+                <span class="assertion-message">No hallucinated tools</span>
+                
+            </div>
+        </div>
+        
+        <div class="assertion-item passed">
+            <span class="assertion-icon">✓</span>
+            <div class="assertion-content">
+                <span class="assertion-type">no_error_messages</span>
+                <span class="assertion-message">No errors occurred</span>
+                
+            </div>
+        </div>
+        
+        <div class="assertion-item passed">
+            <span class="assertion-icon">✓</span>
+            <div class="assertion-content">
+                <span class="assertion-type">no_clarification_questions</span>
+                <span class="assertion-message">No clarification questions detected</span>
+                
+            </div>
+        </div>
+        
+        <div class="assertion-item passed">
+            <span class="assertion-icon">✓</span>
+            <div class="assertion-content">
+                <span class="assertion-type">no_rate_limit_errors</span>
+                <span class="assertion-message">No rate limit errors (HTTP 429)</span>
                 
             </div>
         </div>
@@ -2533,10 +2629,18 @@ sequenceDiagram
     participant U as User
     participant A as Agent
     participant M as MCP Server
-    U-&gt;&gt;A: Create a test file at /tmp/test.txt with the co...
-    A-&gt;&gt;M: write_file() [45ms]
+    U-&gt;&gt;A: 1. Launch Notepad 2. Type &#39;Hello World&#39; 3. Clos...
+    A-&gt;&gt;M: app() [585ms]
     M--&gt;&gt;A: result
-    A--&gt;&gt;U: File created successfully! [289 tokens]
+    A-&gt;&gt;M: ui_type() [161ms]
+    M--&gt;&gt;A: result
+    A-&gt;&gt;M: ui_read() [34ms]
+    M--&gt;&gt;A: result
+    A-&gt;&gt;M: window_management() [550ms]
+    M--&gt;&gt;A: result
+    A-&gt;&gt;M: window_management() [6ms]
+    M--&gt;&gt;A: result
+    A--&gt;&gt;U: 1. Notepad was launched. 2. &#39;Hello Wo... [38595 tokens]
 
     </div>
 </div>
@@ -2545,14 +2649,14 @@ sequenceDiagram
         
 
 <div class="toolcalls-section">
-    <h4 class="subsection-title">Tool Calls (1)</h4>
+    <h4 class="subsection-title">Tool Calls (5)</h4>
     <div class="timeline">
         
         <div class="timeline-item tool-call">
             <div class="timeline-header">
-                <span class="tool-name">🔧 write_file</span>
+                <span class="tool-name">🔧 app</span>
                 <span class="timeline-meta">
-                    <span class="tool-duration">45ms</span>
+                    <span class="tool-duration">585ms</span>
                     <span class="timeline-time">&#43;0.50s</span>
                 </span>
             </div>
@@ -2560,8 +2664,7 @@ sequenceDiagram
             <details class="tool-params-toggle">
                 <summary>Parameters</summary>
                 <pre class="tool-params">{
-  "content": "Hello World",
-  "path": "/tmp/test.txt"
+  "programPath": "notepad.exe"
 }</pre>
             </details>
             
@@ -2570,7 +2673,129 @@ sequenceDiagram
                 <summary>Result</summary>
                 <pre class="tool-result-content">[
   {
-    "text": "{\"ok\":true,\"path\":\"/tmp/test.txt\",\"bytes\":11}",
+    "text": "{\"ok\":true,\"w\":{\"h\":\"656544\",\"t\":\"Untitled - Notepad\",\"cn\":\"Notepad\",\"pn\":\"Notepad\",\"pid\":12345,\"b\":[5,186,1654,870],\"s\":\"normal\",\"mi\":1,\"fg\":true},\"msg\":\"Launched 'notepad.exe'. Window is focused and ready. Use this handle for all subsequent operations.\"}",
+    "type": "text"
+  }
+]</pre>
+            </details>
+            
+        </div>
+        
+        <div class="timeline-item tool-call">
+            <div class="timeline-header">
+                <span class="tool-name">🔧 ui_type</span>
+                <span class="timeline-meta">
+                    <span class="tool-duration">161ms</span>
+                    <span class="timeline-time">&#43;1.50s</span>
+                </span>
+            </div>
+            
+            <details class="tool-params-toggle">
+                <summary>Parameters</summary>
+                <pre class="tool-params">{
+  "controlType": "Document",
+  "text": "Hello World",
+  "windowHandle": "656544"
+}</pre>
+            </details>
+            
+            
+            <details class="tool-result-toggle">
+                <summary>Result</summary>
+                <pre class="tool-result-content">[
+  {
+    "text": "{\"ok\":true,\"a\":\"type\",\"items\":[{\"id\":\"2\",\"n\":\"Text editor\",\"t\":\"Document\",\"c\":[832,642,1],\"e\":true}],\"n\":1,\"hint\":\"Use elementId='2' for subsequent actions.\",\"diag\":{\"durationMs\":147}}",
+    "type": "text"
+  }
+]</pre>
+            </details>
+            
+        </div>
+        
+        <div class="timeline-item tool-call">
+            <div class="timeline-header">
+                <span class="tool-name">🔧 ui_read</span>
+                <span class="timeline-meta">
+                    <span class="tool-duration">34ms</span>
+                    <span class="timeline-time">&#43;2.00s</span>
+                </span>
+            </div>
+            
+            <details class="tool-params-toggle">
+                <summary>Parameters</summary>
+                <pre class="tool-params">{
+  "controlType": "Document",
+  "windowHandle": "656544"
+}</pre>
+            </details>
+            
+            
+            <details class="tool-result-toggle">
+                <summary>Result</summary>
+                <pre class="tool-result-content">[
+  {
+    "text": "{\"ok\":true,\"a\":\"get_text\",\"txt\":\"Hello World\",\"diag\":{\"durationMs\":1}}",
+    "type": "text"
+  }
+]</pre>
+            </details>
+            
+        </div>
+        
+        <div class="timeline-item tool-call">
+            <div class="timeline-header">
+                <span class="tool-name">🔧 window_management</span>
+                <span class="timeline-meta">
+                    <span class="tool-duration">550ms</span>
+                    <span class="timeline-time">&#43;2.50s</span>
+                </span>
+            </div>
+            
+            <details class="tool-params-toggle">
+                <summary>Parameters</summary>
+                <pre class="tool-params">{
+  "action": "close",
+  "discardChanges": true,
+  "handle": "656544"
+}</pre>
+            </details>
+            
+            
+            <details class="tool-result-toggle">
+                <summary>Result</summary>
+                <pre class="tool-result-content">[
+  {
+    "text": "{\"ok\":true,\"w\":{\"h\":\"656544\",\"t\":\"*Hello - Notepad\",\"cn\":\"Notepad\",\"pn\":\"Notepad\",\"pid\":12345,\"b\":[5,186,1654,870],\"s\":\"normal\",\"mi\":1,\"fg\":true}}",
+    "type": "text"
+  }
+]</pre>
+            </details>
+            
+        </div>
+        
+        <div class="timeline-item tool-call">
+            <div class="timeline-header">
+                <span class="tool-name">🔧 window_management</span>
+                <span class="timeline-meta">
+                    <span class="tool-duration">6ms</span>
+                    <span class="timeline-time">&#43;3.50s</span>
+                </span>
+            </div>
+            
+            <details class="tool-params-toggle">
+                <summary>Parameters</summary>
+                <pre class="tool-params">{
+  "action": "list",
+  "filter": "Notepad"
+}</pre>
+            </details>
+            
+            
+            <details class="tool-result-toggle">
+                <summary>Result</summary>
+                <pre class="tool-result-content">[
+  {
+    "text": "{\"ok\":true,\"ws\":[],\"n\":0}",
     "type": "text"
   }
 ]</pre>
@@ -2585,7 +2810,7 @@ sequenceDiagram
         
 
 <details class="messages-section">
-    <summary class="subsection-title">💬 Conversation (1 messages)</summary>
+    <summary class="subsection-title">💬 Conversation (2 messages)</summary>
     <div class="conversation-timeline">
         
         <div class="timeline-item user">
@@ -2593,7 +2818,18 @@ sequenceDiagram
                 <span class="timeline-role">user</span>
                 <span class="timeline-time">00:00:00.000</span>
             </div>
-            <div class="timeline-content">Create a test file at /tmp/test.txt with the content &#39;Hello World&#39;</div>
+            <div class="timeline-content">1. Launch Notepad
+2. Type &#34;Hello World&#34;
+3. Close Notepad and click &#34;Don&#39;t Save&#34; if prompted
+4. Verify no Notepad window is open</div>
+        </div>
+        
+        <div class="timeline-item assistant">
+            <div class="timeline-header">
+                <span class="timeline-role">assistant</span>
+                <span class="timeline-time">00:00:00.000</span>
+            </div>
+            <div class="timeline-content">VERIFIED: No Notepad window open.</div>
         </div>
         
     </div>
@@ -2604,7 +2840,13 @@ sequenceDiagram
 
 <details class="final-output-section">
     <summary class="subsection-title">📤 Final Output</summary>
-    <div class="final-output-content">File created successfully!</div>
+    <div class="final-output-content">1. Notepad was launched.
+2. &#34;Hello World&#34; was typed into Notepad.
+3. Proof: Text confirmed as &#34;Hello World&#34;.
+4. Notepad closed with &#34;Don&#39;t Save&#34;.
+5. Verification: No Notepad window is open.
+
+VERIFIED: No Notepad window open.</div>
 </details>
 
 
@@ -2613,18 +2855,18 @@ sequenceDiagram
 
     </div>
     
-    <div class="agent-detail-panel" data-agent-idx="1" data-agent-name="gemini-agent">
+    <div class="agent-detail-panel" data-agent-idx="1" data-agent-name="gpt52-agent">
         
 <details class="test-item passed" open>
     <summary class="test-header">
         <div class="test-info">
             <span class="test-status-icon">✅</span>
-            <span class="test-agent">gemini-agent</span>
-            <span class="provider-badge">GOOGLE</span>
+            <span class="test-agent">gpt52-agent</span>
+            <span class="provider-badge">AZURE</span>
         </div>
         <div class="test-meta">
-            <span class="duration">4.20s</span>
-            <span class="tokens">312 tokens</span>
+            <span class="duration">14.71s</span>
+            <span class="tokens">32,390 tokens</span>
             <span class="expand-icon">▼</span>
         </div>
     </summary>
@@ -2638,8 +2880,62 @@ sequenceDiagram
         <div class="assertion-item passed">
             <span class="assertion-icon">✓</span>
             <div class="assertion-content">
-                <span class="assertion-type">tool_called</span>
-                <span class="assertion-message">Tool &#39;write_file&#39; was called</span>
+                <span class="assertion-type">anyOf</span>
+                <span class="assertion-message">anyOf passed: 1 of 2 assertions passed</span>
+                
+            </div>
+        </div>
+        
+        <div class="assertion-item passed">
+            <span class="assertion-icon">✓</span>
+            <div class="assertion-content">
+                <span class="assertion-type">output_regex</span>
+                <span class="assertion-message">Output matches regex &#39;(?i)hello\s*world&#39;: true</span>
+                
+            </div>
+        </div>
+        
+        <div class="assertion-item passed">
+            <span class="assertion-icon">✓</span>
+            <div class="assertion-content">
+                <span class="assertion-type">output_regex</span>
+                <span class="assertion-message">Output matches regex &#39;(?i)(no.*(notepad|window).*(open|found)|verified)&#39;: true</span>
+                
+            </div>
+        </div>
+        
+        <div class="assertion-item passed">
+            <span class="assertion-icon">✓</span>
+            <div class="assertion-content">
+                <span class="assertion-type">no_hallucinated_tools</span>
+                <span class="assertion-message">No hallucinated tools</span>
+                
+            </div>
+        </div>
+        
+        <div class="assertion-item passed">
+            <span class="assertion-icon">✓</span>
+            <div class="assertion-content">
+                <span class="assertion-type">no_error_messages</span>
+                <span class="assertion-message">No errors occurred</span>
+                
+            </div>
+        </div>
+        
+        <div class="assertion-item passed">
+            <span class="assertion-icon">✓</span>
+            <div class="assertion-content">
+                <span class="assertion-type">no_clarification_questions</span>
+                <span class="assertion-message">No clarification questions detected</span>
+                
+            </div>
+        </div>
+        
+        <div class="assertion-item passed">
+            <span class="assertion-icon">✓</span>
+            <div class="assertion-content">
+                <span class="assertion-type">no_rate_limit_errors</span>
+                <span class="assertion-message">No rate limit errors (HTTP 429)</span>
                 
             </div>
         </div>
@@ -2666,10 +2962,16 @@ sequenceDiagram
     participant U as User
     participant A as Agent
     participant M as MCP Server
-    U-&gt;&gt;A: Create a test file at /tmp/test.txt with the co...
-    A-&gt;&gt;M: write_file() [52ms]
+    U-&gt;&gt;A: 1. Launch Notepad 2. Type &#39;Hello World&#39; 3. Clos...
+    A-&gt;&gt;M: app() [453ms]
     M--&gt;&gt;A: result
-    A--&gt;&gt;U: Done! File created at /tmp/test.txt [312 tokens]
+    A-&gt;&gt;M: keyboard_control() [288ms]
+    M--&gt;&gt;A: result
+    A-&gt;&gt;M: window_management() [511ms]
+    M--&gt;&gt;A: result
+    A-&gt;&gt;M: window_management() [3ms]
+    M--&gt;&gt;A: result
+    A--&gt;&gt;U: **Execution Report**  1. **Notepad la... [32390 tokens]
 
     </div>
 </div>
@@ -2678,23 +2980,22 @@ sequenceDiagram
         
 
 <div class="toolcalls-section">
-    <h4 class="subsection-title">Tool Calls (1)</h4>
+    <h4 class="subsection-title">Tool Calls (4)</h4>
     <div class="timeline">
         
         <div class="timeline-item tool-call">
             <div class="timeline-header">
-                <span class="tool-name">🔧 write_file</span>
+                <span class="tool-name">🔧 app</span>
                 <span class="timeline-meta">
-                    <span class="tool-duration">52ms</span>
-                    <span class="timeline-time">&#43;0.60s</span>
+                    <span class="tool-duration">453ms</span>
+                    <span class="timeline-time">&#43;0.50s</span>
                 </span>
             </div>
             
             <details class="tool-params-toggle">
                 <summary>Parameters</summary>
                 <pre class="tool-params">{
-  "content": "Hello World",
-  "path": "/tmp/test.txt"
+  "programPath": "notepad.exe"
 }</pre>
             </details>
             
@@ -2703,7 +3004,99 @@ sequenceDiagram
                 <summary>Result</summary>
                 <pre class="tool-result-content">[
   {
-    "text": "{\"ok\":true,\"path\":\"/tmp/test.txt\",\"bytes\":11}",
+    "text": "{\"ok\":true,\"w\":{\"h\":\"397030\",\"t\":\"Untitled - Notepad\",\"cn\":\"Notepad\",\"pn\":\"Notepad\",\"pid\":12345,\"b\":[5,186,1654,870],\"s\":\"normal\",\"mi\":1,\"fg\":true},\"msg\":\"Launched 'notepad.exe'. Window is focused and ready. Use this handle for all subsequent operations.\"}",
+    "type": "text"
+  }
+]</pre>
+            </details>
+            
+        </div>
+        
+        <div class="timeline-item tool-call">
+            <div class="timeline-header">
+                <span class="tool-name">🔧 keyboard_control</span>
+                <span class="timeline-meta">
+                    <span class="tool-duration">288ms</span>
+                    <span class="timeline-time">&#43;1.50s</span>
+                </span>
+            </div>
+            
+            <details class="tool-params-toggle">
+                <summary>Parameters</summary>
+                <pre class="tool-params">{
+  "action": "type",
+  "text": "Hello World",
+  "windowHandle": "397030"
+}</pre>
+            </details>
+            
+            
+            <details class="tool-result-toggle">
+                <summary>Result</summary>
+                <pre class="tool-result-content">[
+  {
+    "text": "{\"ok\":true,\"cnt\":11,\"tw\":{\"h\":\"397030\",\"t\":\"*Hello - Notepad\",\"pn\":\"Notepad\",\"pid\":12345}}",
+    "type": "text"
+  }
+]</pre>
+            </details>
+            
+        </div>
+        
+        <div class="timeline-item tool-call">
+            <div class="timeline-header">
+                <span class="tool-name">🔧 window_management</span>
+                <span class="timeline-meta">
+                    <span class="tool-duration">511ms</span>
+                    <span class="timeline-time">&#43;2.50s</span>
+                </span>
+            </div>
+            
+            <details class="tool-params-toggle">
+                <summary>Parameters</summary>
+                <pre class="tool-params">{
+  "action": "close",
+  "discardChanges": true,
+  "handle": "397030"
+}</pre>
+            </details>
+            
+            
+            <details class="tool-result-toggle">
+                <summary>Result</summary>
+                <pre class="tool-result-content">[
+  {
+    "text": "{\"ok\":true,\"w\":{\"h\":\"397030\",\"t\":\"*Hello - Notepad\",\"cn\":\"Notepad\",\"pn\":\"Notepad\",\"pid\":12345,\"b\":[5,186,1654,870],\"s\":\"normal\",\"mi\":1,\"fg\":true}}",
+    "type": "text"
+  }
+]</pre>
+            </details>
+            
+        </div>
+        
+        <div class="timeline-item tool-call">
+            <div class="timeline-header">
+                <span class="tool-name">🔧 window_management</span>
+                <span class="timeline-meta">
+                    <span class="tool-duration">3ms</span>
+                    <span class="timeline-time">&#43;3.20s</span>
+                </span>
+            </div>
+            
+            <details class="tool-params-toggle">
+                <summary>Parameters</summary>
+                <pre class="tool-params">{
+  "action": "list",
+  "filter": "Notepad"
+}</pre>
+            </details>
+            
+            
+            <details class="tool-result-toggle">
+                <summary>Result</summary>
+                <pre class="tool-result-content">[
+  {
+    "text": "{\"ok\":true,\"ws\":[],\"n\":0}",
     "type": "text"
   }
 ]</pre>
@@ -2718,7 +3111,7 @@ sequenceDiagram
         
 
 <details class="messages-section">
-    <summary class="subsection-title">💬 Conversation (1 messages)</summary>
+    <summary class="subsection-title">💬 Conversation (2 messages)</summary>
     <div class="conversation-timeline">
         
         <div class="timeline-item user">
@@ -2726,7 +3119,18 @@ sequenceDiagram
                 <span class="timeline-role">user</span>
                 <span class="timeline-time">00:00:00.000</span>
             </div>
-            <div class="timeline-content">Create a test file at /tmp/test.txt with the content &#39;Hello World&#39;</div>
+            <div class="timeline-content">1. Launch Notepad
+2. Type &#34;Hello World&#34;
+3. Close Notepad and click &#34;Don&#39;t Save&#34; if prompted
+4. Verify no Notepad window is open</div>
+        </div>
+        
+        <div class="timeline-item assistant">
+            <div class="timeline-header">
+                <span class="timeline-role">assistant</span>
+                <span class="timeline-time">00:00:00.000</span>
+            </div>
+            <div class="timeline-content">✅ **VERIFIED: No Notepad window open**</div>
         </div>
         
     </div>
@@ -2737,7 +3141,15 @@ sequenceDiagram
 
 <details class="final-output-section">
     <summary class="subsection-title">📤 Final Output</summary>
-    <div class="final-output-content">Done! File created at /tmp/test.txt</div>
+    <div class="final-output-content">**Execution Report**
+
+1. **Notepad launched successfully.**
+2. **Typed text:** `Hello World`
+3. **Proof:** Window title changed to indicate text entry.
+4. **Notepad closed** with &#34;Don&#39;t Save&#34; selected.
+5. **Verification:** 0 Notepad windows found.
+
+✅ **VERIFIED: No Notepad window open**</div>
 </details>
 
 
@@ -2746,18 +3158,18 @@ sequenceDiagram
 
     </div>
     
-    <div class="agent-detail-panel" data-agent-idx="2" data-agent-name="gpt-agent">
+    <div class="agent-detail-panel" data-agent-idx="2" data-agent-name="gemini-agent">
         
 <details class="test-item failed" open>
     <summary class="test-header">
         <div class="test-info">
             <span class="test-status-icon">❌</span>
-            <span class="test-agent">gpt-agent</span>
-            <span class="provider-badge">OPENAI</span>
+            <span class="test-agent">gemini-agent</span>
+            <span class="provider-badge">GOOGLE</span>
         </div>
         <div class="test-meta">
-            <span class="duration">5.10s</span>
-            <span class="tokens">345 tokens</span>
+            <span class="duration">8.50s</span>
+            <span class="tokens">25,000 tokens</span>
             <span class="expand-icon">▼</span>
         </div>
     </summary>
@@ -2771,8 +3183,17 @@ sequenceDiagram
         <div class="assertion-item passed">
             <span class="assertion-icon">✓</span>
             <div class="assertion-content">
-                <span class="assertion-type">tool_called</span>
-                <span class="assertion-message">Tool &#39;write_file&#39; was called</span>
+                <span class="assertion-type">anyOf</span>
+                <span class="assertion-message">anyOf passed: 1 of 2 assertions passed</span>
+                
+            </div>
+        </div>
+        
+        <div class="assertion-item passed">
+            <span class="assertion-icon">✓</span>
+            <div class="assertion-content">
+                <span class="assertion-type">output_regex</span>
+                <span class="assertion-message">Output matches regex &#39;(?i)screenshot&#39;: true</span>
                 
             </div>
         </div>
@@ -2780,15 +3201,44 @@ sequenceDiagram
         <div class="assertion-item failed">
             <span class="assertion-icon">✗</span>
             <div class="assertion-content">
-                <span class="assertion-type">tool_param_equals</span>
-                <span class="assertion-message">Content case mismatch</span>
+                <span class="assertion-type">output_regex</span>
+                <span class="assertion-message">Output matches regex &#39;(?i)(no.*(notepad|window).*(open|found)|verified)&#39;: false</span>
                 
-                <div class="assertion-details">
-                    <pre class="assertion-details-content">{
-  "actual": "hello world",
-  "expected": "Hello World"
-}</pre>
-                </div>
+            </div>
+        </div>
+        
+        <div class="assertion-item passed">
+            <span class="assertion-icon">✓</span>
+            <div class="assertion-content">
+                <span class="assertion-type">no_hallucinated_tools</span>
+                <span class="assertion-message">No hallucinated tools</span>
+                
+            </div>
+        </div>
+        
+        <div class="assertion-item failed">
+            <span class="assertion-icon">✗</span>
+            <div class="assertion-content">
+                <span class="assertion-type">no_error_messages</span>
+                <span class="assertion-message">Task incomplete: Notepad window was not closed</span>
+                
+            </div>
+        </div>
+        
+        <div class="assertion-item passed">
+            <span class="assertion-icon">✓</span>
+            <div class="assertion-content">
+                <span class="assertion-type">no_clarification_questions</span>
+                <span class="assertion-message">No clarification questions detected</span>
+                
+            </div>
+        </div>
+        
+        <div class="assertion-item passed">
+            <span class="assertion-icon">✓</span>
+            <div class="assertion-content">
+                <span class="assertion-type">no_rate_limit_errors</span>
+                <span class="assertion-message">No rate limit errors (HTTP 429)</span>
                 
             </div>
         </div>
@@ -2802,7 +3252,7 @@ sequenceDiagram
 <div class="errors-box">
     <div class="errors-title">❌ Errors</div>
     
-    <div class="error-item">• Content mismatch: expected &#39;Hello World&#39;, got &#39;hello world&#39;</div>
+    <div class="error-item">• Task incomplete: Notepad window was not closed</div>
     
 </div>
 
@@ -2822,10 +3272,14 @@ sequenceDiagram
     participant U as User
     participant A as Agent
     participant M as MCP Server
-    U-&gt;&gt;A: Create a test file at /tmp/test.txt with the co...
-    A-&gt;&gt;M: write_file() [68ms]
+    U-&gt;&gt;A: 1. Launch Notepad 2. Type &#39;Hello World&#39; 3. Clos...
+    A-&gt;&gt;M: app() [600ms]
     M--&gt;&gt;A: result
-    A--&gt;&gt;U: I wrote &#39;hello world&#39; to the file. [345 tokens]
+    A-&gt;&gt;M: ui_type() [180ms]
+    M--&gt;&gt;A: result
+    A-&gt;&gt;M: screenshot_control() [250ms]
+    M--&gt;&gt;A: result
+    A--&gt;&gt;U: Screenshot captured. Notepad window i... [25000 tokens]
 
     </div>
 </div>
@@ -2834,23 +3288,22 @@ sequenceDiagram
         
 
 <div class="toolcalls-section">
-    <h4 class="subsection-title">Tool Calls (1)</h4>
+    <h4 class="subsection-title">Tool Calls (3)</h4>
     <div class="timeline">
         
         <div class="timeline-item tool-call">
             <div class="timeline-header">
-                <span class="tool-name">🔧 write_file</span>
+                <span class="tool-name">🔧 app</span>
                 <span class="timeline-meta">
-                    <span class="tool-duration">68ms</span>
-                    <span class="timeline-time">&#43;0.80s</span>
+                    <span class="tool-duration">600ms</span>
+                    <span class="timeline-time">&#43;0.50s</span>
                 </span>
             </div>
             
             <details class="tool-params-toggle">
                 <summary>Parameters</summary>
                 <pre class="tool-params">{
-  "content": "Hello World",
-  "path": "/tmp/test.txt"
+  "programPath": "notepad.exe"
 }</pre>
             </details>
             
@@ -2859,7 +3312,70 @@ sequenceDiagram
                 <summary>Result</summary>
                 <pre class="tool-result-content">[
   {
-    "text": "{\"ok\":true,\"path\":\"/tmp/test.txt\",\"bytes\":11}",
+    "text": "{\"ok\":true,\"w\":{\"h\":\"123456\",\"t\":\"Untitled - Notepad\",\"cn\":\"Notepad\",\"pn\":\"Notepad\",\"pid\":12345,\"b\":[5,186,1654,870],\"s\":\"normal\",\"mi\":1,\"fg\":true},\"msg\":\"Launched 'notepad.exe'. Window is focused and ready. Use this handle for all subsequent operations.\"}",
+    "type": "text"
+  }
+]</pre>
+            </details>
+            
+        </div>
+        
+        <div class="timeline-item tool-call">
+            <div class="timeline-header">
+                <span class="tool-name">🔧 ui_type</span>
+                <span class="timeline-meta">
+                    <span class="tool-duration">180ms</span>
+                    <span class="timeline-time">&#43;1.50s</span>
+                </span>
+            </div>
+            
+            <details class="tool-params-toggle">
+                <summary>Parameters</summary>
+                <pre class="tool-params">{
+  "controlType": "Document",
+  "text": "Hello World",
+  "windowHandle": "123456"
+}</pre>
+            </details>
+            
+            
+            <details class="tool-result-toggle">
+                <summary>Result</summary>
+                <pre class="tool-result-content">[
+  {
+    "text": "{\"ok\":true,\"a\":\"type\",\"items\":[{\"id\":\"2\",\"n\":\"Text editor\",\"t\":\"Document\",\"c\":[832,642,1],\"e\":true}],\"n\":1,\"hint\":\"Use elementId='2' for subsequent actions.\",\"diag\":{\"durationMs\":147}}",
+    "type": "text"
+  }
+]</pre>
+            </details>
+            
+        </div>
+        
+        <div class="timeline-item tool-call">
+            <div class="timeline-header">
+                <span class="tool-name">🔧 screenshot_control</span>
+                <span class="timeline-meta">
+                    <span class="tool-duration">250ms</span>
+                    <span class="timeline-time">&#43;2.50s</span>
+                </span>
+            </div>
+            
+            <details class="tool-params-toggle">
+                <summary>Parameters</summary>
+                <pre class="tool-params">{
+  "action": "capture",
+  "annotate": true,
+  "target": "window",
+  "windowHandle": "123456"
+}</pre>
+            </details>
+            
+            
+            <details class="tool-result-toggle">
+                <summary>Result</summary>
+                <pre class="tool-result-content">[
+  {
+    "text": "{\"ok\":true,\"ec\":\"success\",\"msg\":\"Captured 1280x720 jpeg with 25 annotated elements\",\"w\":1280,\"h\":720,\"ow\":2560,\"oh\":1440,\"fmt\":\"jpeg\",\"n\":25}",
     "type": "text"
   }
 ]</pre>
@@ -2874,7 +3390,7 @@ sequenceDiagram
         
 
 <details class="messages-section">
-    <summary class="subsection-title">💬 Conversation (1 messages)</summary>
+    <summary class="subsection-title">💬 Conversation (2 messages)</summary>
     <div class="conversation-timeline">
         
         <div class="timeline-item user">
@@ -2882,7 +3398,18 @@ sequenceDiagram
                 <span class="timeline-role">user</span>
                 <span class="timeline-time">00:00:00.000</span>
             </div>
-            <div class="timeline-content">Create a test file at /tmp/test.txt with the content &#39;Hello World&#39;</div>
+            <div class="timeline-content">1. Launch Notepad
+2. Type &#34;Hello World&#34;
+3. Close Notepad and click &#34;Don&#39;t Save&#34; if prompted
+4. Verify no Notepad window is open</div>
+        </div>
+        
+        <div class="timeline-item assistant">
+            <div class="timeline-header">
+                <span class="timeline-role">assistant</span>
+                <span class="timeline-time">00:00:00.000</span>
+            </div>
+            <div class="timeline-content">I&#39;ve taken a screenshot of the Notepad window.</div>
         </div>
         
     </div>
@@ -2893,7 +3420,7 @@ sequenceDiagram
 
 <details class="final-output-section">
     <summary class="subsection-title">📤 Final Output</summary>
-    <div class="final-output-content">I wrote &#39;hello world&#39; to the file.</div>
+    <div class="final-output-content">Screenshot captured. Notepad window is still open.</div>
 </details>
 
 

@@ -1238,6 +1238,22 @@ func prepareResultsSummary(results []model.TestRun) string {
 
 	var sb strings.Builder
 
+	// Count unique agents first to determine evaluation context
+	agentSet := make(map[string]bool)
+	for _, r := range results {
+		agentSet[r.Execution.AgentName] = true
+	}
+	agentCount := len(agentSet)
+
+	// Evaluation context header
+	if agentCount == 1 {
+		sb.WriteString("## Evaluation Context: SINGLE AGENT\n")
+		sb.WriteString("Use the **Single-Agent Evaluation** template (fit for purpose analysis).\n\n")
+	} else {
+		sb.WriteString(fmt.Sprintf("## Evaluation Context: MULTIPLE AGENTS (%d)\n", agentCount))
+		sb.WriteString("Use the **Multi-Agent Comparison** template (which to choose analysis).\n\n")
+	}
+
 	// Overall stats
 	total := len(results)
 	passed := 0
@@ -1310,43 +1326,142 @@ func prepareResultsSummary(results []model.TestRun) string {
 		sb.WriteString(fmt.Sprintf("- Failed: %d\n\n", stats.failed))
 	}
 
-	// Failure details
-	if failed > 0 {
-		sb.WriteString("## Failure Details\n")
-		for _, r := range results {
-			if !r.Passed {
-				sb.WriteString(fmt.Sprintf("### %s (Agent: %s)\n", r.Execution.TestName, r.Execution.AgentName))
+	// Tool usage analysis - helps understand strategy differences
+	sb.WriteString("## Tool Usage Patterns\n")
+	for _, r := range results {
+		if len(r.Execution.ToolCalls) == 0 {
+			continue
+		}
 
-				// Show failed assertions
-				for _, a := range r.Assertions {
-					if !a.Passed {
-						sb.WriteString(fmt.Sprintf("- **%s**: %s\n", a.Type, a.Message))
-					}
-				}
+		sb.WriteString(fmt.Sprintf("### %s (Agent: %s) - %s\n",
+			r.Execution.TestName, r.Execution.AgentName,
+			map[bool]string{true: "PASSED", false: "FAILED"}[r.Passed]))
 
-				// Show errors
-				if len(r.Execution.Errors) > 0 {
-					sb.WriteString("- Errors:\n")
-					for _, e := range r.Execution.Errors {
-						// Truncate long error messages
-						if len(e) > 200 {
-							e = e[:200] + "..."
+		// Count tool calls and errors by tool name
+		toolCounts := make(map[string]int)
+		toolErrors := make(map[string][]string)
+		toolParams := make(map[string][]string) // Track parameters for each tool
+		for _, tc := range r.Execution.ToolCalls {
+			toolCounts[tc.Name]++
+
+			// Capture key parameters (truncated for readability)
+			paramsJSON, _ := json.Marshal(tc.Parameters)
+			params := string(paramsJSON)
+			if len(params) > 150 {
+				params = params[:150] + "..."
+			}
+			toolParams[tc.Name] = append(toolParams[tc.Name], params)
+
+			// Check if result contains error indicators
+			if len(tc.Result.Content) > 0 {
+				for _, content := range tc.Result.Content {
+					text := content.Text
+					// Look for common error patterns in tool results
+					if strings.Contains(text, `"ok":false`) ||
+						strings.Contains(text, `"error"`) ||
+						strings.Contains(text, `"et":"`) { // error type field
+						// Extract error type if present
+						errType := "unknown"
+						if idx := strings.Index(text, `"et":"`); idx != -1 {
+							end := strings.Index(text[idx+6:], `"`)
+							if end != -1 {
+								errType = text[idx+6 : idx+6+end]
+							}
+						} else if idx := strings.Index(text, `"ec":"`); idx != -1 {
+							end := strings.Index(text[idx+6:], `"`)
+							if end != -1 {
+								errType = text[idx+6 : idx+6+end]
+							}
 						}
-						sb.WriteString(fmt.Sprintf("  - %s\n", e))
+						toolErrors[tc.Name] = append(toolErrors[tc.Name], errType)
 					}
 				}
-
-				// Show clarification stats if relevant
-				if r.Execution.ClarificationStats != nil && r.Execution.ClarificationStats.Count > 0 {
-					sb.WriteString(fmt.Sprintf("- Clarification requests: %d\n", r.Execution.ClarificationStats.Count))
-					if len(r.Execution.ClarificationStats.Examples) > 0 {
-						sb.WriteString("  - Example: " + r.Execution.ClarificationStats.Examples[0] + "\n")
-					}
-				}
-
-				sb.WriteString("\n")
 			}
 		}
+
+		// Show tool usage summary
+		sb.WriteString("- Tools used: ")
+		toolList := make([]string, 0, len(toolCounts))
+		for tool, count := range toolCounts {
+			errCount := len(toolErrors[tool])
+			if errCount > 0 {
+				toolList = append(toolList, fmt.Sprintf("%s×%d (%d errors)", tool, count, errCount))
+			} else {
+				toolList = append(toolList, fmt.Sprintf("%s×%d", tool, count))
+			}
+		}
+		sb.WriteString(strings.Join(toolList, ", ") + "\n")
+
+		// Show key tool parameters (important for understanding strategy differences)
+		sb.WriteString("- Key tool parameters:\n")
+		for tool, params := range toolParams {
+			// Show first call's params (or unique params if they differ)
+			if len(params) > 0 {
+				sb.WriteString(fmt.Sprintf("  - %s: %s\n", tool, params[0]))
+			}
+		}
+
+		// Show error types if any
+		for tool, errs := range toolErrors {
+			errCounts := make(map[string]int)
+			for _, e := range errs {
+				errCounts[e]++
+			}
+			for errType, count := range errCounts {
+				sb.WriteString(fmt.Sprintf("  - %s error '%s' occurred %d times\n", tool, errType, count))
+			}
+		}
+
+		sb.WriteString("\n")
+	}
+
+	// Detailed results with final outputs
+	sb.WriteString("## Test Details (with final outputs)\n")
+	for _, r := range results {
+		sb.WriteString(fmt.Sprintf("### %s (Agent: %s) - %s\n",
+			r.Execution.TestName, r.Execution.AgentName,
+			map[bool]string{true: "PASSED", false: "FAILED"}[r.Passed]))
+
+		// Show failed assertions
+		for _, a := range r.Assertions {
+			if !a.Passed {
+				sb.WriteString(fmt.Sprintf("- **FAILED %s**: %s\n", a.Type, a.Message))
+			}
+		}
+
+		// Show errors
+		if len(r.Execution.Errors) > 0 {
+			sb.WriteString("- Errors:\n")
+			for _, e := range r.Execution.Errors {
+				if len(e) > 200 {
+					e = e[:200] + "..."
+				}
+				sb.WriteString(fmt.Sprintf("  - %s\n", e))
+			}
+		}
+
+		// Show clarification stats if relevant
+		if r.Execution.ClarificationStats != nil && r.Execution.ClarificationStats.Count > 0 {
+			sb.WriteString(fmt.Sprintf("- Clarification requests: %d\n", r.Execution.ClarificationStats.Count))
+			if len(r.Execution.ClarificationStats.Examples) > 0 {
+				sb.WriteString("  - Example: " + r.Execution.ClarificationStats.Examples[0] + "\n")
+			}
+		}
+
+		// Show final assistant message (crucial for understanding agent behavior)
+		for i := len(r.Execution.Messages) - 1; i >= 0; i-- {
+			msg := r.Execution.Messages[i]
+			if msg.Role == "assistant" && msg.Content != "" {
+				content := msg.Content
+				if len(content) > 500 {
+					content = content[:500] + "..."
+				}
+				sb.WriteString(fmt.Sprintf("- Final output: \"%s\"\n", content))
+				break
+			}
+		}
+
+		sb.WriteString("\n")
 	}
 
 	return sb.String()

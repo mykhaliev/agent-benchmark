@@ -99,6 +99,16 @@ Quick overview of test execution:
 
 When `ai_summary` is enabled in your test YAML, an LLM-generated executive summary appears after the summary cards.
 
+#### Late-Binding Architecture
+
+AI summaries use a **late-binding** approach:
+
+1. **JSON output is pure test data** - The `ai_summary` is never stored in JSON
+2. **Fresh generation at report time** - AI summary is generated when creating HTML/MD reports
+3. **Iteration-friendly** - Regenerate reports with updated prompts without re-running tests
+
+This design enables rapid iteration on AI summary quality without expensive test re-runs.
+
 #### Configuration
 
 Add `ai_summary` to your test or suite YAML:
@@ -151,16 +161,31 @@ The AI summary provides interpretation-focused analysis:
 
 **HTML Reports:** The analysis appears as an "AI Summary" section after the summary cards.
 
-**JSON Reports:** The analysis is included in the `ai_summary` field:
+**JSON Reports:** JSON contains a `test_file` field pointing to the original YAML. The `ai_summary` is **not** stored in JSON - it is generated fresh when creating HTML/MD reports:
 
 ```json
 {
-  "ai_summary": {
-    "success": true,
-    "analysis": "### Verdict\n\n**Use Agent X** - 95% pass rate with best efficiency..."
-  }
+  "test_file": "path/to/test.yaml",
+  "detailed_results": [...],
+  "summary": {...}
 }
 ```
+
+#### Regenerating Reports
+
+Regenerate HTML reports from existing JSON results:
+
+```bash
+# Reads test_file from JSON to load AI summary configuration
+agent-benchmark -generate-report results.json -o new-report.html
+```
+
+This is useful when:
+- You want to try different AI summary prompts
+- The original AI summary failed due to rate limits
+- You want to use a different model for analysis
+
+📖 **[Full AI Summary Documentation](../docs/ai-summary.md)**
 
 ### 3. File & Session Summary
 

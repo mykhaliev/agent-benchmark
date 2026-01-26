@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
@@ -9,9 +10,11 @@ import (
 
 	"github.com/mykhaliev/agent-benchmark/engine"
 	"github.com/mykhaliev/agent-benchmark/logger"
+	"github.com/mykhaliev/agent-benchmark/model"
 	"github.com/mykhaliev/agent-benchmark/report"
 	"github.com/mykhaliev/agent-benchmark/templates"
 	"github.com/mykhaliev/agent-benchmark/version"
+	"github.com/tmc/langchaingo/llms"
 )
 
 const (
@@ -26,7 +29,7 @@ func main() {
 	verbose := flag.Bool("verbose", false, "Enable verbose logging")
 	showVersion := flag.Bool("v", false, "Show version and exit")
 	reportTypes := flag.String("reportType", "html", "Report type(s) (comma-separated): html, json, markdown, txt")
-	generateFromJSON := flag.String("generate-report", "", "Generate HTML report from existing JSON results file")
+	generateFromJSON := flag.String("generate-report", "", "Generate report from existing JSON results file (use with -f to get AI summary config)")
 
 	flag.Parse()
 
@@ -61,10 +64,64 @@ func main() {
 		}
 
 		fmt.Printf("Generating HTML report from: %s\n", *generateFromJSON)
-		if err := report.GenerateReportFromJSON(*generateFromJSON, outputPath); err != nil {
+
+		// Load JSON to get the test_file path
+		reportData, err := report.LoadFullReportFromJSON(*generateFromJSON)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: Failed to load JSON: %v\n", err)
+			os.Exit(1)
+		}
+
+		var judgeLLM llms.Model
+
+		// Use test_file from JSON to get AI summary configuration
+		if reportData.TestFile != "" {
+			testConfig, err := model.ParseTestConfig(reportData.TestFile)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: Failed to parse test config %s: %v\n", reportData.TestFile, err)
+			} else if testConfig.AISummary.Enabled {
+				judgeProvider := testConfig.AISummary.JudgeProvider
+				if judgeProvider == "" {
+					fmt.Fprintf(os.Stderr, "Warning: AI summary enabled but no judge_provider specified\n")
+				} else {
+					ctx := context.Background()
+					staticCtx := engine.CreateStaticTemplateContext(reportData.TestFile, nil)
+
+					// Find the provider config
+					var targetProvider *model.Provider
+					if judgeProvider == "$self" && len(testConfig.Providers) > 0 {
+						targetProvider = &testConfig.Providers[0]
+					} else {
+						for i := range testConfig.Providers {
+							if testConfig.Providers[i].Name == judgeProvider {
+								targetProvider = &testConfig.Providers[i]
+								break
+							}
+						}
+					}
+
+					if targetProvider != nil {
+						providers, err := engine.InitProviders(ctx, []model.Provider{*targetProvider}, staticCtx)
+						if err != nil {
+							fmt.Fprintf(os.Stderr, "Warning: Failed to initialize AI summary provider: %v\n", err)
+						} else {
+							for _, llm := range providers {
+								judgeLLM = llm
+								break
+							}
+						}
+					}
+				}
+			}
+		}
+
+		// Generate HTML with AI summary (if judgeLLM is available)
+		ctx := context.Background()
+		if err := report.GenerateReportFromJSONWithSummary(ctx, *generateFromJSON, outputPath, judgeLLM); err != nil {
 			fmt.Fprintf(os.Stderr, "Error: Failed to generate report: %v\n", err)
 			os.Exit(1)
 		}
+
 		fmt.Printf("Report generated: %s\n", outputPath)
 		return
 	}

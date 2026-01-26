@@ -33,6 +33,9 @@ var (
 	agentClaude  = AgentConfig{"claude-agent", model.ProviderAnthropic}
 	agentGPT     = AgentConfig{"gpt-agent", model.ProviderOpenAI}
 	agentPhoenix = AgentConfig{"phoenix-agent", model.ProviderAzure}
+	// Windows MCP test agents (based on real test data)
+	agentGPT41 = AgentConfig{"gpt41-agent", model.ProviderAzure}
+	agentGPT52 = AgentConfig{"gpt52-agent", model.ProviderAzure}
 )
 
 // buildTestRun creates a test run with the given parameters
@@ -281,6 +284,157 @@ func assertMaxToolCalls(used, max int) model.AssertionResult {
 	return model.AssertionResult{Type: "max_tool_calls", Passed: used <= max, Message: fmt.Sprintf("Used %d tool calls (max: %d)", used, max)}
 }
 
+// ============================================================================
+// WINDOWS MCP TOOL HELPERS (realistic tool patterns from actual tests)
+// ============================================================================
+
+func toolWindowsApp(offset time.Duration, durationMs int64, program string, handle string) model.ToolCall {
+	return model.ToolCall{
+		Name:       "app",
+		Parameters: map[string]interface{}{"programPath": program},
+		Timestamp:  baseTime.Add(offset),
+		DurationMs: durationMs,
+		Result: model.Result{
+			Content: []model.ContentItem{{
+				Type: "text",
+				Text: fmt.Sprintf(`{"ok":true,"w":{"h":"%s","t":"Untitled - Notepad","cn":"Notepad","pn":"Notepad","pid":12345,"b":[5,186,1654,870],"s":"normal","mi":1,"fg":true},"msg":"Launched '%s'. Window is focused and ready. Use this handle for all subsequent operations."}`, handle, program),
+			}},
+		},
+	}
+}
+
+func toolWindowsUIType(offset time.Duration, durationMs int64, handle string, text string) model.ToolCall {
+	return model.ToolCall{
+		Name:       "ui_type",
+		Parameters: map[string]interface{}{"windowHandle": handle, "controlType": "Document", "text": text},
+		Timestamp:  baseTime.Add(offset),
+		DurationMs: durationMs,
+		Result: model.Result{
+			Content: []model.ContentItem{{
+				Type: "text",
+				Text: `{"ok":true,"a":"type","items":[{"id":"2","n":"Text editor","t":"Document","c":[832,642,1],"e":true}],"n":1,"hint":"Use elementId='2' for subsequent actions.","diag":{"durationMs":147}}`,
+			}},
+		},
+	}
+}
+
+func toolWindowsKeyboardType(offset time.Duration, durationMs int64, handle string, text string) model.ToolCall {
+	return model.ToolCall{
+		Name:       "keyboard_control",
+		Parameters: map[string]interface{}{"action": "type", "windowHandle": handle, "text": text},
+		Timestamp:  baseTime.Add(offset),
+		DurationMs: durationMs,
+		Result: model.Result{
+			Content: []model.ContentItem{{
+				Type: "text",
+				Text: fmt.Sprintf(`{"ok":true,"cnt":%d,"tw":{"h":"%s","t":"*Hello - Notepad","pn":"Notepad","pid":12345}}`, len(text), handle),
+			}},
+		},
+	}
+}
+
+func toolWindowsClose(offset time.Duration, durationMs int64, handle string, discard bool) model.ToolCall {
+	params := map[string]interface{}{"action": "close", "handle": handle}
+	if discard {
+		params["discardChanges"] = true
+	}
+	return model.ToolCall{
+		Name:       "window_management",
+		Parameters: params,
+		Timestamp:  baseTime.Add(offset),
+		DurationMs: durationMs,
+		Result: model.Result{
+			Content: []model.ContentItem{{
+				Type: "text",
+				Text: fmt.Sprintf(`{"ok":true,"w":{"h":"%s","t":"*Hello - Notepad","cn":"Notepad","pn":"Notepad","pid":12345,"b":[5,186,1654,870],"s":"normal","mi":1,"fg":true}}`, handle),
+			}},
+		},
+	}
+}
+
+func toolWindowsList(offset time.Duration, durationMs int64, filter string, count int) model.ToolCall {
+	return model.ToolCall{
+		Name:       "window_management",
+		Parameters: map[string]interface{}{"action": "list", "filter": filter},
+		Timestamp:  baseTime.Add(offset),
+		DurationMs: durationMs,
+		Result: model.Result{
+			Content: []model.ContentItem{{
+				Type: "text",
+				Text: fmt.Sprintf(`{"ok":true,"ws":[],"n":%d}`, count),
+			}},
+		},
+	}
+}
+
+func toolWindowsUIRead(offset time.Duration, durationMs int64, handle string, text string) model.ToolCall {
+	return model.ToolCall{
+		Name:       "ui_read",
+		Parameters: map[string]interface{}{"windowHandle": handle, "controlType": "Document"},
+		Timestamp:  baseTime.Add(offset),
+		DurationMs: durationMs,
+		Result: model.Result{
+			Content: []model.ContentItem{{
+				Type: "text",
+				Text: fmt.Sprintf(`{"ok":true,"a":"get_text","txt":"%s","diag":{"durationMs":1}}`, text),
+			}},
+		},
+	}
+}
+
+func toolWindowsScreenshot(offset time.Duration, durationMs int64, handle string, annotate bool) model.ToolCall {
+	return model.ToolCall{
+		Name:       "screenshot_control",
+		Parameters: map[string]interface{}{"action": "capture", "target": "window", "windowHandle": handle, "annotate": annotate},
+		Timestamp:  baseTime.Add(offset),
+		DurationMs: durationMs,
+		Result: model.Result{
+			Content: []model.ContentItem{{
+				Type: "text",
+				Text: `{"ok":true,"ec":"success","msg":"Captured 1280x720 jpeg with 25 annotated elements","w":1280,"h":720,"ow":2560,"oh":1440,"fmt":"jpeg","n":25}`,
+			}},
+		},
+	}
+}
+
+// Realistic Windows MCP assertion helpers
+func assertAnyOf(passed bool, passedCount, totalCount int, children []model.AssertionResult) model.AssertionResult {
+	return model.AssertionResult{
+		Type:    "anyOf",
+		Passed:  passed,
+		Message: fmt.Sprintf("anyOf passed: %d of %d assertions passed", passedCount, totalCount),
+		Details: map[string]interface{}{"children": children, "passed_count": passedCount, "failed_count": totalCount - passedCount},
+	}
+}
+
+func assertToolCallOrder(passed bool, tools []string) model.AssertionResult {
+	msg := fmt.Sprintf("Tools called in correct order: %v", tools)
+	if !passed {
+		msg = fmt.Sprintf("Tool order mismatch: expected %v", tools)
+	}
+	return model.AssertionResult{Type: "tool_call_order", Passed: passed, Message: msg}
+}
+
+func assertNoHallucinatedTools() model.AssertionResult {
+	return model.AssertionResult{Type: "no_hallucinated_tools", Passed: true, Message: "No hallucinated tools"}
+}
+
+func assertNoClarificationQuestions() model.AssertionResult {
+	return model.AssertionResult{Type: "no_clarification_questions", Passed: true, Message: "No clarification questions detected"}
+}
+
+func assertNoRateLimitErrors() model.AssertionResult {
+	return model.AssertionResult{Type: "no_rate_limit_errors", Passed: true, Message: "No rate limit errors (HTTP 429)"}
+}
+
+func assertOutputRegex(passed bool, pattern string) model.AssertionResult {
+	return model.AssertionResult{
+		Type:    "output_regex",
+		Passed:  passed,
+		Message: fmt.Sprintf("Output matches regex '%s': %v", pattern, passed),
+	}
+}
+
 func main() {
 	gen, err := report.NewGenerator()
 	if err != nil {
@@ -296,141 +450,252 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Fixture-specific analysis data that matches the actual test results
+	// =====================================================================
+	// SINGLE-AGENT ANALYSIS FIXTURES (01-04)
+	// These use "fit for purpose" format - evaluating if the agent
+	// accomplished the task appropriately, not comparing to others.
+	// =====================================================================
+
+	analysis01 := &agent.AISummaryResult{
+		Success: true,
+		Analysis: `**Overall Assessment: PASS - Task completed successfully**
+
+claude-agent correctly identified and used the write_file tool to create the requested configuration file. The approach was direct and efficient.
+
+**Tool Usage Analysis**
+- write_file called once with correct path parameter
+- Content matches expected output exactly
+- No unnecessary tool calls or retries
+
+**Strengths**
+- Efficient tool selection - went directly to filesystem operation
+- Correct parameter formatting for the tool
+
+**Considerations**
+- Latency of 3.5s is acceptable for this simple file creation task`,
+	}
+
+	analysis02 := &agent.AISummaryResult{
+		Success: true,
+		Analysis: `**Overall Assessment: PASS - Both tests completed successfully**
+
+claude-agent handled the multi-test scenario well, correctly using different tools for different tasks.
+
+**Tool Usage Patterns**
+- Test 1 (file creation): Used write_file with appropriate parameters
+- Test 2 (config reading): Used read_file to retrieve configuration
+
+**Approach Quality**
+- Tools selected match the task requirements
+- No redundant operations between tests
+- Session maintained appropriate state
+
+**Efficiency Notes**
+- Total execution time reasonable at ~8s for two operations
+- Each tool call succeeded on first attempt`,
+	}
+
+	analysis03 := &agent.AISummaryResult{
+		Success: true,
+		Analysis: `**Overall Assessment: PASS - Multi-session scenario handled correctly**
+
+claude-agent maintained consistency across multiple sessions while adapting tool selection to each task.
+
+**Session Analysis**
+- Session 1: File operations using write_file and read_file
+- Session 2: Database queries using db_connect and db_query
+- Session 3: HTTP operations using http_get
+
+**Tool Usage Patterns**
+- Correctly switched tool families based on task domain
+- Maintained context within sessions
+- No cross-session state confusion
+
+**Notable Behavior**
+- Database connection established before query (correct ordering)
+- HTTP call included proper URL formatting`,
+	}
+
+	analysis04 := &agent.AISummaryResult{
+		Success: true,
+		Analysis: `**Overall Assessment: PASS - Multi-file test suite completed**
+
+claude-agent demonstrated good versatility across different test files with varying requirements.
+
+**Test File Analysis**
+- basic.yaml: Simple file operations (PASSED)
+- advanced.yaml: Database interaction (PASSED)
+- edge-cases.yaml: Error handling scenarios (PASSED)
+
+**Tool Selection Quality**
+- Appropriate tools chosen for each test file's domain
+- No tool misuse or incorrect parameter patterns
+- Consistent behavior across different test contexts
+
+**Performance Summary**
+- Average latency: 4.2s per test
+- No timeouts or retries needed
+- Clean execution path through all files`,
+	}
+
+	// =====================================================================
+	// MULTI-AGENT ANALYSIS FIXTURES (05-09)
+	// These use comparison format - helping users choose between agents.
+	// =====================================================================
+
 	analysis05 := &agent.AISummaryResult{
 		Success: true,
-		Analysis: `### Overall Results
-- **Pass Rate:** 67% (2 of 3 agents passed)
-- **Total Tests:** 3 (one test per agent)
-- **Duration:** ~12.8 seconds total
+		Analysis: `**Overall Verdict: gpt41-agent recommended for Notepad automation**
 
-### Agent Performance Comparison
+Testing Notepad automation across 3 agents revealed different approaches to text input and window management.
 
-| Agent | Pass Rate | Avg Latency | Notes |
-|-------|-----------|-------------|-------|
-| claude-agent | 100% | 3.5s | Passed with correct content |
-| gemini-agent | 100% | 4.2s | Passed with correct content |
-| gpt-agent | 0% | 5.1s | Failed - content case mismatch |
+**Agent Comparison**
 
-### Key Findings
+gpt41-agent (PASSED): Used semantic UI automation (ui_type) for text input. Clean approach that targets the Document control directly. Latency: 12.0s.
 
-1. **Case Sensitivity Matters**: gpt-agent wrote 'hello world' instead of 'Hello World'
-2. **Claude Fastest**: Best latency at 3.5s with correct output
-3. **All Used Correct Tool**: Every agent correctly chose write_file
+gpt52-agent (PASSED): Used raw keyboard input (keyboard_control). Faster but less semantic. Latency: 14.7s.
 
-### Recommendations
+gemini-agent (FAILED): Task incomplete - took screenshot instead of closing Notepad. Window left open.
 
-1. **Add Case Validation**: Include explicit case requirements in prompts
-2. **Parameter Validation**: Add assertions to check exact parameter values`,
+**Tool Usage Patterns**
+- gpt41-agent: app → ui_type → ui_read → window_management(close) → window_management(list)
+- gpt52-agent: app → keyboard_control → window_management(close) → window_management(list)
+- gemini-agent: app → ui_type → screenshot_control (WRONG - should have closed window)
+
+**Key Differentiation**
+1. gpt41-agent used ui_type with controlType="Document" to target the text editor semantically
+2. gpt52-agent used keyboard_control for raw text input - works but less reliable
+3. gemini-agent failed to complete the task - verified the text but didn't close the window
+
+**When to Choose Each**
+- gpt41-agent: Best for UI automation requiring semantic element targeting
+- gpt52-agent: Good when raw keyboard input is acceptable
+- gemini-agent: Not recommended for window lifecycle management tasks`,
 	}
 
 	analysis06 := &agent.AISummaryResult{
 		Success: true,
-		Analysis: `### Overall Results
-- **Pass Rate:** 75% (3 of 4 agents passed)
-- **Total Tests:** 8 across 4 agents
-- **Duration:** ~15 seconds total
+		Analysis: `**Overall Verdict: gemini-agent recommended for speed; claude-agent for reliability**
 
-### Agent Performance Comparison
+Testing across 4 agents with 8 total tests showed diverse tool selection strategies.
 
-| Agent | Pass Rate | Avg Latency | Notes |
-|-------|-----------|-------------|-------|
-| claude-agent | 100% | 8.0s | Best overall - used filesystem tools |
-| gemini-agent | 100% | 6.0s | Fastest - used bash commands |
-| gpt-agent | 100% | 6.0s | Good - used Python execution |
-| phoenix-agent | 0% | 12.0s | **DISQUALIFIED** - Used wrong tools |
+**Agent Comparison**
 
-### Key Findings
+claude-agent (100%): Used native filesystem tools (write_file, read_file). Slower but reliable approach with consistent results.
 
-1. **Tool Selection Matters**: phoenix-agent used HTTP/GraphQL APIs instead of filesystem tools
-2. **Latency Patterns**: Agents using bash were faster than Python wrappers
-3. **Approach Diversity**: Each passing agent used different tools (filesystem, bash, python)
+gemini-agent (100%): Leveraged bash commands for file operations. Fastest execution at 6.0s total.
 
-### Recommendations
+gpt-agent (100%): Used Python execution for file handling. Middle ground in performance.
 
-1. **For Tool Authors**: Clearly specify when to use each tool type
-2. **For phoenix-agent**: Needs retraining - consistently chose API calls over direct access`,
+phoenix-agent (0%): FAILED - Used HTTP/GraphQL APIs instead of filesystem tools. Fundamentally wrong approach.
+
+**Tool Usage Patterns**
+- claude-agent: write_file, read_file (native tools)
+- gemini-agent: run_bash with cat/echo commands
+- gpt-agent: execute_python with open()/write()
+- phoenix-agent: http_get, graphql_query (wrong tool family)
+
+**Critical Finding**
+phoenix-agent consistently chose network APIs for local file operations. This suggests poor tool selection logic for filesystem tasks.
+
+**When to Choose Each**
+- gemini-agent: When speed matters and bash is available
+- claude-agent: When explicit tool tracing is needed
+- gpt-agent: When Python environment is preferred
+- phoenix-agent: Not recommended for filesystem tasks`,
 	}
 
 	analysis07 := &agent.AISummaryResult{
 		Success: true,
-		Analysis: `### Overall Results
-- **Pass Rate:** 89% (8 of 9 tests passed)
-- **Total Tests:** 9 across 3 agents in multiple sessions
-- **Duration:** ~45 seconds total
+		Analysis: `**Overall Verdict: claude-agent or gemini-agent recommended**
 
-### Agent Performance Comparison
+Multi-session testing across 3 agents (9 tests total) tested session isolation and state management.
 
-| Agent | Pass Rate | Avg Latency | Notes |
-|-------|-----------|-------------|-------|
-| claude-agent | 100% | 4.0s | Perfect across all sessions |
-| gemini-agent | 100% | 4.5s | Consistent performance |
-| gpt-agent | 67% | 5.0s | One failure in config reading |
+**Agent Comparison**
 
-### Key Findings
+claude-agent (100%): Perfect performance across all sessions. Properly isolated state between session boundaries. Average latency 4.0s.
 
-1. **Session Isolation Works**: Each session maintained proper state
-2. **Config Reading Challenge**: gpt-agent struggled with YAML parsing
-3. **Consistent Winners**: claude and gemini agents reliable across sessions
+gemini-agent (100%): Consistent results with good session handling. Slightly slower at 4.5s average.
 
-### Recommendations
+gpt-agent (67%): One failure in config reading session. Struggled with YAML parsing in session 2.
 
-1. **Config Test Clarity**: Add more explicit format expectations
-2. **Session Naming**: Use descriptive session names for debugging`,
+**Tool Usage Patterns**
+- Session 1 (file ops): All agents used write_file correctly
+- Session 2 (config): gpt-agent misinterpreted YAML structure
+- Session 3 (validation): claude and gemini used read_file with proper content matching
+
+**Session State Analysis**
+- All agents properly isolated context between sessions
+- No state bleeding detected
+- gpt-agent's failure was tool usage, not state management
+
+**When to Choose Each**
+- claude-agent: First choice for multi-session workflows
+- gemini-agent: Reliable alternative with similar capabilities
+- gpt-agent: Avoid for configuration/YAML parsing tasks`,
 	}
 
 	analysis08 := &agent.AISummaryResult{
 		Success: true,
-		Analysis: `### Overall Results
-- **Pass Rate:** 85% (17 of 20 tests passed)
-- **Total Tests:** 20 across 4 agents, multiple files and sessions
-- **Duration:** ~2 minutes total
+		Analysis: `**Overall Verdict: claude-agent is the clear winner for complex multi-file suites**
 
-### Agent Performance Comparison
+Full complexity test: 20 tests across 4 agents, multiple files and sessions.
 
-| Agent | Pass Rate | Avg Latency | Notes |
-|-------|-----------|-------------|-------|
-| claude-agent | 100% | 4.2s | Perfect score, efficient tools |
-| gemini-agent | 90% | 4.8s | One timeout on large file |
-| gpt-agent | 80% | 5.5s | Struggled with complex prompts |
-| phoenix-agent | 70% | 6.2s | Inconsistent tool selection |
+**Agent Comparison**
 
-### Key Findings
+claude-agent (100%): Perfect score across all test files. Efficient tool chains with an average of 2.1 tools per test. Handled errors gracefully with proper recovery.
 
-1. **File Complexity**: Larger test files revealed performance differences
-2. **Tool Chain Length**: Agents using fewer tool calls were faster
-3. **Error Recovery**: Only claude-agent handled errors gracefully
+gemini-agent (90%): One timeout on large file processing in advanced.yaml. Good overall but struggled with 50KB+ file operations.
 
-### Recommendations
+gpt-agent (80%): Struggled with complex multi-step prompts. Used more tool calls than necessary (avg 3.8 per test).
 
-1. **Optimize Tool Chains**: Combine operations where possible
-2. **Add Timeout Handling**: Implement retry logic for large operations
-3. **Improve Error Messages**: More specific failure reasons needed`,
+phoenix-agent (70%): Inconsistent tool selection. Sometimes chose http_get when write_file was appropriate.
+
+**Tool Usage Patterns**
+- claude-agent: Minimal tool chains, direct approaches
+- gemini-agent: bash-heavy approach, efficient but timeout-prone
+- gpt-agent: Python wrappers added overhead
+- phoenix-agent: Tool family confusion (network vs filesystem)
+
+**Performance Insights**
+- File size correlation: Larger files (50KB+) caused issues for gemini
+- Tool chain length: claude's shorter chains = faster completion
+- Error recovery: Only claude attempted alternative tools on failure
+
+**When to Choose Each**
+- claude-agent: Complex workflows, error-prone environments
+- gemini-agent: Simple file ops, small files only
+- gpt-agent: Python-native environments
+- phoenix-agent: Not recommended without retraining`,
 	}
 
 	analysis09 := &agent.AISummaryResult{
 		Success: true,
-		Analysis: `### Overall Results
-- **Pass Rate:** 0% (0 of 1 tests passed)
-- **Total Tests:** 1
-- **Status:** Complete failure with errors
+		Analysis: `**Overall Assessment: FAILED - Permission denied prevented task completion**
 
-### Error Analysis
+Single-agent failure case demonstrating error handling behavior.
 
-The test failed due to multiple issues:
-1. **Tool Execution Error**: write_file returned permission denied
-2. **Assertion Failures**: Both tool_called and output_contains failed
-3. **No Recovery**: Agent did not attempt alternative approaches
+**Failure Analysis**
 
-### Root Cause
+The agent encountered a permission denied error when attempting to write to /tmp/test.txt. The agent did not attempt recovery strategies.
 
-Permission denied error suggests the test environment was not properly configured with write access to /tmp directory.
+**Tool Usage Patterns**
+- write_file called with path: /tmp/test.txt
+- Parameters were correct but execution failed
+- No fallback tools attempted (could have tried run_bash with sudo or alternative path)
 
-### Recommendations
+**Error Chain**
+1. write_file returned permission denied
+2. Agent reported failure without retrying
+3. Both assertions failed: tool_called (no successful call) and output_contains (no output generated)
 
-1. **Environment Setup**: Verify file permissions before test execution
-2. **Error Handling**: Add fallback paths for common failure modes
-3. **Diagnostic Output**: Include more context in error messages`,
+**Root Cause**
+Test environment configuration issue - /tmp directory lacked write permissions for the test user.
+
+**Improvement Suggestions**
+- For test authors: Verify environment permissions before test runs
+- For agent: Consider adding retry logic with alternative approaches
+- For assertions: Add specific error type assertions for better diagnostics`,
 	}
 
 	// Hierarchical test reports - progressive complexity:
@@ -449,10 +714,10 @@ Permission denied error suggests the test environment was not properly configure
 		results  []model.TestRun
 		analysis *agent.AISummaryResult // nil means no analysis
 	}{
-		{"01_single_agent_single_test", 1, createSingleAgentOneTest(), nil},
-		{"02_single_agent_multi_test", 2, createSingleAgentTwoTests(), nil},
-		{"03_single_agent_multi_session", 3, createSingleAgentMultiSession(), nil},
-		{"04_single_agent_multi_file", 4, createSingleAgentMultiFile(), nil},
+		{"01_single_agent_single_test", 1, createSingleAgentOneTest(), analysis01},
+		{"02_single_agent_multi_test", 2, createSingleAgentTwoTests(), analysis02},
+		{"03_single_agent_multi_session", 3, createSingleAgentMultiSession(), analysis03},
+		{"04_single_agent_multi_file", 4, createSingleAgentMultiFile(), analysis04},
 		{"05_multi_agent_single_test", 5, createMultiAgentSingleTest(), analysis05},
 		{"06_multi_agent_multi_test", 6, createMultiAgent(), analysis06},
 		{"07_multi_agent_multi_session", 7, createMultiAgentMultiSession(), analysis07},
@@ -810,36 +1075,107 @@ func createFailedTest() []model.TestRun {
 	}
 }
 
-// createMultiAgentSingleTest creates a single test run by multiple agents
+// createMultiAgentSingleTest creates a Notepad automation test run by multiple agents
+// Based on real Windows MCP test patterns from notepad-ui-test.yaml
 func createMultiAgentSingleTest() []model.TestRun {
-	prompt := "Create a test file at /tmp/test.txt with the content 'Hello World'"
+	prompt := "1. Launch Notepad\n2. Type \"Hello World\"\n3. Close Notepad and click \"Don't Save\" if prompted\n4. Verify no Notepad window is open"
+
+	// GPT41 uses ui_type approach (semantic UI automation)
+	gpt41Tools := []model.ToolCall{
+		toolWindowsApp(500*time.Millisecond, 585, "notepad.exe", "656544"),
+		toolWindowsUIType(1500*time.Millisecond, 161, "656544", "Hello World"),
+		toolWindowsUIRead(2000*time.Millisecond, 34, "656544", "Hello World"),
+		toolWindowsClose(2500*time.Millisecond, 550, "656544", true),
+		toolWindowsList(3500*time.Millisecond, 6, "Notepad", 0),
+	}
+
+	// GPT52 uses keyboard_control approach (raw keyboard input)
+	gpt52Tools := []model.ToolCall{
+		toolWindowsApp(500*time.Millisecond, 453, "notepad.exe", "397030"),
+		toolWindowsKeyboardType(1500*time.Millisecond, 288, "397030", "Hello World"),
+		toolWindowsClose(2500*time.Millisecond, 511, "397030", true),
+		toolWindowsList(3200*time.Millisecond, 3, "Notepad", 0),
+	}
+
+	// Third agent fails - uses wrong tool (screenshot instead of close)
+	failedTools := []model.ToolCall{
+		toolWindowsApp(500*time.Millisecond, 600, "notepad.exe", "123456"),
+		toolWindowsUIType(1500*time.Millisecond, 180, "123456", "Hello World"),
+		toolWindowsScreenshot(2500*time.Millisecond, 250, "123456", true), // Wrong! Should close
+	}
+
 	return []model.TestRun{
-		buildTestRun("Create test file", agentClaude, true, TestRunOpts{
-			DurationMs:  3500,
-			Messages:    []model.Message{{Role: "user", Content: prompt}},
-			ToolCalls:   []model.ToolCall{toolWriteFile(500*time.Millisecond, 45)},
-			FinalOutput: "File created successfully!",
-			TokensUsed:  289,
-			Assertions:  []model.AssertionResult{assertToolCalled("write_file")},
-		}),
-		buildTestRun("Create test file", agentGemini, true, TestRunOpts{
-			DurationMs:  4200,
-			Messages:    []model.Message{{Role: "user", Content: prompt}},
-			ToolCalls:   []model.ToolCall{toolWriteFile(600*time.Millisecond, 52)},
-			FinalOutput: "Done! File created at /tmp/test.txt",
-			TokensUsed:  312,
-			Assertions:  []model.AssertionResult{assertToolCalled("write_file")},
-		}),
-		buildTestRun("Create test file", agentGPT, false, TestRunOpts{
-			DurationMs:  5100,
-			Messages:    []model.Message{{Role: "user", Content: prompt}},
-			ToolCalls:   []model.ToolCall{toolWriteFile(800*time.Millisecond, 68)},
-			FinalOutput: "I wrote 'hello world' to the file.",
-			TokensUsed:  345,
-			Errors:      []string{"Content mismatch: expected 'Hello World', got 'hello world'"},
+		buildTestRun("Complete Notepad automation (discard)", agentGPT41, true, TestRunOpts{
+			SourceFile:  "D:\\source\\mcp-windows\\tests\\Scenarios\\notepad-ui-test.yaml",
+			SessionName: "Notepad Workflow - Discard",
+			DurationMs:  12087,
+			Messages: []model.Message{
+				{Role: "user", Content: prompt},
+				{Role: "assistant", Content: "VERIFIED: No Notepad window open."},
+			},
+			ToolCalls:   gpt41Tools,
+			FinalOutput: "1. Notepad was launched.\n2. \"Hello World\" was typed into Notepad.\n3. Proof: Text confirmed as \"Hello World\".\n4. Notepad closed with \"Don't Save\".\n5. Verification: No Notepad window is open.\n\nVERIFIED: No Notepad window open.",
+			TokensUsed:  38595,
 			Assertions: []model.AssertionResult{
-				assertToolCalled("write_file"),
-				assertParamEquals(false, "Content case mismatch", map[string]interface{}{"expected": "Hello World", "actual": "hello world"}),
+				assertAnyOf(true, 1, 2, []model.AssertionResult{
+					assertToolCallOrder(false, []string{"app", "keyboard_control"}),
+					assertToolCallOrder(true, []string{"app", "ui_type"}),
+				}),
+				assertOutputRegex(true, "(?i)hello\\s*world"),
+				assertOutputRegex(true, "(?i)(no.*(notepad|window).*(open|found)|verified)"),
+				assertNoHallucinatedTools(),
+				assertNoErrors(),
+				assertNoClarificationQuestions(),
+				assertNoRateLimitErrors(),
+			},
+		}),
+		buildTestRun("Complete Notepad automation (discard)", agentGPT52, true, TestRunOpts{
+			SourceFile:  "D:\\source\\mcp-windows\\tests\\Scenarios\\notepad-ui-test.yaml",
+			SessionName: "Notepad Workflow - Discard",
+			DurationMs:  14707,
+			Messages: []model.Message{
+				{Role: "user", Content: prompt},
+				{Role: "assistant", Content: "✅ **VERIFIED: No Notepad window open**"},
+			},
+			ToolCalls:   gpt52Tools,
+			FinalOutput: "**Execution Report**\n\n1. **Notepad launched successfully.**\n2. **Typed text:** `Hello World`\n3. **Proof:** Window title changed to indicate text entry.\n4. **Notepad closed** with \"Don't Save\" selected.\n5. **Verification:** 0 Notepad windows found.\n\n✅ **VERIFIED: No Notepad window open**",
+			TokensUsed:  32390,
+			Assertions: []model.AssertionResult{
+				assertAnyOf(true, 1, 2, []model.AssertionResult{
+					assertToolCallOrder(true, []string{"app", "keyboard_control"}),
+					assertToolCallOrder(false, []string{"app", "ui_type"}),
+				}),
+				assertOutputRegex(true, "(?i)hello\\s*world"),
+				assertOutputRegex(true, "(?i)(no.*(notepad|window).*(open|found)|verified)"),
+				assertNoHallucinatedTools(),
+				assertNoErrors(),
+				assertNoClarificationQuestions(),
+				assertNoRateLimitErrors(),
+			},
+		}),
+		buildTestRun("Complete Notepad automation (discard)", agentGemini, false, TestRunOpts{
+			SourceFile:  "D:\\source\\mcp-windows\\tests\\Scenarios\\notepad-ui-test.yaml",
+			SessionName: "Notepad Workflow - Discard",
+			DurationMs:  8500,
+			Messages: []model.Message{
+				{Role: "user", Content: prompt},
+				{Role: "assistant", Content: "I've taken a screenshot of the Notepad window."},
+			},
+			ToolCalls:   failedTools,
+			FinalOutput: "Screenshot captured. Notepad window is still open.",
+			TokensUsed:  25000,
+			Errors:      []string{"Task incomplete: Notepad window was not closed"},
+			Assertions: []model.AssertionResult{
+				assertAnyOf(true, 1, 2, []model.AssertionResult{
+					assertToolCallOrder(false, []string{"app", "keyboard_control"}),
+					assertToolCallOrder(true, []string{"app", "ui_type"}),
+				}),
+				assertOutputRegex(true, "(?i)screenshot"),
+				assertOutputRegex(false, "(?i)(no.*(notepad|window).*(open|found)|verified)"),
+				assertNoHallucinatedTools(),
+				assertNoErrorsFailed("Task incomplete: Notepad window was not closed"),
+				assertNoClarificationQuestions(),
+				assertNoRateLimitErrors(),
 			},
 		}),
 	}
