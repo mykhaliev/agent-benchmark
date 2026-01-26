@@ -1406,6 +1406,29 @@ body {
     color: var(--color-text);
 }
 
+/* Failure reasons in comparison table */
+.failure-reasons {
+    text-align: left !important;
+    font-family: inherit;
+}
+
+.failure-reason {
+    font-size: 12px;
+    color: var(--color-fail);
+    margin-bottom: 4px;
+    line-height: 1.4;
+}
+
+.failure-reason:last-child {
+    margin-bottom: 0;
+}
+
+.failure-details-row td {
+    vertical-align: top;
+    padding-top: 8px;
+    padding-bottom: 8px;
+}
+
 /* Details toggle button in comparison table */
 .details-toggle-btn {
     background: transparent;
@@ -2209,7 +2232,7 @@ body {
             <h1>🧪 Agent Benchmark Report</h1>
             <div class="report-meta">
                 <span>📦 Version: 0.0.0-SNAPSHOT</span>
-                <span>📅 Generated: 2026-01-26T12:55:12&#43;01:00</span>
+                <span>📅 Generated: 2026-01-26T13:04:40&#43;01:00</span>
                 
                 
             </div>
@@ -2710,6 +2733,105 @@ phoenix-agent consistently chose network APIs for local file operations. This su
                 <td class="metric-value">5</td>
                 
             </tr>
+            <tr class="metric-row assertions-row">
+                <td class="metric-label">✓✗ Assertions</td>
+                
+                <td class="metric-value">
+                    
+                    
+                    <span class="result-pass">✓2</span>
+                    
+                    
+                </td>
+                
+                <td class="metric-value">
+                    
+                    
+                    <span class="result-pass">✓2</span>
+                    
+                    
+                </td>
+                
+                <td class="metric-value">
+                    
+                    
+                    <span class="result-pass">✓1</span>
+                    <span class="result-fail">✗1</span>
+                    
+                </td>
+                
+                <td class="metric-value">
+                    
+                    
+                    
+                    <span class="result-fail">✗3</span>
+                    
+                </td>
+                
+            </tr>
+            
+            
+            
+            
+            <tr class="metric-row failure-details-row">
+                <td class="metric-label">❌ Why Failed</td>
+                
+                <td class="metric-value failure-reasons">
+                    
+                    
+                    
+                    
+                    
+                    
+                    <span class="text-muted">—</span>
+                </td>
+                
+                <td class="metric-value failure-reasons">
+                    
+                    
+                    
+                    
+                    
+                    
+                    <span class="text-muted">—</span>
+                </td>
+                
+                <td class="metric-value failure-reasons">
+                    
+                    
+                    
+                    
+                    
+                    
+                    <div class="failure-reason">• Parameter mismatch</div>
+                    
+                    
+                    
+                </td>
+                
+                <td class="metric-value failure-reasons">
+                    
+                    
+                    
+                    
+                    <div class="failure-reason">• Expected &#39;write_file&#39; but got &#39;API calls&#39;</div>
+                    
+                    
+                    
+                    
+                    <div class="failure-reason">• Path mismatch</div>
+                    
+                    
+                    
+                    
+                    <div class="failure-reason">• Multiple errors encountered</div>
+                    
+                    
+                    
+                </td>
+                
+            </tr>
+            
             <tr class="metric-row details-row">
                 <td class="metric-label">📋 Details</td>
                 
@@ -4320,6 +4442,96 @@ Failed to create file. I don&#39;t have the right tools.</div>
                 <td class="metric-value">5</td>
                 
             </tr>
+            <tr class="metric-row assertions-row">
+                <td class="metric-label">✓✗ Assertions</td>
+                
+                <td class="metric-value">
+                    
+                    
+                    <span class="result-pass">✓1</span>
+                    
+                    
+                </td>
+                
+                <td class="metric-value">
+                    
+                    
+                    <span class="result-pass">✓1</span>
+                    
+                    
+                </td>
+                
+                <td class="metric-value">
+                    
+                    
+                    <span class="result-pass">✓1</span>
+                    
+                    
+                </td>
+                
+                <td class="metric-value">
+                    
+                    
+                    
+                    <span class="result-fail">✗3</span>
+                    
+                </td>
+                
+            </tr>
+            
+            
+            
+            
+            <tr class="metric-row failure-details-row">
+                <td class="metric-label">❌ Why Failed</td>
+                
+                <td class="metric-value failure-reasons">
+                    
+                    
+                    
+                    
+                    <span class="text-muted">—</span>
+                </td>
+                
+                <td class="metric-value failure-reasons">
+                    
+                    
+                    
+                    
+                    <span class="text-muted">—</span>
+                </td>
+                
+                <td class="metric-value failure-reasons">
+                    
+                    
+                    
+                    
+                    <span class="text-muted">—</span>
+                </td>
+                
+                <td class="metric-value failure-reasons">
+                    
+                    
+                    
+                    
+                    <div class="failure-reason">• Expected &#39;read_file&#39; but got &#39;API/database calls&#39;</div>
+                    
+                    
+                    
+                    
+                    <div class="failure-reason">• Output should contain &#39;port number&#39;</div>
+                    
+                    
+                    
+                    
+                    <div class="failure-reason">• Multiple connection errors encountered</div>
+                    
+                    
+                    
+                </td>
+                
+            </tr>
+            
             <tr class="metric-row details-row">
                 <td class="metric-label">📋 Details</td>
                 
