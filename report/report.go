@@ -466,6 +466,29 @@ func NewGenerator() (*Generator, error) {
 			}
 			return a / b
 		},
+		"formatDurationRange": func(min, max float64) string {
+			// Show single value if min equals max, otherwise show range
+			if min == max {
+				return fmt.Sprintf("%.1fs", min)
+			}
+			return fmt.Sprintf("%.1fs–%.1fs", min, max)
+		},
+		"formatDurationRangeMs": func(minMs, maxMs float64) string {
+			// Show single value if min equals max, otherwise show range (converts ms to s)
+			min := minMs / 1000
+			max := maxMs / 1000
+			if min == max {
+				return fmt.Sprintf("%.1fs", min)
+			}
+			return fmt.Sprintf("%.1fs–%.1fs", min, max)
+		},
+		"formatTokenRange": func(min, max int) string {
+			// Show single value if min equals max, otherwise show range
+			if min == max {
+				return formatNumber(min)
+			}
+			return fmt.Sprintf("%s–%s", formatNumber(min), formatNumber(max))
+		},
 	}
 
 	tmpl, err := template.New("report.html").Funcs(funcMap).ParseFS(templateFS, "templates/report.html")

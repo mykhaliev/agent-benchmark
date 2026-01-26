@@ -142,7 +142,7 @@
     {{end}}
     {{if gt .Summary.Total 1}}
     <div class="summary-card tokens token-range">
-        <div class="summary-value">{{formatNumber .Summary.MinTokens}}–{{formatNumber .Summary.MaxTokens}}</div>
+        <div class="summary-value">{{formatTokenRange .Summary.MinTokens .Summary.MaxTokens}}</div>
         <div class="summary-label">Token Range</div>
         <div class="token-bar">
             <span class="token-min">min</span>
@@ -159,7 +159,7 @@
     {{end}}
     {{if gt .Summary.Total 1}}
     <div class="summary-card duration duration-range">
-        <div class="summary-value">{{printf "%.1fs" .Summary.MinDuration}}–{{printf "%.1fs" .Summary.MaxDuration}}</div>
+        <div class="summary-value">{{formatDurationRange .Summary.MinDuration .Summary.MaxDuration}}</div>
         <div class="summary-label">Duration Range</div>
         <div class="duration-bar">
             <span class="duration-min">min</span>
@@ -259,7 +259,7 @@
                     <tr class="matrix-file-header">
                         <td colspan="{{add (len $.Matrix.AgentNames) 1}}">
                             <span class="matrix-group-icon">📁</span> {{$fileGroup.FileName}}
-                            <span class="group-stats">— {{$fileGroup.PassedTests}}/{{$fileGroup.TotalTests}} passed · {{printf "%.1f" (divFloat $fileGroup.MinDuration 1000)}}s–{{printf "%.1f" (divFloat $fileGroup.MaxDuration 1000)}}s · {{formatNumber $fileGroup.MinTokens}}–{{formatNumber $fileGroup.MaxTokens}} tok</span>
+                            <span class="group-stats">— {{$fileGroup.PassedTests}}/{{$fileGroup.TotalTests}} passed · {{formatDurationRangeMs $fileGroup.MinDuration $fileGroup.MaxDuration}} · {{formatTokenRange $fileGroup.MinTokens $fileGroup.MaxTokens}} tok</span>
                         </td>
                     </tr>
                     {{end}}
@@ -268,7 +268,7 @@
                     <tr class="matrix-session-header">
                         <td colspan="{{add (len $.Matrix.AgentNames) 1}}">
                             <span class="matrix-group-icon">🔄</span> {{$sessionGroup.SessionName}}
-                            <span class="group-stats">— {{$sessionGroup.PassedTests}}/{{$sessionGroup.TotalTests}} passed · {{printf "%.1f" (divFloat $sessionGroup.MinDuration 1000)}}s–{{printf "%.1f" (divFloat $sessionGroup.MaxDuration 1000)}}s · {{formatNumber $sessionGroup.MinTokens}}–{{formatNumber $sessionGroup.MaxTokens}} tok</span>
+                            <span class="group-stats">— {{$sessionGroup.PassedTests}}/{{$sessionGroup.TotalTests}} passed · {{formatDurationRangeMs $sessionGroup.MinDuration $sessionGroup.MaxDuration}} · {{formatTokenRange $sessionGroup.MinTokens $sessionGroup.MaxTokens}} tok</span>
                         </td>
                     </tr>
                     {{end}}
@@ -459,8 +459,8 @@
                         <span class="{{if eq $sessData.SuccessRate 100.0}}text-pass{{else if lt $sessData.SuccessRate 50.0}}text-fail{{else}}text-muted{{end}}">
                             {{$sessData.PassedTests}}/{{add $sessData.PassedTests $sessData.FailedTests}} ({{printf "%.0f%%" $sessData.SuccessRate}})
                         </span>
-                        <span class="summary-metric">⏱ {{printf "%.1fs" $sessData.MinDuration}}–{{printf "%.1fs" $sessData.MaxDuration}}</span>
-                        <span class="summary-metric">🔢 {{formatNumber $sessData.MinTokens}}–{{formatNumber $sessData.MaxTokens}}<span class="tok-suffix">tok</span></span>
+                        <span class="summary-metric">⏱ {{formatDurationRange $sessData.MinDuration $sessData.MaxDuration}}</span>
+                        <span class="summary-metric">🔢 {{formatTokenRange $sessData.MinTokens $sessData.MaxTokens}}<span class="tok-suffix">tok</span></span>
                         {{if gt $sessData.AgentCount 1}}<span class="summary-metric">🤖 {{$sessData.AgentCount}} agents</span>{{end}}
                         {{else}}
                         <span class="success-bar"><span class="success-bar-fill {{$session.SuccessRateClass}}" style="width: {{printf "%.0f" $session.SuccessRate}}%"></span></span>
@@ -500,13 +500,13 @@
                             <tr class="metric-row">
                                 <td class="metric-label">⏱️ Duration</td>
                                 {{range $sessData.AgentStats}}
-                                <td class="metric-value">{{printf "%.1fs" .MinDuration}}–{{printf "%.1fs" .MaxDuration}}</td>
+                                <td class="metric-value">{{formatDurationRange .MinDuration .MaxDuration}}</td>
                                 {{end}}
                             </tr>
                             <tr class="metric-row">
                                 <td class="metric-label">🎯 Tokens</td>
                                 {{range $sessData.AgentStats}}
-                                <td class="metric-value">{{formatNumber .MinTokens}}–{{formatNumber .MaxTokens}}</td>
+                                <td class="metric-value">{{formatTokenRange .MinTokens .MaxTokens}}</td>
                                 {{end}}
                             </tr>
                         </tbody>
