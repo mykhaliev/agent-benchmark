@@ -3,6 +3,7 @@ package report
 
 import (
 	"bytes"
+	"context"
 	"embed"
 	"encoding/json"
 	"fmt"
@@ -16,6 +17,7 @@ import (
 	"github.com/mykhaliev/agent-benchmark/logger"
 	"github.com/mykhaliev/agent-benchmark/model"
 	"github.com/mykhaliev/agent-benchmark/version"
+	"github.com/tmc/langchaingo/llms"
 )
 
 //go:embed templates/*.html templates/*.css
@@ -489,6 +491,60 @@ func LoadResultsFromJSON(jsonPath string) ([]model.TestRun, error) {
 	return reportData.DetailedResults, nil
 }
 
+// JSONReportData holds the full JSON report including AI summary
+type JSONReportData struct {
+	Results   []model.TestRun
+	AISummary *agent.AISummaryResult
+	TestFile  string // Path to the original test configuration file
+}
+
+// LoadFullReportFromJSON loads test results and existing AI summary from a JSON file
+func LoadFullReportFromJSON(jsonPath string) (*JSONReportData, error) {
+	data, err := os.ReadFile(jsonPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read JSON file: %w", err)
+	}
+
+	// Parse the full report structure including ai_summary
+	var reportData struct {
+		DetailedResults []model.TestRun `json:"detailed_results"`
+		TestFile        string          `json:"test_file,omitempty"`
+		AISummary       *struct {
+			Success   bool   `json:"success"`
+			Analysis  string `json:"analysis,omitempty"`
+			Error     string `json:"error,omitempty"`
+			Retryable bool   `json:"retryable,omitempty"`
+			Guidance  string `json:"guidance,omitempty"`
+		} `json:"ai_summary,omitempty"`
+	}
+
+	if err := json.Unmarshal(data, &reportData); err != nil {
+		return nil, fmt.Errorf("failed to parse JSON: %w", err)
+	}
+
+	if len(reportData.DetailedResults) == 0 {
+		return nil, fmt.Errorf("no test results found in JSON file")
+	}
+
+	result := &JSONReportData{
+		Results:  reportData.DetailedResults,
+		TestFile: reportData.TestFile,
+	}
+
+	// Convert existing AI summary if present
+	if reportData.AISummary != nil {
+		result.AISummary = &agent.AISummaryResult{
+			Success:   reportData.AISummary.Success,
+			Analysis:  reportData.AISummary.Analysis,
+			Error:     reportData.AISummary.Error,
+			Retryable: reportData.AISummary.Retryable,
+			Guidance:  reportData.AISummary.Guidance,
+		}
+	}
+
+	return result, nil
+}
+
 // GenerateReportFromJSON generates an HTML report from an existing JSON file
 func GenerateReportFromJSON(jsonPath, outputPath string) error {
 	results, err := LoadResultsFromJSON(jsonPath)
@@ -506,6 +562,52 @@ func GenerateReportFromJSON(jsonPath, outputPath string) error {
 	}
 
 	logger.Logger.Info("Report generated from JSON", "input", jsonPath, "output", outputPath)
+	return nil
+}
+
+// GenerateReportFromJSONWithSummary generates an HTML report with AI summary generation
+// If judgeLLM is nil, uses existing AI summary from JSON (if any)
+// If judgeLLM is provided, regenerates the AI summary using the LLM
+func GenerateReportFromJSONWithSummary(ctx context.Context, jsonPath, outputPath string, judgeLLM llms.Model) error {
+	reportData, err := LoadFullReportFromJSON(jsonPath)
+	if err != nil {
+		return err
+	}
+
+	gen, err := NewGenerator()
+	if err != nil {
+		return err
+	}
+
+	var aiSummary *agent.AISummaryResult
+
+	// If judgeLLM is provided, regenerate AI summary
+	if judgeLLM != nil {
+		logger.Logger.Info("Regenerating AI summary")
+		result := agent.GenerateAISummary(ctx, judgeLLM, reportData.Results)
+		aiSummary = &result
+		if result.Success {
+			logger.Logger.Info("AI summary regenerated successfully")
+		} else {
+			logger.Logger.Warn("AI summary regeneration failed", "error", result.Error)
+		}
+	} else if reportData.AISummary != nil {
+		// Use existing AI summary from JSON
+		aiSummary = reportData.AISummary
+		logger.Logger.Info("Using existing AI summary from JSON")
+	}
+
+	// Generate HTML with AI summary
+	html, err := gen.GenerateHTMLWithAnalysis(reportData.Results, aiSummary)
+	if err != nil {
+		return err
+	}
+
+	if err := os.WriteFile(outputPath, []byte(html), 0644); err != nil {
+		return fmt.Errorf("failed to write report file: %w", err)
+	}
+
+	logger.Logger.Info("Report generated from JSON with AI summary", "input", jsonPath, "output", outputPath)
 	return nil
 }
 

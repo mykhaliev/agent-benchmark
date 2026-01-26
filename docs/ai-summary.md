@@ -18,6 +18,52 @@ ai_summary:
   judge_provider: "gpt-4o"  # Use a specific provider
 ```
 
+## Architecture: Late-Binding
+
+AI summaries are generated **at report time**, not during test execution. This design has several benefits:
+
+1. **Iterate on prompts**: You can regenerate HTML reports with updated AI summary prompts without re-running expensive tests
+2. **Pure test data**: JSON output contains only test results, making it reproducible and cacheable
+3. **Flexible models**: Use different models for summary generation on existing results
+
+### How It Works
+
+1. Test execution writes `report.json` with a `test_file` field pointing to the original YAML
+2. When generating HTML/MD reports, the tool reads `test_file` from JSON
+3. AI summary configuration is loaded from the original YAML file
+4. Fresh AI summary is generated and embedded in HTML/MD output
+
+### JSON Structure
+
+```json
+{
+  "test_file": "path/to/test.yaml",
+  "detailed_results": [...],
+  "summary": {...}
+}
+```
+
+**Note:** The JSON output never contains `ai_summary`. It is always generated fresh during HTML/MD report generation.
+
+## Regenerating Reports
+
+You can regenerate HTML reports from existing JSON results:
+
+```bash
+# Regenerate HTML with fresh AI summary
+agent-benchmark -generate-report results.json -o report.html
+```
+
+The tool automatically:
+1. Reads `test_file` from the JSON
+2. Loads AI summary configuration from that YAML file
+3. Generates a fresh summary using the configured provider
+
+This is useful when:
+- You want to try different AI summary prompts
+- The original AI summary failed due to rate limits
+- You want to use a different model for analysis
+
 ## Judge Provider Options
 
 The `judge_provider` field specifies which LLM generates the analysis:

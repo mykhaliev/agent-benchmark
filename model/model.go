@@ -1262,6 +1262,27 @@ func ParseTestSuiteConfigFromString(definition string) (*TestSuiteConfiguration,
 	return &config, nil
 }
 
+// ProviderOnlyConfig is a minimal config file containing just provider definitions
+// Used for regenerating AI summaries without needing a full test configuration
+type ProviderOnlyConfig struct {
+	Providers []Provider `yaml:"providers"`
+}
+
+// ParseProviderConfig parses a YAML file containing only provider definitions
+func ParseProviderConfig(filename string) (*ProviderOnlyConfig, error) {
+	data, err := os.ReadFile(filename)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read file: %w", err)
+	}
+
+	var config ProviderOnlyConfig
+	if err := yaml.Unmarshal(data, &config); err != nil {
+		return nil, fmt.Errorf("failed to parse YAML config: %w", err)
+	}
+
+	return &config, nil
+}
+
 // ============================================================================
 // REPORT GENERATOR
 // ============================================================================
@@ -1298,7 +1319,9 @@ type AgentStats struct {
 	TotalDuration float64
 	AvgDuration   float64
 }
-type ReportGenerator struct{}
+type ReportGenerator struct {
+	TestFile string // Path to the original test configuration file
+}
 
 func NewReportGenerator() *ReportGenerator {
 	return &ReportGenerator{}
@@ -1627,6 +1650,7 @@ func (rg *ReportGenerator) GenerateJSONReportWithAnalysis(results []TestRun, aiS
 	reportData := map[string]interface{}{
 		"agent_benchmark_version": version.Version,
 		"generated_at":            time.Now().Format(time.RFC3339),
+		"test_file":               rg.TestFile,
 		"summary": map[string]interface{}{
 			"total":  len(results),
 			"passed": countPassed(results),
@@ -1636,20 +1660,9 @@ func (rg *ReportGenerator) GenerateJSONReportWithAnalysis(results []TestRun, aiS
 		"detailed_results":   results,
 	}
 
-	// Add ai_summary if available
-	if aiSummary != nil && aiSummary.Success && aiSummary.Analysis != "" {
-		reportData["ai_summary"] = map[string]interface{}{
-			"success":  aiSummary.Success,
-			"analysis": aiSummary.Analysis,
-		}
-	} else if aiSummary != nil && !aiSummary.Success {
-		reportData["ai_summary"] = map[string]interface{}{
-			"success":   aiSummary.Success,
-			"error":     aiSummary.Error,
-			"retryable": aiSummary.Retryable,
-			"guidance":  aiSummary.Guidance,
-		}
-	}
+	// NOTE: ai_summary is NOT included in JSON output
+	// AI summary is generated fresh during HTML/MD report generation (late-binding)
+	// This keeps JSON as pure test data for reproducibility
 
 	report, err := json.MarshalIndent(reportData, "", "  ")
 	if err != nil {

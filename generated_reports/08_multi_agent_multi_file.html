@@ -1972,7 +1972,7 @@ body {
             <h1>🧪 Agent Benchmark Report</h1>
             <div class="report-meta">
                 <span>📦 Version: 0.0.0-SNAPSHOT</span>
-                <span>📅 Generated: 2026-01-19T18:27:17&#43;01:00</span>
+                <span>📅 Generated: 2026-01-26T09:45:33&#43;01:00</span>
                 
                 
                 <span>📄 Files: 4</span>
@@ -2032,31 +2032,36 @@ body {
                 <h2 class="section-title">🤖 AI Summary</h2>
             </div>
             <div class="section-body">
-                <div class="analysis-content markdown-content">### Overall Results
-- **Pass Rate:** 85% (17 of 20 tests passed)
-- **Total Tests:** 20 across 4 agents, multiple files and sessions
-- **Duration:** ~2 minutes total
+                <div class="analysis-content markdown-content">**Overall Verdict: claude-agent is the clear winner for complex multi-file suites**
 
-### Agent Performance Comparison
+Full complexity test: 20 tests across 4 agents, multiple files and sessions.
 
-| Agent | Pass Rate | Avg Latency | Notes |
-|-------|-----------|-------------|-------|
-| claude-agent | 100% | 4.2s | Perfect score, efficient tools |
-| gemini-agent | 90% | 4.8s | One timeout on large file |
-| gpt-agent | 80% | 5.5s | Struggled with complex prompts |
-| phoenix-agent | 70% | 6.2s | Inconsistent tool selection |
+**Agent Comparison**
 
-### Key Findings
+claude-agent (100%): Perfect score across all test files. Efficient tool chains with an average of 2.1 tools per test. Handled errors gracefully with proper recovery.
 
-1. **File Complexity**: Larger test files revealed performance differences
-2. **Tool Chain Length**: Agents using fewer tool calls were faster
-3. **Error Recovery**: Only claude-agent handled errors gracefully
+gemini-agent (90%): One timeout on large file processing in advanced.yaml. Good overall but struggled with 50KB+ file operations.
 
-### Recommendations
+gpt-agent (80%): Struggled with complex multi-step prompts. Used more tool calls than necessary (avg 3.8 per test).
 
-1. **Optimize Tool Chains**: Combine operations where possible
-2. **Add Timeout Handling**: Implement retry logic for large operations
-3. **Improve Error Messages**: More specific failure reasons needed</div>
+phoenix-agent (70%): Inconsistent tool selection. Sometimes chose http_get when write_file was appropriate.
+
+**Tool Usage Patterns**
+- claude-agent: Minimal tool chains, direct approaches
+- gemini-agent: bash-heavy approach, efficient but timeout-prone
+- gpt-agent: Python wrappers added overhead
+- phoenix-agent: Tool family confusion (network vs filesystem)
+
+**Performance Insights**
+- File size correlation: Larger files (50KB+) caused issues for gemini
+- Tool chain length: claude's shorter chains = faster completion
+- Error recovery: Only claude attempted alternative tools on failure
+
+**When to Choose Each**
+- claude-agent: Complex workflows, error-prone environments
+- gemini-agent: Simple file ops, small files only
+- gpt-agent: Python-native environments
+- phoenix-agent: Not recommended without retraining</div>
             </div>
         </section>
         

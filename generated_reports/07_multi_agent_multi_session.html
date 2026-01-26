@@ -1972,7 +1972,7 @@ body {
             <h1>🧪 Agent Benchmark Report</h1>
             <div class="report-meta">
                 <span>📦 Version: 0.0.0-SNAPSHOT</span>
-                <span>📅 Generated: 2026-01-19T18:27:17&#43;01:00</span>
+                <span>📅 Generated: 2026-01-26T09:45:33&#43;01:00</span>
                 
                 
             </div>
@@ -2030,29 +2030,32 @@ body {
                 <h2 class="section-title">🤖 AI Summary</h2>
             </div>
             <div class="section-body">
-                <div class="analysis-content markdown-content">### Overall Results
-- **Pass Rate:** 89% (8 of 9 tests passed)
-- **Total Tests:** 9 across 3 agents in multiple sessions
-- **Duration:** ~45 seconds total
+                <div class="analysis-content markdown-content">**Overall Verdict: claude-agent or gemini-agent recommended**
 
-### Agent Performance Comparison
+Multi-session testing across 3 agents (9 tests total) tested session isolation and state management.
 
-| Agent | Pass Rate | Avg Latency | Notes |
-|-------|-----------|-------------|-------|
-| claude-agent | 100% | 4.0s | Perfect across all sessions |
-| gemini-agent | 100% | 4.5s | Consistent performance |
-| gpt-agent | 67% | 5.0s | One failure in config reading |
+**Agent Comparison**
 
-### Key Findings
+claude-agent (100%): Perfect performance across all sessions. Properly isolated state between session boundaries. Average latency 4.0s.
 
-1. **Session Isolation Works**: Each session maintained proper state
-2. **Config Reading Challenge**: gpt-agent struggled with YAML parsing
-3. **Consistent Winners**: claude and gemini agents reliable across sessions
+gemini-agent (100%): Consistent results with good session handling. Slightly slower at 4.5s average.
 
-### Recommendations
+gpt-agent (67%): One failure in config reading session. Struggled with YAML parsing in session 2.
 
-1. **Config Test Clarity**: Add more explicit format expectations
-2. **Session Naming**: Use descriptive session names for debugging</div>
+**Tool Usage Patterns**
+- Session 1 (file ops): All agents used write_file correctly
+- Session 2 (config): gpt-agent misinterpreted YAML structure
+- Session 3 (validation): claude and gemini used read_file with proper content matching
+
+**Session State Analysis**
+- All agents properly isolated context between sessions
+- No state bleeding detected
+- gpt-agent's failure was tool usage, not state management
+
+**When to Choose Each**
+- claude-agent: First choice for multi-session workflows
+- gemini-agent: Reliable alternative with similar capabilities
+- gpt-agent: Avoid for configuration/YAML parsing tasks</div>
             </div>
         </section>
         

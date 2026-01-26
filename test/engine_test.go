@@ -1939,9 +1939,10 @@ func TestInitServers_DuplicateNames_WithEnvVars(t *testing.T) {
 // ============================================================================
 
 func TestGenerateReports(t *testing.T) {
+	logger.SetupLogger(NewDummyWriter(), true)
 	t.Run("Empty results", func(t *testing.T) {
 		tmpfile := filepath.Join(t.TempDir(), "report.html")
-		err := engine.GenerateReports([]model.TestRun{}, "html", tmpfile, nil)
+		err := engine.GenerateReports([]model.TestRun{}, "html", tmpfile, nil, "")
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "no test results")
 	})
@@ -1964,7 +1965,7 @@ func TestGenerateReports(t *testing.T) {
 		}
 
 		tmpfile := filepath.Join(t.TempDir(), "report.html")
-		err := engine.GenerateReports(results, "html", tmpfile, nil)
+		err := engine.GenerateReports(results, "html", tmpfile, nil, "")
 		assert.NoError(t, err)
 
 		// Verify file was created
@@ -1985,7 +1986,7 @@ func TestGenerateReports(t *testing.T) {
 		}
 
 		tmpfile := filepath.Join(t.TempDir(), "report.json")
-		err := engine.GenerateReports(results, "json", tmpfile, nil)
+		err := engine.GenerateReports(results, "json", tmpfile, nil, "")
 		assert.NoError(t, err)
 
 		info, err := os.Stat(tmpfile)
@@ -2005,7 +2006,7 @@ func TestGenerateReports(t *testing.T) {
 		}
 
 		tmpfile := filepath.Join(t.TempDir(), "report.md")
-		err := engine.GenerateReports(results, "md", tmpfile, nil)
+		err := engine.GenerateReports(results, "md", tmpfile, nil, "")
 		assert.NoError(t, err)
 
 		info, err := os.Stat(tmpfile)
@@ -2019,7 +2020,7 @@ func TestGenerateReports(t *testing.T) {
 		}
 
 		tmpfile := filepath.Join(t.TempDir(), "report.xml")
-		err := engine.GenerateReports(results, "xml", tmpfile, nil)
+		err := engine.GenerateReports(results, "xml", tmpfile, nil, "")
 		assert.Error(t, err)
 	})
 
@@ -2031,7 +2032,7 @@ func TestGenerateReports(t *testing.T) {
 		tmpdir := t.TempDir()
 		outputPath := filepath.Join(tmpdir, "subdir", "report.html")
 
-		err := engine.GenerateReports(results, "html", outputPath, nil)
+		err := engine.GenerateReports(results, "html", outputPath, nil, "")
 		assert.NoError(t, err)
 
 		// Verify directory was created

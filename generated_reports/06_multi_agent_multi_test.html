@@ -1972,7 +1972,7 @@ body {
             <h1>🧪 Agent Benchmark Report</h1>
             <div class="report-meta">
                 <span>📦 Version: 0.0.0-SNAPSHOT</span>
-                <span>📅 Generated: 2026-01-19T18:27:17&#43;01:00</span>
+                <span>📅 Generated: 2026-01-26T09:45:33&#43;01:00</span>
                 
                 
             </div>
@@ -2030,30 +2030,34 @@ body {
                 <h2 class="section-title">🤖 AI Summary</h2>
             </div>
             <div class="section-body">
-                <div class="analysis-content markdown-content">### Overall Results
-- **Pass Rate:** 75% (3 of 4 agents passed)
-- **Total Tests:** 8 across 4 agents
-- **Duration:** ~15 seconds total
+                <div class="analysis-content markdown-content">**Overall Verdict: gemini-agent recommended for speed; claude-agent for reliability**
 
-### Agent Performance Comparison
+Testing across 4 agents with 8 total tests showed diverse tool selection strategies.
 
-| Agent | Pass Rate | Avg Latency | Notes |
-|-------|-----------|-------------|-------|
-| claude-agent | 100% | 8.0s | Best overall - used filesystem tools |
-| gemini-agent | 100% | 6.0s | Fastest - used bash commands |
-| gpt-agent | 100% | 6.0s | Good - used Python execution |
-| phoenix-agent | 0% | 12.0s | **DISQUALIFIED** - Used wrong tools |
+**Agent Comparison**
 
-### Key Findings
+claude-agent (100%): Used native filesystem tools (write_file, read_file). Slower but reliable approach with consistent results.
 
-1. **Tool Selection Matters**: phoenix-agent used HTTP/GraphQL APIs instead of filesystem tools
-2. **Latency Patterns**: Agents using bash were faster than Python wrappers
-3. **Approach Diversity**: Each passing agent used different tools (filesystem, bash, python)
+gemini-agent (100%): Leveraged bash commands for file operations. Fastest execution at 6.0s total.
 
-### Recommendations
+gpt-agent (100%): Used Python execution for file handling. Middle ground in performance.
 
-1. **For Tool Authors**: Clearly specify when to use each tool type
-2. **For phoenix-agent**: Needs retraining - consistently chose API calls over direct access</div>
+phoenix-agent (0%): FAILED - Used HTTP/GraphQL APIs instead of filesystem tools. Fundamentally wrong approach.
+
+**Tool Usage Patterns**
+- claude-agent: write_file, read_file (native tools)
+- gemini-agent: run_bash with cat/echo commands
+- gpt-agent: execute_python with open()/write()
+- phoenix-agent: http_get, graphql_query (wrong tool family)
+
+**Critical Finding**
+phoenix-agent consistently chose network APIs for local file operations. This suggests poor tool selection logic for filesystem tasks.
+
+**When to Choose Each**
+- gemini-agent: When speed matters and bash is available
+- claude-agent: When explicit tool tracing is needed
+- gpt-agent: When Python environment is preferred
+- phoenix-agent: Not recommended for filesystem tasks</div>
             </div>
         </section>
         
