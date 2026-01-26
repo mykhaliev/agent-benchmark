@@ -98,6 +98,7 @@ body {
 .summary-card.passed { border-top: 4px solid var(--color-pass); }
 .summary-card.failed { border-top: 4px solid var(--color-fail); }
 .summary-card.agents { border-top: 4px solid var(--color-primary); }
+.summary-card.sessions { border-top: 4px solid #17a2b8; }
 .summary-card.agent-info { border-top: 4px solid var(--color-primary); }
 .summary-card.rate { border-top: 4px solid #9b59b6; }
 .summary-card.tokens { border-top: 4px solid var(--color-warning); }
@@ -113,6 +114,7 @@ body {
 .summary-card.passed .summary-value { color: var(--color-pass); }
 .summary-card.failed .summary-value { color: var(--color-fail); }
 .summary-card.agents .summary-value { color: var(--color-primary); }
+.summary-card.sessions .summary-value { color: #17a2b8; }
 .summary-card.agent-info .summary-value { 
     color: var(--color-primary);
     font-size: 18px;
@@ -121,6 +123,52 @@ body {
 .summary-card.rate .summary-value { color: #9b59b6; }
 .summary-card.tokens .summary-value { color: var(--color-warning); }
 .summary-card.duration .summary-value { color: #3498db; }
+
+/* Token Range Bar */
+.summary-card.token-range {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.summary-card.token-range .summary-value {
+    font-size: 18px;
+}
+.token-bar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 6px;
+    font-size: 10px;
+    color: var(--color-text-light);
+}
+.token-bar-fill {
+    width: 40px;
+    height: 6px;
+    background: linear-gradient(to right, var(--color-success), var(--color-warning), var(--color-danger));
+    border-radius: 3px;
+}
+.token-min, .token-max {
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.duration-bar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 6px;
+    font-size: 10px;
+    color: var(--color-text-light);
+}
+.duration-bar-fill {
+    width: 40px;
+    height: 6px;
+    background: linear-gradient(to right, #17a2b8, #6c757d, #343a40);
+    border-radius: 3px;
+}
+.duration-min, .duration-max {
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
 
 .summary-label {
     font-size: 13px;
@@ -259,13 +307,14 @@ body {
 }
 
 .matrix-session-header td {
-    background: #f8f9fa;
-    font-weight: 500;
+    background: linear-gradient(135deg, #e8f4fd 0%, #f0f7ff 100%);
+    font-weight: 600;
     text-align: left !important;
-    padding: 10px 16px 10px 32px;
-    border-bottom: 1px solid var(--color-border);
-    color: var(--color-text-light);
-    font-size: 13px;
+    padding: 12px 16px 12px 32px;
+    border-bottom: 2px solid #b8d4f0;
+    border-left: 4px solid var(--color-primary);
+    color: var(--color-primary);
+    font-size: 14px;
 }
 
 .matrix-test-indented td:first-child {
@@ -510,11 +559,83 @@ body {
     margin: 0;
 }
 
+/* Session Container - wraps header + all tests */
+.session-container {
+    margin: 24px 0;
+    border-left: 4px solid var(--color-primary);
+    border-radius: 0 var(--radius-md) var(--radius-md) 0;
+    background: linear-gradient(to right, rgba(0, 102, 204, 0.03) 0%, transparent 100%);
+}
+
+.session-container .test-session-header.session-group-header {
+    margin: 0;
+    border-left: none;
+    border-radius: 0 var(--radius-md) 0 0;
+}
+
+.session-tests-container {
+    padding: 16px 16px 8px 20px;
+    border-top: 1px solid rgba(0, 102, 204, 0.1);
+    background: rgba(255, 255, 255, 0.5);
+}
+
+.session-tests-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px dashed var(--color-border);
+}
+
+.session-tests-container .test-group-section {
+    margin-bottom: 16px;
+    padding-left: 12px;
+    border-left: 2px solid var(--color-border);
+}
+
+.session-tests-container .test-group-section:last-child {
+    margin-bottom: 8px;
+}
+
 .test-session-header {
     margin-top: 16px;
     margin-bottom: 12px;
     padding-left: 8px;
     border-left: 3px solid var(--color-border);
+}
+
+.test-session-header.session-group-header {
+    background: linear-gradient(135deg, #e8f4fd 0%, #f0f7ff 100%);
+    border: 2px solid #b8d4f0;
+    border-left: 6px solid var(--color-primary);
+    border-radius: var(--radius-md);
+    padding: 16px 20px;
+    margin: 24px 0 16px 0;
+    box-shadow: 0 2px 8px rgba(0, 102, 204, 0.08);
+}
+
+.session-header-main {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.session-stats {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    background: rgba(255, 255, 255, 0.7);
+    padding: 6px 12px;
+    border-radius: var(--radius-sm);
+}
+
+.session-stats .success-bar {
+    width: 80px;
 }
 
 .test-session-title {
@@ -524,15 +645,131 @@ body {
     margin: 0;
 }
 
+.session-group-header .test-session-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--color-primary);
+    letter-spacing: -0.3px;
+}
+
+.session-group-header .session-diagram-details {
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(0, 102, 204, 0.15);
+}
+
+/* Session Overview Section */
+.session-overview-section {
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(0, 102, 204, 0.15);
+}
+
+.session-overview-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-primary);
+    margin-bottom: 12px;
+}
+
+.session-overview-table-wrapper {
+    overflow-x: auto;
+}
+
+.session-overview-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    background: white;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+}
+
+.session-overview-table th,
+.session-overview-table td {
+    padding: 10px 14px;
+    text-align: center;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.session-overview-table th {
+    background: var(--color-background);
+    font-weight: 600;
+    border-bottom: 2px solid var(--color-border);
+}
+
+.session-overview-table th.metric-col {
+    text-align: left;
+    width: 120px;
+    color: var(--color-text-muted);
+}
+
+.session-overview-table th.agent-col {
+    min-width: 150px;
+}
+
+.session-overview-table th.agent-col.success-high {
+    border-top: 3px solid var(--color-success);
+}
+
+.session-overview-table th.agent-col.success-medium {
+    border-top: 3px solid var(--color-warning);
+}
+
+.session-overview-table th.agent-col.success-low {
+    border-top: 3px solid var(--color-danger);
+}
+
+.session-overview-table .agent-status {
+    display: block;
+    font-size: 16px;
+    margin-bottom: 4px;
+}
+
+.session-overview-table .agent-name {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.session-overview-table .provider-badge {
+    font-size: 9px;
+    padding: 2px 6px;
+    margin-top: 4px;
+}
+
+.session-overview-table td.metric-label {
+    text-align: left;
+    color: var(--color-text-muted);
+    font-weight: 500;
+}
+
+.session-overview-table td.metric-value {
+    font-weight: 500;
+    color: var(--color-text);
+}
+
+.session-overview-table tr:last-child td {
+    border-bottom: none;
+}
+
 .test-group-section { margin-bottom: 16px; }
 
 .test-group-title {
-    font-size: 18px;
+    font-size: 15px;
     font-weight: 600;
     color: var(--color-text);
-    margin: 0 0 16px 0;
-    padding-bottom: 8px;
-    border-bottom: 2px solid var(--color-primary);
+    margin: 0 0 12px 0;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.session-tests-container .test-group-title {
+    font-size: 14px;
+    color: var(--color-text-muted);
+    border-bottom-color: transparent;
+    padding-bottom: 4px;
 }
 
 /* Test Item (Collapsible) */
@@ -1972,7 +2209,7 @@ body {
             <h1>🧪 Agent Benchmark Report</h1>
             <div class="report-meta">
                 <span>📦 Version: 0.0.0-SNAPSHOT</span>
-                <span>📅 Generated: 2026-01-26T09:45:33&#43;01:00</span>
+                <span>📅 Generated: 2026-01-26T12:00:06&#43;01:00</span>
                 
                 
             </div>
@@ -1983,15 +2220,15 @@ body {
 <div class="summary-grid">
     
     <div class="summary-card total">
-        <div class="summary-value">9</div>
+        <div class="summary-value">21</div>
         <div class="summary-label">Total Tests</div>
     </div>
     <div class="summary-card passed">
-        <div class="summary-value">6</div>
+        <div class="summary-value">17</div>
         <div class="summary-label">Passed</div>
     </div>
     <div class="summary-card failed">
-        <div class="summary-value">3</div>
+        <div class="summary-value">4</div>
         <div class="summary-label">Failed</div>
     </div>
     
@@ -2000,26 +2237,40 @@ body {
         <div class="summary-label">Agents</div>
     </div>
     
+    
+    <div class="summary-card sessions">
+        <div class="summary-value">3</div>
+        <div class="summary-label">Sessions</div>
+    </div>
+    
     <div class="summary-card rate">
-        <div class="summary-value">67%</div>
+        <div class="summary-value">81%</div>
         <div class="summary-label">Pass Rate</div>
     </div>
-    <div class="summary-card tokens">
-        <div class="summary-value">2,325</div>
-        <div class="summary-label">Total Tokens</div>
+    
+    
+    <div class="summary-card tokens token-range">
+        <div class="summary-value">140–510</div>
+        <div class="summary-label">Token Range</div>
+        <div class="token-bar">
+            <span class="token-min">min</span>
+            <span class="token-bar-fill"></span>
+            <span class="token-max">max</span>
+        </div>
     </div>
-    <div class="summary-card tokens">
-        <div class="summary-value">284</div>
-        <div class="summary-label">Avg Tokens ✓</div>
+    
+    
+    
+    <div class="summary-card duration duration-range">
+        <div class="summary-value">1.2s–3.0s</div>
+        <div class="summary-label">Duration Range</div>
+        <div class="duration-bar">
+            <span class="duration-min">min</span>
+            <span class="duration-bar-fill"></span>
+            <span class="duration-max">max</span>
+        </div>
     </div>
-    <div class="summary-card duration">
-        <div class="summary-value">19.5s</div>
-        <div class="summary-label">Total Duration</div>
-    </div>
-    <div class="summary-card duration">
-        <div class="summary-value">2.2s</div>
-        <div class="summary-label">Avg Duration</div>
-    </div>
+    
 </div>
 
         
@@ -2075,7 +2326,7 @@ gpt-agent (67%): One failure in config reading session. Struggled with YAML pars
             <table class="comparison-matrix">
                 <thead>
                     <tr>
-                        <th>Test</th>
+                        <th>Session</th>
                         
                         <th>claude-agent</th>
                         
@@ -2095,20 +2346,31 @@ gpt-agent (67%): One failure in config reading session. Struggled with YAML pars
                     <tr class="matrix-session-header">
                         <td colspan="4">
                             <span class="matrix-group-icon">🔄</span> Setup
-                            <span class="group-stats">— 2/3 passed · 6.0s · 690 tok</span>
+                            <span class="group-stats">— 5/6 passed · 1.5s–2.0s · 180–280 tok</span>
                         </td>
                     </tr>
                     
                     
                     <tr class="matrix-test-indented">
-                        <td>Initialize workspace</td>
+                        <td>Create workspace</td>
                         
                         
                         <td>
                             
                             <div class="matrix-cell">
                                 <span class="matrix-status">✅</span>
-                                <span class="matrix-duration">2.0s</span>
+                                <span class="matrix-duration">1.5s</span>
+                                <span class="matrix-tokens">180</span>
+                            </div>
+                            
+                        </td>
+                        
+                        
+                        <td>
+                            
+                            <div class="matrix-cell">
+                                <span class="matrix-status">✅</span>
+                                <span class="matrix-duration">1.5s</span>
                                 <span class="matrix-tokens">200</span>
                             </div>
                             
@@ -2119,8 +2381,35 @@ gpt-agent (67%): One failure in config reading session. Struggled with YAML pars
                             
                             <div class="matrix-cell">
                                 <span class="matrix-status">✅</span>
+                                <span class="matrix-duration">1.5s</span>
+                                <span class="matrix-tokens">220</span>
+                            </div>
+                            
+                        </td>
+                        
+                    </tr>
+                    
+                    <tr class="matrix-test-indented">
+                        <td>Initialize config</td>
+                        
+                        
+                        <td>
+                            
+                            <div class="matrix-cell">
+                                <span class="matrix-status">✅</span>
                                 <span class="matrix-duration">2.0s</span>
-                                <span class="matrix-tokens">230</span>
+                                <span class="matrix-tokens">220</span>
+                            </div>
+                            
+                        </td>
+                        
+                        
+                        <td>
+                            
+                            <div class="matrix-cell">
+                                <span class="matrix-status">✅</span>
+                                <span class="matrix-duration">2.0s</span>
+                                <span class="matrix-tokens">250</span>
                             </div>
                             
                         </td>
@@ -2131,7 +2420,7 @@ gpt-agent (67%): One failure in config reading session. Struggled with YAML pars
                             <div class="matrix-cell">
                                 <span class="matrix-status">❌</span>
                                 <span class="matrix-duration">2.0s</span>
-                                <span class="matrix-tokens">260</span>
+                                <span class="matrix-tokens">280</span>
                             </div>
                             
                         </td>
@@ -2143,13 +2432,89 @@ gpt-agent (67%): One failure in config reading session. Struggled with YAML pars
                     <tr class="matrix-session-header">
                         <td colspan="4">
                             <span class="matrix-group-icon">🔄</span> Processing
-                            <span class="group-stats">— 3/3 passed · 9.0s · 1,125 tok</span>
+                            <span class="group-stats">— 9/9 passed · 1.8s–3.0s · 280–510 tok</span>
                         </td>
                     </tr>
                     
                     
                     <tr class="matrix-test-indented">
-                        <td>Process data</td>
+                        <td>Connect database</td>
+                        
+                        
+                        <td>
+                            
+                            <div class="matrix-cell">
+                                <span class="matrix-status">✅</span>
+                                <span class="matrix-duration">2.5s</span>
+                                <span class="matrix-tokens">280</span>
+                            </div>
+                            
+                        </td>
+                        
+                        
+                        <td>
+                            
+                            <div class="matrix-cell">
+                                <span class="matrix-status">✅</span>
+                                <span class="matrix-duration">2.5s</span>
+                                <span class="matrix-tokens">305</span>
+                            </div>
+                            
+                        </td>
+                        
+                        
+                        <td>
+                            
+                            <div class="matrix-cell">
+                                <span class="matrix-status">✅</span>
+                                <span class="matrix-duration">2.5s</span>
+                                <span class="matrix-tokens">330</span>
+                            </div>
+                            
+                        </td>
+                        
+                    </tr>
+                    
+                    <tr class="matrix-test-indented">
+                        <td>Query data</td>
+                        
+                        
+                        <td>
+                            
+                            <div class="matrix-cell">
+                                <span class="matrix-status">✅</span>
+                                <span class="matrix-duration">1.8s</span>
+                                <span class="matrix-tokens">320</span>
+                            </div>
+                            
+                        </td>
+                        
+                        
+                        <td>
+                            
+                            <div class="matrix-cell">
+                                <span class="matrix-status">✅</span>
+                                <span class="matrix-duration">1.8s</span>
+                                <span class="matrix-tokens">340</span>
+                            </div>
+                            
+                        </td>
+                        
+                        
+                        <td>
+                            
+                            <div class="matrix-cell">
+                                <span class="matrix-status">✅</span>
+                                <span class="matrix-duration">1.8s</span>
+                                <span class="matrix-tokens">360</span>
+                            </div>
+                            
+                        </td>
+                        
+                    </tr>
+                    
+                    <tr class="matrix-test-indented">
+                        <td>Generate report</td>
                         
                         
                         <td>
@@ -2157,7 +2522,7 @@ gpt-agent (67%): One failure in config reading session. Struggled with YAML pars
                             <div class="matrix-cell">
                                 <span class="matrix-status">✅</span>
                                 <span class="matrix-duration">3.0s</span>
-                                <span class="matrix-tokens">350</span>
+                                <span class="matrix-tokens">450</span>
                             </div>
                             
                         </td>
@@ -2168,7 +2533,7 @@ gpt-agent (67%): One failure in config reading session. Struggled with YAML pars
                             <div class="matrix-cell">
                                 <span class="matrix-status">✅</span>
                                 <span class="matrix-duration">3.0s</span>
-                                <span class="matrix-tokens">375</span>
+                                <span class="matrix-tokens">480</span>
                             </div>
                             
                         </td>
@@ -2179,7 +2544,7 @@ gpt-agent (67%): One failure in config reading session. Struggled with YAML pars
                             <div class="matrix-cell">
                                 <span class="matrix-status">✅</span>
                                 <span class="matrix-duration">3.0s</span>
-                                <span class="matrix-tokens">400</span>
+                                <span class="matrix-tokens">510</span>
                             </div>
                             
                         </td>
@@ -2191,13 +2556,51 @@ gpt-agent (67%): One failure in config reading session. Struggled with YAML pars
                     <tr class="matrix-session-header">
                         <td colspan="4">
                             <span class="matrix-group-icon">🔄</span> Cleanup
-                            <span class="group-stats">— 1/3 passed · 4.5s · 510 tok</span>
+                            <span class="group-stats">— 3/6 passed · 1.2s–1.5s · 140–200 tok</span>
                         </td>
                     </tr>
                     
                     
                     <tr class="matrix-test-indented">
-                        <td>Cleanup resources</td>
+                        <td>Delete temp files</td>
+                        
+                        
+                        <td>
+                            
+                            <div class="matrix-cell">
+                                <span class="matrix-status">✅</span>
+                                <span class="matrix-duration">1.2s</span>
+                                <span class="matrix-tokens">140</span>
+                            </div>
+                            
+                        </td>
+                        
+                        
+                        <td>
+                            
+                            <div class="matrix-cell">
+                                <span class="matrix-status">❌</span>
+                                <span class="matrix-duration">1.2s</span>
+                                <span class="matrix-tokens">155</span>
+                            </div>
+                            
+                        </td>
+                        
+                        
+                        <td>
+                            
+                            <div class="matrix-cell">
+                                <span class="matrix-status">✅</span>
+                                <span class="matrix-duration">1.2s</span>
+                                <span class="matrix-tokens">170</span>
+                            </div>
+                            
+                        </td>
+                        
+                    </tr>
+                    
+                    <tr class="matrix-test-indented">
+                        <td>Close connections</td>
                         
                         
                         <td>
@@ -2205,7 +2608,7 @@ gpt-agent (67%): One failure in config reading session. Struggled with YAML pars
                             <div class="matrix-cell">
                                 <span class="matrix-status">✅</span>
                                 <span class="matrix-duration">1.5s</span>
-                                <span class="matrix-tokens">150</span>
+                                <span class="matrix-tokens">160</span>
                             </div>
                             
                         </td>
@@ -2216,7 +2619,7 @@ gpt-agent (67%): One failure in config reading session. Struggled with YAML pars
                             <div class="matrix-cell">
                                 <span class="matrix-status">❌</span>
                                 <span class="matrix-duration">1.5s</span>
-                                <span class="matrix-tokens">170</span>
+                                <span class="matrix-tokens">180</span>
                             </div>
                             
                         </td>
@@ -2227,7 +2630,7 @@ gpt-agent (67%): One failure in config reading session. Struggled with YAML pars
                             <div class="matrix-cell">
                                 <span class="matrix-status">❌</span>
                                 <span class="matrix-duration">1.5s</span>
-                                <span class="matrix-tokens">190</span>
+                                <span class="matrix-tokens">200</span>
                             </div>
                             
                         </td>
@@ -2259,6 +2662,9 @@ gpt-agent (67%): One failure in config reading session. Struggled with YAML pars
                     <th class="rank-col">Rank</th>
                     <th>Agent</th>
                     <th>Success Rate</th>
+                    
+                    <th>Sessions</th>
+                    
                     <th>Results</th>
                     <th>Total Tokens</th>
                     <th>Efficiency</th>
@@ -2285,15 +2691,21 @@ gpt-agent (67%): One failure in config reading session. Struggled with YAML pars
                             <span class="stat-value">100%</span>
                         </div>
                     </td>
+                    
+                    <td class="stat-value">
+                        <span class="session-coverage">3/3</span>
+                        <span class="text-muted">(100%)</span>
+                    </td>
+                    
                     <td class="results-cell">
-                        <span class="result-pass">✓3</span>
+                        <span class="result-pass">✓7</span>
                         <span class="result-fail">✗0</span>
                         
                     </td>
-                    <td class="stat-value">700</td>
-                    <td class="stat-value ">233 tok/✓</td>
-                    <td class="stat-value">6.50s</td>
-                    <td class="stat-value">2.17s</td>
+                    <td class="stat-value">1,750</td>
+                    <td class="stat-value ">250 tok/✓</td>
+                    <td class="stat-value">13.50s</td>
+                    <td class="stat-value">1.93s</td>
                 </tr>
             
                 <tr class="leaderboard-row-good">
@@ -2309,22 +2721,28 @@ gpt-agent (67%): One failure in config reading session. Struggled with YAML pars
                     </td>
                     <td>
                         <div class="success-rate-cell">
-                            <span class="success-bar"><span class="success-bar-fill success-medium" style="width: 67%"></span></span>
-                            <span class="stat-value">67%</span>
+                            <span class="success-bar"><span class="success-bar-fill success-medium" style="width: 71%"></span></span>
+                            <span class="stat-value">71%</span>
                         </div>
                     </td>
+                    
+                    <td class="stat-value">
+                        <span class="session-coverage">2/3</span>
+                        <span class="text-muted">(67%)</span>
+                    </td>
+                    
                     <td class="results-cell">
-                        <span class="result-pass">✓2</span>
-                        <span class="result-fail">✗1</span>
+                        <span class="result-pass">✓5</span>
+                        <span class="result-fail">✗2</span>
                         
                     </td>
-                    <td class="stat-value">775</td>
-                    <td class="stat-value ">387 tok/✓</td>
-                    <td class="stat-value">6.50s</td>
-                    <td class="stat-value">2.17s</td>
+                    <td class="stat-value">1,910</td>
+                    <td class="stat-value ">382 tok/✓</td>
+                    <td class="stat-value">13.50s</td>
+                    <td class="stat-value">1.93s</td>
                 </tr>
             
-                <tr class="leaderboard-row-poor">
+                <tr class="leaderboard-row-good">
                     <td class="rank-col">
                         <span class="rank-badge rank-3">🥉</span>
                         
@@ -2337,19 +2755,25 @@ gpt-agent (67%): One failure in config reading session. Struggled with YAML pars
                     </td>
                     <td>
                         <div class="success-rate-cell">
-                            <span class="success-bar"><span class="success-bar-fill success-low" style="width: 33%"></span></span>
-                            <span class="stat-value">33%</span>
+                            <span class="success-bar"><span class="success-bar-fill success-medium" style="width: 71%"></span></span>
+                            <span class="stat-value">71%</span>
                         </div>
                     </td>
+                    
+                    <td class="stat-value">
+                        <span class="session-coverage">3/3</span>
+                        <span class="text-muted">(100%)</span>
+                    </td>
+                    
                     <td class="results-cell">
-                        <span class="result-pass">✓1</span>
+                        <span class="result-pass">✓5</span>
                         <span class="result-fail">✗2</span>
                         
                     </td>
-                    <td class="stat-value">850</td>
-                    <td class="stat-value ">850 tok/✓</td>
-                    <td class="stat-value">6.50s</td>
-                    <td class="stat-value">2.17s</td>
+                    <td class="stat-value">2,070</td>
+                    <td class="stat-value ">414 tok/✓</td>
+                    <td class="stat-value">13.50s</td>
+                    <td class="stat-value">1.93s</td>
                 </tr>
             
             </tbody>
@@ -2371,201 +2795,6 @@ gpt-agent (67%): One failure in config reading session. Struggled with YAML pars
         
 <section class="section">
     <div class="section-header">
-        <h2 class="section-title">🔄 Sessions Summary</h2>
-    </div>
-    <div class="section-body">
-        <div class="file-summary-list">
-            
-            <div class="file-summary-item ">
-                <div class="file-summary-header">
-                    <span class="file-name">🔄 Setup</span>
-                    <span class="success-bar"><span class="success-bar-fill success-medium" style="width: 67%"></span></span>
-                    <span class="file-stats">
-                        2/3 tests
-                        <span class="text-muted">
-                            (67%)
-                        </span>
-                        <span class="summary-metric">⏱ 6.0s</span>
-                        <span class="summary-metric">🔢 690<span class="tok-suffix">tok</span></span>
-                        <span class="summary-metric">🤖 3 agents</span>
-                    </span>
-                </div>
-                
-                <details class="session-diagram-details">
-                    <summary class="session-diagram-summary">📊 View Session Flow (3 agents)</summary>
-                    <div class="session-agent-diagrams-grid">
-                        
-                        <div class="agent-sequence-box">
-                            <div class="agent-sequence-header">claude-agent</div>
-                            <div class="mermaid">sequenceDiagram
-    participant U as User
-    participant A as Agent
-    participant M as MCP Server
-    A-&gt;&gt;M: write_file()
-    M--&gt;&gt;A: result
-    A--&gt;&gt;U: ✓ Workspace initialized succe...
-</div>
-                        </div>
-                        
-                        <div class="agent-sequence-box">
-                            <div class="agent-sequence-header">gemini-agent</div>
-                            <div class="mermaid">sequenceDiagram
-    participant U as User
-    participant A as Agent
-    participant M as MCP Server
-    A-&gt;&gt;M: write_file()
-    M--&gt;&gt;A: result
-    A--&gt;&gt;U: ✓ Workspace initialized succe...
-</div>
-                        </div>
-                        
-                        <div class="agent-sequence-box">
-                            <div class="agent-sequence-header">gpt-agent</div>
-                            <div class="mermaid">sequenceDiagram
-    participant U as User
-    participant A as Agent
-    participant M as MCP Server
-    A-&gt;&gt;M: write_file()
-    M--&gt;&gt;A: result
-    A--&gt;&gt;U: ✗ Failed to initialize worksp...
-</div>
-                        </div>
-                        
-                    </div>
-                </details>
-                
-            </div>
-            
-            <div class="file-summary-item file-perfect">
-                <div class="file-summary-header">
-                    <span class="file-name">🔄 Processing</span>
-                    <span class="success-bar"><span class="success-bar-fill success-high" style="width: 100%"></span></span>
-                    <span class="file-stats">
-                        3/3 tests
-                        <span class="text-pass">
-                            (100%)
-                        </span>
-                        <span class="summary-metric">⏱ 9.0s</span>
-                        <span class="summary-metric">🔢 1,125<span class="tok-suffix">tok</span></span>
-                        <span class="summary-metric">🤖 3 agents</span>
-                    </span>
-                </div>
-                
-                <details class="session-diagram-details">
-                    <summary class="session-diagram-summary">📊 View Session Flow (3 agents)</summary>
-                    <div class="session-agent-diagrams-grid">
-                        
-                        <div class="agent-sequence-box">
-                            <div class="agent-sequence-header">claude-agent</div>
-                            <div class="mermaid">sequenceDiagram
-    participant U as User
-    participant A as Agent
-    participant M as MCP Server
-    A-&gt;&gt;M: db_query()
-    M--&gt;&gt;A: result
-    A--&gt;&gt;U: ✓ Data processed successfully.
-</div>
-                        </div>
-                        
-                        <div class="agent-sequence-box">
-                            <div class="agent-sequence-header">gemini-agent</div>
-                            <div class="mermaid">sequenceDiagram
-    participant U as User
-    participant A as Agent
-    participant M as MCP Server
-    A-&gt;&gt;M: db_query()
-    M--&gt;&gt;A: result
-    A--&gt;&gt;U: ✓ Data processed successfully.
-</div>
-                        </div>
-                        
-                        <div class="agent-sequence-box">
-                            <div class="agent-sequence-header">gpt-agent</div>
-                            <div class="mermaid">sequenceDiagram
-    participant U as User
-    participant A as Agent
-    participant M as MCP Server
-    A-&gt;&gt;M: db_query()
-    M--&gt;&gt;A: result
-    A--&gt;&gt;U: ✓ Data processed successfully.
-</div>
-                        </div>
-                        
-                    </div>
-                </details>
-                
-            </div>
-            
-            <div class="file-summary-item ">
-                <div class="file-summary-header">
-                    <span class="file-name">🔄 Cleanup</span>
-                    <span class="success-bar"><span class="success-bar-fill success-low" style="width: 33%"></span></span>
-                    <span class="file-stats">
-                        1/3 tests
-                        <span class="text-fail">
-                            (33%)
-                        </span>
-                        <span class="summary-metric">⏱ 4.5s</span>
-                        <span class="summary-metric">🔢 510<span class="tok-suffix">tok</span></span>
-                        <span class="summary-metric">🤖 3 agents</span>
-                    </span>
-                </div>
-                
-                <details class="session-diagram-details">
-                    <summary class="session-diagram-summary">📊 View Session Flow (3 agents)</summary>
-                    <div class="session-agent-diagrams-grid">
-                        
-                        <div class="agent-sequence-box">
-                            <div class="agent-sequence-header">claude-agent</div>
-                            <div class="mermaid">sequenceDiagram
-    participant U as User
-    participant A as Agent
-    participant M as MCP Server
-    A-&gt;&gt;M: delete_file()
-    M--&gt;&gt;A: result
-    A--&gt;&gt;U: ✓ Cleanup completed.
-</div>
-                        </div>
-                        
-                        <div class="agent-sequence-box">
-                            <div class="agent-sequence-header">gemini-agent</div>
-                            <div class="mermaid">sequenceDiagram
-    participant U as User
-    participant A as Agent
-    participant M as MCP Server
-    A-&gt;&gt;M: delete_file()
-    M--&gt;&gt;A: result
-    A--&gt;&gt;U: ✗ Partial cleanup - some file...
-</div>
-                        </div>
-                        
-                        <div class="agent-sequence-box">
-                            <div class="agent-sequence-header">gpt-agent</div>
-                            <div class="mermaid">sequenceDiagram
-    participant U as User
-    participant A as Agent
-    participant M as MCP Server
-    A-&gt;&gt;M: delete_file()
-    M--&gt;&gt;A: result
-    A--&gt;&gt;U: ✗ Partial cleanup - some file...
-</div>
-                        </div>
-                        
-                    </div>
-                </details>
-                
-            </div>
-            
-        </div>
-    </div>
-</section>
-
-        
-
-        
-        
-<section class="section">
-    <div class="section-header">
         <h2 class="section-title">📋 Detailed Test Results</h2>
     </div>
     <div class="section-body">
@@ -2580,18 +2809,191 @@ gpt-agent (67%): One failure in config reading session. Struggled with YAML pars
             
             
             
-            <div class="test-session-header">
-                <h4 class="test-session-title">🔄 Setup</h4>
+            <div class="session-container">
+            
+            <div class="test-session-header session-group-header">
+                <div class="session-header-main">
+                    <h4 class="test-session-title">🔄 Setup</h4>
+                    <span class="session-stats">
+                        
+                        <span class="success-bar"><span class="success-bar-fill success-medium" style="width: 83%"></span></span>
+                        <span class="text-muted">
+                            5/6 (83%)
+                        </span>
+                        <span class="summary-metric">⏱ 1.5s–2.0s</span>
+                        <span class="summary-metric">🔢 180–280<span class="tok-suffix">tok</span></span>
+                        <span class="summary-metric">🤖 3 agents</span>
+                        
+                    </span>
+                </div>
+                
+                
+                <div class="session-overview-section">
+                    <div class="session-overview-label">📊 Session Overview — Agent Comparison</div>
+                    <div class="session-overview-table-wrapper">
+                        <table class="session-overview-table">
+                            <thead>
+                                <tr>
+                                    <th class="metric-col">Metric</th>
+                                    
+                                    <th class="agent-col success-high">
+                                        <span class="agent-status">✅</span>
+                                        <span class="agent-name">claude-agent</span>
+                                        <span class="provider-badge provider-ANTHROPIC">ANTHROPIC</span>
+                                    </th>
+                                    
+                                    <th class="agent-col success-high">
+                                        <span class="agent-status">✅</span>
+                                        <span class="agent-name">gemini-agent</span>
+                                        <span class="provider-badge provider-GOOGLE">GOOGLE</span>
+                                    </th>
+                                    
+                                    <th class="agent-col success-medium">
+                                        <span class="agent-status">⚠️</span>
+                                        <span class="agent-name">gpt-agent</span>
+                                        <span class="provider-badge provider-OPENAI">OPENAI</span>
+                                    </th>
+                                    
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="metric-row">
+                                <td class="metric-label">📊 Pass Rate</td>
+                                
+                                <td class="metric-value text-pass">
+                                    2/2 (100%)
+                                </td>
+                                
+                                <td class="metric-value text-pass">
+                                    2/2 (100%)
+                                </td>
+                                
+                                <td class="metric-value text-muted">
+                                    1/2 (50%)
+                                </td>
+                                
+                            </tr>
+                            <tr class="metric-row">
+                                <td class="metric-label">⏱️ Duration</td>
+                                
+                                <td class="metric-value">1.5s–2.0s</td>
+                                
+                                <td class="metric-value">1.5s–2.0s</td>
+                                
+                                <td class="metric-value">1.5s–2.0s</td>
+                                
+                            </tr>
+                            <tr class="metric-row">
+                                <td class="metric-label">🎯 Tokens</td>
+                                
+                                <td class="metric-value">180–220</td>
+                                
+                                <td class="metric-value">200–250</td>
+                                
+                                <td class="metric-value">220–280</td>
+                                
+                            </tr>
+                        </tbody>
+                    </table>
+                    </div>
+                </div>
+                
+                
+                
+                <details class="session-diagram-details">
+                    <summary class="session-diagram-summary">📊 View Session Flow (3 agents)</summary>
+                    <div class="session-agent-diagrams-grid">
+                        
+                        <div class="agent-sequence-box">
+                            <div class="agent-sequence-header">claude-agent</div>
+                            <div class="mermaid">sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    rect rgb(40, 167, 69)
+    note over U,M: Test 1 - Create workspace ✅ (1.5s · 180 tok)
+    U-&gt;&gt;A: Create a workspace directory structure
+    A-&gt;&gt;M: write_file()
+    M--&gt;&gt;A: result
+    A--&gt;&gt;U: Workspace created at /works...
+    end
+    rect rgb(40, 167, 69)
+    note over U,M: Test 2 - Initialize config ✅ (2.0s · 220 tok)
+    U-&gt;&gt;A: Initialize the configuration files
+    A-&gt;&gt;M: write_file()
+    M--&gt;&gt;A: result
+    A--&gt;&gt;U: Config initialized successf...
+    end
+</div>
+                        </div>
+                        
+                        <div class="agent-sequence-box">
+                            <div class="agent-sequence-header">gemini-agent</div>
+                            <div class="mermaid">sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    rect rgb(40, 167, 69)
+    note over U,M: Test 1 - Create workspace ✅ (1.5s · 200 tok)
+    U-&gt;&gt;A: Create a workspace directory structure
+    A-&gt;&gt;M: write_file()
+    M--&gt;&gt;A: result
+    A--&gt;&gt;U: Workspace created at /works...
+    end
+    rect rgb(40, 167, 69)
+    note over U,M: Test 2 - Initialize config ✅ (2.0s · 250 tok)
+    U-&gt;&gt;A: Initialize the configuration files
+    A-&gt;&gt;M: write_file()
+    M--&gt;&gt;A: result
+    A--&gt;&gt;U: Config initialized successf...
+    end
+</div>
+                        </div>
+                        
+                        <div class="agent-sequence-box">
+                            <div class="agent-sequence-header">gpt-agent</div>
+                            <div class="mermaid">sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    rect rgb(40, 167, 69)
+    note over U,M: Test 1 - Create workspace ✅ (1.5s · 220 tok)
+    U-&gt;&gt;A: Create a workspace directory structure
+    A-&gt;&gt;M: write_file()
+    M--&gt;&gt;A: result
+    A--&gt;&gt;U: Workspace created at /works...
+    end
+    rect rgb(220, 53, 69)
+    note over U,M: Test 2 - Initialize config ❌ (2.0s · 280 tok)
+    U-&gt;&gt;A: Initialize the configuration files
+    A-&gt;&gt;M: write_file()
+    M--&gt;&gt;A: result
+    A--&gt;&gt;U: Failed to initialize config.
+    end
+</div>
+                        </div>
+                        
+                    </div>
+                </details>
+                
+                
             </div>
+            <div class="session-tests-container">
+                <div class="session-tests-label">📋 Tests in this session</div>
             
             
             
             <div class="test-group-section">
                 
 <div class="test-group-header">
-    <h3 class="test-group-title">Initialize workspace</h3>
+    <h3 class="test-group-title">Create workspace</h3>
     
     
+    
+    <div class="test-group-prompt">
+        <span class="prompt-label">📝 Prompt:</span>
+        <span class="prompt-text">Create a workspace directory structure</span>
+    </div>
     
     
     
@@ -2619,8 +3021,8 @@ gpt-agent (67%): One failure in config reading session. Struggled with YAML pars
                     <span class="provider-badge provider-GOOGLE">GOOGLE</span>
                 </th>
                 
-                <th class="agent-col failed">
-                    <span class="agent-status">❌</span>
+                <th class="agent-col passed">
+                    <span class="agent-status">✅</span>
                     <span class="agent-name">gpt-agent</span>
                     <span class="provider-badge provider-OPENAI">OPENAI</span>
                 </th>
@@ -2631,21 +3033,21 @@ gpt-agent (67%): One failure in config reading session. Struggled with YAML pars
             <tr class="metric-row">
                 <td class="metric-label">⏱️ Duration</td>
                 
-                <td class="metric-value">2.00s</td>
+                <td class="metric-value">1.50s</td>
                 
-                <td class="metric-value">2.00s</td>
+                <td class="metric-value">1.50s</td>
                 
-                <td class="metric-value">2.00s</td>
+                <td class="metric-value">1.50s</td>
                 
             </tr>
             <tr class="metric-row">
                 <td class="metric-label">🎯 Tokens</td>
                 
+                <td class="metric-value">180</td>
+                
                 <td class="metric-value">200</td>
                 
-                <td class="metric-value">230</td>
-                
-                <td class="metric-value">260</td>
+                <td class="metric-value">220</td>
                 
             </tr>
             <tr class="metric-row">
@@ -2738,9 +3140,13 @@ gpt-agent (67%): One failure in config reading session. Struggled with YAML pars
     participant U as User
     participant A as Agent
     participant M as MCP Server
-    A-&gt;&gt;M: write_file() [45ms]
+    rect rgb(40, 167, 69)
+    note over U,M: ✅ PASS (1.5s · 180 tok)
+    U-&gt;&gt;A: Create a workspace directory structure
+    A-&gt;&gt;M: write_file() [35ms]
     M--&gt;&gt;A: result
-    A--&gt;&gt;U: Workspace initialized successfully. [200 tokens]
+    A--&gt;&gt;U: Workspace created at /workspace
+    end
 </div>
             </div>
             
@@ -2752,9 +3158,13 @@ gpt-agent (67%): One failure in config reading session. Struggled with YAML pars
     participant U as User
     participant A as Agent
     participant M as MCP Server
-    A-&gt;&gt;M: write_file() [45ms]
+    rect rgb(40, 167, 69)
+    note over U,M: ✅ PASS (1.5s · 200 tok)
+    U-&gt;&gt;A: Create a workspace directory structure
+    A-&gt;&gt;M: write_file() [35ms]
     M--&gt;&gt;A: result
-    A--&gt;&gt;U: Workspace initialized successfully. [230 tokens]
+    A--&gt;&gt;U: Workspace created at /workspace
+    end
 </div>
             </div>
             
@@ -2766,9 +3176,13 @@ gpt-agent (67%): One failure in config reading session. Struggled with YAML pars
     participant U as User
     participant A as Agent
     participant M as MCP Server
-    A-&gt;&gt;M: write_file() [45ms]
+    rect rgb(40, 167, 69)
+    note over U,M: ✅ PASS (1.5s · 220 tok)
+    U-&gt;&gt;A: Create a workspace directory structure
+    A-&gt;&gt;M: write_file() [35ms]
     M--&gt;&gt;A: result
-    A--&gt;&gt;U: Failed to initialize workspace. [260 tokens]
+    A--&gt;&gt;U: Workspace created at /workspace
+    end
 </div>
             </div>
             
@@ -2791,7 +3205,151 @@ gpt-agent (67%): One failure in config reading session. Struggled with YAML pars
             <span class="provider-badge">ANTHROPIC</span>
         </div>
         <div class="test-meta">
-            <span class="duration">2.00s</span>
+            <span class="duration">1.50s</span>
+            <span class="tokens">180 tokens</span>
+            <span class="expand-icon">▼</span>
+        </div>
+    </summary>
+    <div class="test-details">
+        
+
+<div class="assertions-section">
+    <h4 class="subsection-title">Assertions</h4>
+    <div class="assertions-list">
+        
+        <div class="assertion-item passed">
+            <span class="assertion-icon">✓</span>
+            <div class="assertion-content">
+                <span class="assertion-type">tool_called</span>
+                <span class="assertion-message">Tool &#39;write_file&#39; was called</span>
+                
+            </div>
+        </div>
+        
+    </div>
+</div>
+
+
+        
+
+
+        
+
+
+        
+
+
+        
+
+<div class="sequence-section">
+    <h4 class="subsection-title">Execution Flow</h4>
+    <div class="mermaid">
+sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    rect rgb(40, 167, 69)
+    note over U,M: ✅ PASS (1.5s · 180 tok)
+    U-&gt;&gt;A: Create a workspace directory structure
+    A-&gt;&gt;M: write_file() [35ms]
+    M--&gt;&gt;A: result
+    A--&gt;&gt;U: Workspace created at /workspace
+    end
+
+    </div>
+</div>
+
+
+        
+
+<div class="toolcalls-section">
+    <h4 class="subsection-title">Tool Calls (1)</h4>
+    <div class="timeline">
+        
+        <div class="timeline-item tool-call">
+            <div class="timeline-header">
+                <span class="tool-name">🔧 write_file</span>
+                <span class="timeline-meta">
+                    <span class="tool-duration">35ms</span>
+                    <span class="timeline-time">&#43;0.30s</span>
+                </span>
+            </div>
+            
+            <details class="tool-params-toggle">
+                <summary>Parameters</summary>
+                <pre class="tool-params">{
+  "content": "Hello World",
+  "path": "/tmp/test.txt"
+}</pre>
+            </details>
+            
+            
+            <details class="tool-result-toggle">
+                <summary>Result</summary>
+                <pre class="tool-result-content">[
+  {
+    "text": "{\"ok\":true,\"path\":\"/tmp/test.txt\",\"bytes\":11}",
+    "type": "text"
+  }
+]</pre>
+            </details>
+            
+        </div>
+        
+    </div>
+</div>
+
+
+        
+
+<details class="messages-section">
+    <summary class="subsection-title">💬 Conversation (2 messages)</summary>
+    <div class="conversation-timeline">
+        
+        <div class="timeline-item user">
+            <div class="timeline-header">
+                <span class="timeline-role">user</span>
+                <span class="timeline-time">00:00:00.000</span>
+            </div>
+            <div class="timeline-content">Create a workspace directory structure</div>
+        </div>
+        
+        <div class="timeline-item assistant">
+            <div class="timeline-header">
+                <span class="timeline-role">assistant</span>
+                <span class="timeline-time">00:00:00.000</span>
+            </div>
+            <div class="timeline-content">Workspace created at /workspace</div>
+        </div>
+        
+    </div>
+</details>
+
+
+        
+
+<details class="final-output-section">
+    <summary class="subsection-title">📤 Final Output</summary>
+    <div class="final-output-content">Workspace created at /workspace</div>
+</details>
+
+
+    </div>
+</details>
+
+    </div>
+    
+    <div class="agent-detail-panel" data-agent-idx="1" data-agent-name="gemini-agent">
+        
+<details class="test-item passed" open>
+    <summary class="test-header">
+        <div class="test-info">
+            <span class="test-status-icon">✅</span>
+            <span class="test-agent">gemini-agent</span>
+            <span class="provider-badge">GOOGLE</span>
+        </div>
+        <div class="test-meta">
+            <span class="duration">1.50s</span>
             <span class="tokens">200 tokens</span>
             <span class="expand-icon">▼</span>
         </div>
@@ -2834,9 +3392,13 @@ sequenceDiagram
     participant U as User
     participant A as Agent
     participant M as MCP Server
-    A-&gt;&gt;M: write_file() [45ms]
+    rect rgb(40, 167, 69)
+    note over U,M: ✅ PASS (1.5s · 200 tok)
+    U-&gt;&gt;A: Create a workspace directory structure
+    A-&gt;&gt;M: write_file() [35ms]
     M--&gt;&gt;A: result
-    A--&gt;&gt;U: Workspace initialized successfully. [200 tokens]
+    A--&gt;&gt;U: Workspace created at /workspace
+    end
 
     </div>
 </div>
@@ -2852,241 +3414,7 @@ sequenceDiagram
             <div class="timeline-header">
                 <span class="tool-name">🔧 write_file</span>
                 <span class="timeline-meta">
-                    <span class="tool-duration">45ms</span>
-                    <span class="timeline-time">&#43;0.50s</span>
-                </span>
-            </div>
-            
-            <details class="tool-params-toggle">
-                <summary>Parameters</summary>
-                <pre class="tool-params">{
-  "content": "Hello World",
-  "path": "/tmp/test.txt"
-}</pre>
-            </details>
-            
-            
-            <details class="tool-result-toggle">
-                <summary>Result</summary>
-                <pre class="tool-result-content">[
-  {
-    "text": "{\"ok\":true,\"path\":\"/tmp/test.txt\",\"bytes\":11}",
-    "type": "text"
-  }
-]</pre>
-            </details>
-            
-        </div>
-        
-    </div>
-</div>
-
-
-        
-
-
-        
-
-<details class="final-output-section">
-    <summary class="subsection-title">📤 Final Output</summary>
-    <div class="final-output-content">Workspace initialized successfully.</div>
-</details>
-
-
-    </div>
-</details>
-
-    </div>
-    
-    <div class="agent-detail-panel" data-agent-idx="1" data-agent-name="gemini-agent">
-        
-<details class="test-item passed" open>
-    <summary class="test-header">
-        <div class="test-info">
-            <span class="test-status-icon">✅</span>
-            <span class="test-agent">gemini-agent</span>
-            <span class="provider-badge">GOOGLE</span>
-        </div>
-        <div class="test-meta">
-            <span class="duration">2.00s</span>
-            <span class="tokens">230 tokens</span>
-            <span class="expand-icon">▼</span>
-        </div>
-    </summary>
-    <div class="test-details">
-        
-
-<div class="assertions-section">
-    <h4 class="subsection-title">Assertions</h4>
-    <div class="assertions-list">
-        
-        <div class="assertion-item passed">
-            <span class="assertion-icon">✓</span>
-            <div class="assertion-content">
-                <span class="assertion-type">tool_called</span>
-                <span class="assertion-message">Tool &#39;write_file&#39; was called</span>
-                
-            </div>
-        </div>
-        
-    </div>
-</div>
-
-
-        
-
-
-        
-
-
-        
-
-
-        
-
-<div class="sequence-section">
-    <h4 class="subsection-title">Execution Flow</h4>
-    <div class="mermaid">
-sequenceDiagram
-    participant U as User
-    participant A as Agent
-    participant M as MCP Server
-    A-&gt;&gt;M: write_file() [45ms]
-    M--&gt;&gt;A: result
-    A--&gt;&gt;U: Workspace initialized successfully. [230 tokens]
-
-    </div>
-</div>
-
-
-        
-
-<div class="toolcalls-section">
-    <h4 class="subsection-title">Tool Calls (1)</h4>
-    <div class="timeline">
-        
-        <div class="timeline-item tool-call">
-            <div class="timeline-header">
-                <span class="tool-name">🔧 write_file</span>
-                <span class="timeline-meta">
-                    <span class="tool-duration">45ms</span>
-                    <span class="timeline-time">&#43;0.00s</span>
-                </span>
-            </div>
-            
-            <details class="tool-params-toggle">
-                <summary>Parameters</summary>
-                <pre class="tool-params">{
-  "content": "Hello World",
-  "path": "/tmp/test.txt"
-}</pre>
-            </details>
-            
-            
-            <details class="tool-result-toggle">
-                <summary>Result</summary>
-                <pre class="tool-result-content">[
-  {
-    "text": "{\"ok\":true,\"path\":\"/tmp/test.txt\",\"bytes\":11}",
-    "type": "text"
-  }
-]</pre>
-            </details>
-            
-        </div>
-        
-    </div>
-</div>
-
-
-        
-
-
-        
-
-<details class="final-output-section">
-    <summary class="subsection-title">📤 Final Output</summary>
-    <div class="final-output-content">Workspace initialized successfully.</div>
-</details>
-
-
-    </div>
-</details>
-
-    </div>
-    
-    <div class="agent-detail-panel" data-agent-idx="2" data-agent-name="gpt-agent">
-        
-<details class="test-item failed" open>
-    <summary class="test-header">
-        <div class="test-info">
-            <span class="test-status-icon">❌</span>
-            <span class="test-agent">gpt-agent</span>
-            <span class="provider-badge">OPENAI</span>
-        </div>
-        <div class="test-meta">
-            <span class="duration">2.00s</span>
-            <span class="tokens">260 tokens</span>
-            <span class="expand-icon">▼</span>
-        </div>
-    </summary>
-    <div class="test-details">
-        
-
-<div class="assertions-section">
-    <h4 class="subsection-title">Assertions</h4>
-    <div class="assertions-list">
-        
-        <div class="assertion-item passed">
-            <span class="assertion-icon">✓</span>
-            <div class="assertion-content">
-                <span class="assertion-type">tool_called</span>
-                <span class="assertion-message">Tool &#39;write_file&#39; was called</span>
-                
-            </div>
-        </div>
-        
-    </div>
-</div>
-
-
-        
-
-
-        
-
-
-        
-
-
-        
-
-<div class="sequence-section">
-    <h4 class="subsection-title">Execution Flow</h4>
-    <div class="mermaid">
-sequenceDiagram
-    participant U as User
-    participant A as Agent
-    participant M as MCP Server
-    A-&gt;&gt;M: write_file() [45ms]
-    M--&gt;&gt;A: result
-    A--&gt;&gt;U: Failed to initialize workspace. [260 tokens]
-
-    </div>
-</div>
-
-
-        
-
-<div class="toolcalls-section">
-    <h4 class="subsection-title">Tool Calls (1)</h4>
-    <div class="timeline">
-        
-        <div class="timeline-item tool-call">
-            <div class="timeline-header">
-                <span class="tool-name">🔧 write_file</span>
-                <span class="timeline-meta">
-                    <span class="tool-duration">45ms</span>
+                    <span class="tool-duration">35ms</span>
                     <span class="timeline-time">10:00:00</span>
                 </span>
             </div>
@@ -3118,12 +3446,829 @@ sequenceDiagram
 
         
 
+<details class="messages-section">
+    <summary class="subsection-title">💬 Conversation (2 messages)</summary>
+    <div class="conversation-timeline">
+        
+        <div class="timeline-item user">
+            <div class="timeline-header">
+                <span class="timeline-role">user</span>
+                <span class="timeline-time">00:00:00.000</span>
+            </div>
+            <div class="timeline-content">Create a workspace directory structure</div>
+        </div>
+        
+        <div class="timeline-item assistant">
+            <div class="timeline-header">
+                <span class="timeline-role">assistant</span>
+                <span class="timeline-time">00:00:00.000</span>
+            </div>
+            <div class="timeline-content">Workspace created at /workspace</div>
+        </div>
+        
+    </div>
+</details>
+
 
         
 
 <details class="final-output-section">
     <summary class="subsection-title">📤 Final Output</summary>
-    <div class="final-output-content">Failed to initialize workspace.</div>
+    <div class="final-output-content">Workspace created at /workspace</div>
+</details>
+
+
+    </div>
+</details>
+
+    </div>
+    
+    <div class="agent-detail-panel" data-agent-idx="2" data-agent-name="gpt-agent">
+        
+<details class="test-item passed" open>
+    <summary class="test-header">
+        <div class="test-info">
+            <span class="test-status-icon">✅</span>
+            <span class="test-agent">gpt-agent</span>
+            <span class="provider-badge">OPENAI</span>
+        </div>
+        <div class="test-meta">
+            <span class="duration">1.50s</span>
+            <span class="tokens">220 tokens</span>
+            <span class="expand-icon">▼</span>
+        </div>
+    </summary>
+    <div class="test-details">
+        
+
+<div class="assertions-section">
+    <h4 class="subsection-title">Assertions</h4>
+    <div class="assertions-list">
+        
+        <div class="assertion-item passed">
+            <span class="assertion-icon">✓</span>
+            <div class="assertion-content">
+                <span class="assertion-type">tool_called</span>
+                <span class="assertion-message">Tool &#39;write_file&#39; was called</span>
+                
+            </div>
+        </div>
+        
+    </div>
+</div>
+
+
+        
+
+
+        
+
+
+        
+
+
+        
+
+<div class="sequence-section">
+    <h4 class="subsection-title">Execution Flow</h4>
+    <div class="mermaid">
+sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    rect rgb(40, 167, 69)
+    note over U,M: ✅ PASS (1.5s · 220 tok)
+    U-&gt;&gt;A: Create a workspace directory structure
+    A-&gt;&gt;M: write_file() [35ms]
+    M--&gt;&gt;A: result
+    A--&gt;&gt;U: Workspace created at /workspace
+    end
+
+    </div>
+</div>
+
+
+        
+
+<div class="toolcalls-section">
+    <h4 class="subsection-title">Tool Calls (1)</h4>
+    <div class="timeline">
+        
+        <div class="timeline-item tool-call">
+            <div class="timeline-header">
+                <span class="tool-name">🔧 write_file</span>
+                <span class="timeline-meta">
+                    <span class="tool-duration">35ms</span>
+                    <span class="timeline-time">10:00:00</span>
+                </span>
+            </div>
+            
+            <details class="tool-params-toggle">
+                <summary>Parameters</summary>
+                <pre class="tool-params">{
+  "content": "Hello World",
+  "path": "/tmp/test.txt"
+}</pre>
+            </details>
+            
+            
+            <details class="tool-result-toggle">
+                <summary>Result</summary>
+                <pre class="tool-result-content">[
+  {
+    "text": "{\"ok\":true,\"path\":\"/tmp/test.txt\",\"bytes\":11}",
+    "type": "text"
+  }
+]</pre>
+            </details>
+            
+        </div>
+        
+    </div>
+</div>
+
+
+        
+
+<details class="messages-section">
+    <summary class="subsection-title">💬 Conversation (2 messages)</summary>
+    <div class="conversation-timeline">
+        
+        <div class="timeline-item user">
+            <div class="timeline-header">
+                <span class="timeline-role">user</span>
+                <span class="timeline-time">00:00:00.000</span>
+            </div>
+            <div class="timeline-content">Create a workspace directory structure</div>
+        </div>
+        
+        <div class="timeline-item assistant">
+            <div class="timeline-header">
+                <span class="timeline-role">assistant</span>
+                <span class="timeline-time">00:00:00.000</span>
+            </div>
+            <div class="timeline-content">Workspace created at /workspace</div>
+        </div>
+        
+    </div>
+</details>
+
+
+        
+
+<details class="final-output-section">
+    <summary class="subsection-title">📤 Final Output</summary>
+    <div class="final-output-content">Workspace created at /workspace</div>
+</details>
+
+
+    </div>
+</details>
+
+    </div>
+    
+</div>
+
+
+
+            </div>
+            
+            <div class="test-group-section">
+                
+<div class="test-group-header">
+    <h3 class="test-group-title">Initialize config</h3>
+    
+    
+    
+    <div class="test-group-prompt">
+        <span class="prompt-label">📝 Prompt:</span>
+        <span class="prompt-text">Initialize the configuration files</span>
+    </div>
+    
+    
+    
+</div>
+
+
+
+
+
+<div class="comparison-table-wrapper">
+    <table class="agent-comparison-table">
+        <thead>
+            <tr>
+                <th class="attribute-col">Metric</th>
+                
+                <th class="agent-col passed">
+                    <span class="agent-status">✅</span>
+                    <span class="agent-name">claude-agent</span>
+                    <span class="provider-badge provider-ANTHROPIC">ANTHROPIC</span>
+                </th>
+                
+                <th class="agent-col passed">
+                    <span class="agent-status">✅</span>
+                    <span class="agent-name">gemini-agent</span>
+                    <span class="provider-badge provider-GOOGLE">GOOGLE</span>
+                </th>
+                
+                <th class="agent-col failed">
+                    <span class="agent-status">❌</span>
+                    <span class="agent-name">gpt-agent</span>
+                    <span class="provider-badge provider-OPENAI">OPENAI</span>
+                </th>
+                
+            </tr>
+        </thead>
+        <tbody>
+            <tr class="metric-row">
+                <td class="metric-label">⏱️ Duration</td>
+                
+                <td class="metric-value">2.00s</td>
+                
+                <td class="metric-value">2.00s</td>
+                
+                <td class="metric-value">2.00s</td>
+                
+            </tr>
+            <tr class="metric-row">
+                <td class="metric-label">🎯 Tokens</td>
+                
+                <td class="metric-value">220</td>
+                
+                <td class="metric-value">250</td>
+                
+                <td class="metric-value">280</td>
+                
+            </tr>
+            <tr class="metric-row">
+                <td class="metric-label">🔧 Tool Calls</td>
+                
+                <td class="metric-value">1</td>
+                
+                <td class="metric-value">1</td>
+                
+                <td class="metric-value">1</td>
+                
+            </tr>
+            <tr class="metric-row details-row">
+                <td class="metric-label">📋 Details</td>
+                
+                <td class="metric-value">
+                    <button class="details-toggle-btn" onclick="openAgentDetails( 0 , this)" title="Click to view full details">
+                        🔍 View
+                    </button>
+                </td>
+                
+                <td class="metric-value">
+                    <button class="details-toggle-btn" onclick="openAgentDetails( 1 , this)" title="Click to view full details">
+                        🔍 View
+                    </button>
+                </td>
+                
+                <td class="metric-value">
+                    <button class="details-toggle-btn" onclick="openAgentDetails( 2 , this)" title="Click to view full details">
+                        🔍 View
+                    </button>
+                </td>
+                
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+
+
+<details class="tool-comparison-section">
+    <summary class="tool-comparison-header">🔧 Compare Tool Calls</summary>
+    <div class="tool-comparison-content">
+        <div class="tool-lists-grid">
+            
+            <div class="agent-tool-list">
+                <div class="agent-tool-header">claude-agent</div>
+                <ol class="tool-sequence">
+                    
+                    <li class="tool-item">write_file</li>
+                    
+                    
+                </ol>
+            </div>
+            
+            <div class="agent-tool-list">
+                <div class="agent-tool-header">gemini-agent</div>
+                <ol class="tool-sequence">
+                    
+                    <li class="tool-item">write_file</li>
+                    
+                    
+                </ol>
+            </div>
+            
+            <div class="agent-tool-list">
+                <div class="agent-tool-header">gpt-agent</div>
+                <ol class="tool-sequence">
+                    
+                    <li class="tool-item">write_file</li>
+                    
+                    
+                </ol>
+            </div>
+            
+        </div>
+    </div>
+</details>
+
+
+<details class="sequence-comparison-section">
+    <summary class="sequence-comparison-header">📊 Execution Flow</summary>
+    <div class="sequence-comparison-content">
+        <div class="sequence-grid">
+            
+            
+            <div class="agent-sequence-box">
+                <div class="agent-sequence-header">claude-agent</div>
+                <div class="mermaid">sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    rect rgb(40, 167, 69)
+    note over U,M: ✅ PASS (2.0s · 220 tok)
+    U-&gt;&gt;A: Initialize the configuration files
+    A-&gt;&gt;M: write_file() [55ms]
+    M--&gt;&gt;A: result
+    A--&gt;&gt;U: Config initialized successfully.
+    end
+</div>
+            </div>
+            
+            
+            
+            <div class="agent-sequence-box">
+                <div class="agent-sequence-header">gemini-agent</div>
+                <div class="mermaid">sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    rect rgb(40, 167, 69)
+    note over U,M: ✅ PASS (2.0s · 250 tok)
+    U-&gt;&gt;A: Initialize the configuration files
+    A-&gt;&gt;M: write_file() [55ms]
+    M--&gt;&gt;A: result
+    A--&gt;&gt;U: Config initialized successfully.
+    end
+</div>
+            </div>
+            
+            
+            
+            <div class="agent-sequence-box">
+                <div class="agent-sequence-header">gpt-agent</div>
+                <div class="mermaid">sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    rect rgb(220, 53, 69)
+    note over U,M: ❌ FAIL (2.0s · 280 tok)
+    U-&gt;&gt;A: Initialize the configuration files
+    A-&gt;&gt;M: write_file() [55ms]
+    M--&gt;&gt;A: result
+    A--&gt;&gt;U: Failed to initialize config.
+    end
+</div>
+            </div>
+            
+            
+        </div>
+    </div>
+</details>
+
+
+
+<div class="agent-details-source" style="display: none;">
+    
+    <div class="agent-detail-panel" data-agent-idx="0" data-agent-name="claude-agent">
+        
+<details class="test-item passed" open>
+    <summary class="test-header">
+        <div class="test-info">
+            <span class="test-status-icon">✅</span>
+            <span class="test-agent">claude-agent</span>
+            <span class="provider-badge">ANTHROPIC</span>
+        </div>
+        <div class="test-meta">
+            <span class="duration">2.00s</span>
+            <span class="tokens">220 tokens</span>
+            <span class="expand-icon">▼</span>
+        </div>
+    </summary>
+    <div class="test-details">
+        
+
+<div class="assertions-section">
+    <h4 class="subsection-title">Assertions</h4>
+    <div class="assertions-list">
+        
+        <div class="assertion-item passed">
+            <span class="assertion-icon">✓</span>
+            <div class="assertion-content">
+                <span class="assertion-type">tool_called</span>
+                <span class="assertion-message">Tool &#39;write_file&#39; was called</span>
+                
+            </div>
+        </div>
+        
+    </div>
+</div>
+
+
+        
+
+
+        
+
+
+        
+
+
+        
+
+<div class="sequence-section">
+    <h4 class="subsection-title">Execution Flow</h4>
+    <div class="mermaid">
+sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    rect rgb(40, 167, 69)
+    note over U,M: ✅ PASS (2.0s · 220 tok)
+    U-&gt;&gt;A: Initialize the configuration files
+    A-&gt;&gt;M: write_file() [55ms]
+    M--&gt;&gt;A: result
+    A--&gt;&gt;U: Config initialized successfully.
+    end
+
+    </div>
+</div>
+
+
+        
+
+<div class="toolcalls-section">
+    <h4 class="subsection-title">Tool Calls (1)</h4>
+    <div class="timeline">
+        
+        <div class="timeline-item tool-call">
+            <div class="timeline-header">
+                <span class="tool-name">🔧 write_file</span>
+                <span class="timeline-meta">
+                    <span class="tool-duration">55ms</span>
+                    <span class="timeline-time">&#43;0.30s</span>
+                </span>
+            </div>
+            
+            <details class="tool-params-toggle">
+                <summary>Parameters</summary>
+                <pre class="tool-params">{
+  "content": "Hello World",
+  "path": "/tmp/test.txt"
+}</pre>
+            </details>
+            
+            
+            <details class="tool-result-toggle">
+                <summary>Result</summary>
+                <pre class="tool-result-content">[
+  {
+    "text": "{\"ok\":true,\"path\":\"/tmp/test.txt\",\"bytes\":11}",
+    "type": "text"
+  }
+]</pre>
+            </details>
+            
+        </div>
+        
+    </div>
+</div>
+
+
+        
+
+<details class="messages-section">
+    <summary class="subsection-title">💬 Conversation (2 messages)</summary>
+    <div class="conversation-timeline">
+        
+        <div class="timeline-item user">
+            <div class="timeline-header">
+                <span class="timeline-role">user</span>
+                <span class="timeline-time">00:00:00.000</span>
+            </div>
+            <div class="timeline-content">Initialize the configuration files</div>
+        </div>
+        
+        <div class="timeline-item assistant">
+            <div class="timeline-header">
+                <span class="timeline-role">assistant</span>
+                <span class="timeline-time">00:00:00.000</span>
+            </div>
+            <div class="timeline-content">Config initialized successfully.</div>
+        </div>
+        
+    </div>
+</details>
+
+
+        
+
+<details class="final-output-section">
+    <summary class="subsection-title">📤 Final Output</summary>
+    <div class="final-output-content">Config initialized successfully.</div>
+</details>
+
+
+    </div>
+</details>
+
+    </div>
+    
+    <div class="agent-detail-panel" data-agent-idx="1" data-agent-name="gemini-agent">
+        
+<details class="test-item passed" open>
+    <summary class="test-header">
+        <div class="test-info">
+            <span class="test-status-icon">✅</span>
+            <span class="test-agent">gemini-agent</span>
+            <span class="provider-badge">GOOGLE</span>
+        </div>
+        <div class="test-meta">
+            <span class="duration">2.00s</span>
+            <span class="tokens">250 tokens</span>
+            <span class="expand-icon">▼</span>
+        </div>
+    </summary>
+    <div class="test-details">
+        
+
+<div class="assertions-section">
+    <h4 class="subsection-title">Assertions</h4>
+    <div class="assertions-list">
+        
+        <div class="assertion-item passed">
+            <span class="assertion-icon">✓</span>
+            <div class="assertion-content">
+                <span class="assertion-type">tool_called</span>
+                <span class="assertion-message">Tool &#39;write_file&#39; was called</span>
+                
+            </div>
+        </div>
+        
+    </div>
+</div>
+
+
+        
+
+
+        
+
+
+        
+
+
+        
+
+<div class="sequence-section">
+    <h4 class="subsection-title">Execution Flow</h4>
+    <div class="mermaid">
+sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    rect rgb(40, 167, 69)
+    note over U,M: ✅ PASS (2.0s · 250 tok)
+    U-&gt;&gt;A: Initialize the configuration files
+    A-&gt;&gt;M: write_file() [55ms]
+    M--&gt;&gt;A: result
+    A--&gt;&gt;U: Config initialized successfully.
+    end
+
+    </div>
+</div>
+
+
+        
+
+<div class="toolcalls-section">
+    <h4 class="subsection-title">Tool Calls (1)</h4>
+    <div class="timeline">
+        
+        <div class="timeline-item tool-call">
+            <div class="timeline-header">
+                <span class="tool-name">🔧 write_file</span>
+                <span class="timeline-meta">
+                    <span class="tool-duration">55ms</span>
+                    <span class="timeline-time">10:00:02</span>
+                </span>
+            </div>
+            
+            <details class="tool-params-toggle">
+                <summary>Parameters</summary>
+                <pre class="tool-params">{
+  "content": "Hello World",
+  "path": "/tmp/test.txt"
+}</pre>
+            </details>
+            
+            
+            <details class="tool-result-toggle">
+                <summary>Result</summary>
+                <pre class="tool-result-content">[
+  {
+    "text": "{\"ok\":true,\"path\":\"/tmp/test.txt\",\"bytes\":11}",
+    "type": "text"
+  }
+]</pre>
+            </details>
+            
+        </div>
+        
+    </div>
+</div>
+
+
+        
+
+<details class="messages-section">
+    <summary class="subsection-title">💬 Conversation (2 messages)</summary>
+    <div class="conversation-timeline">
+        
+        <div class="timeline-item user">
+            <div class="timeline-header">
+                <span class="timeline-role">user</span>
+                <span class="timeline-time">00:00:00.000</span>
+            </div>
+            <div class="timeline-content">Initialize the configuration files</div>
+        </div>
+        
+        <div class="timeline-item assistant">
+            <div class="timeline-header">
+                <span class="timeline-role">assistant</span>
+                <span class="timeline-time">00:00:00.000</span>
+            </div>
+            <div class="timeline-content">Config initialized successfully.</div>
+        </div>
+        
+    </div>
+</details>
+
+
+        
+
+<details class="final-output-section">
+    <summary class="subsection-title">📤 Final Output</summary>
+    <div class="final-output-content">Config initialized successfully.</div>
+</details>
+
+
+    </div>
+</details>
+
+    </div>
+    
+    <div class="agent-detail-panel" data-agent-idx="2" data-agent-name="gpt-agent">
+        
+<details class="test-item failed" open>
+    <summary class="test-header">
+        <div class="test-info">
+            <span class="test-status-icon">❌</span>
+            <span class="test-agent">gpt-agent</span>
+            <span class="provider-badge">OPENAI</span>
+        </div>
+        <div class="test-meta">
+            <span class="duration">2.00s</span>
+            <span class="tokens">280 tokens</span>
+            <span class="expand-icon">▼</span>
+        </div>
+    </summary>
+    <div class="test-details">
+        
+
+<div class="assertions-section">
+    <h4 class="subsection-title">Assertions</h4>
+    <div class="assertions-list">
+        
+        <div class="assertion-item passed">
+            <span class="assertion-icon">✓</span>
+            <div class="assertion-content">
+                <span class="assertion-type">tool_called</span>
+                <span class="assertion-message">Tool &#39;write_file&#39; was called</span>
+                
+            </div>
+        </div>
+        
+    </div>
+</div>
+
+
+        
+
+
+        
+
+
+        
+
+
+        
+
+<div class="sequence-section">
+    <h4 class="subsection-title">Execution Flow</h4>
+    <div class="mermaid">
+sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    rect rgb(220, 53, 69)
+    note over U,M: ❌ FAIL (2.0s · 280 tok)
+    U-&gt;&gt;A: Initialize the configuration files
+    A-&gt;&gt;M: write_file() [55ms]
+    M--&gt;&gt;A: result
+    A--&gt;&gt;U: Failed to initialize config.
+    end
+
+    </div>
+</div>
+
+
+        
+
+<div class="toolcalls-section">
+    <h4 class="subsection-title">Tool Calls (1)</h4>
+    <div class="timeline">
+        
+        <div class="timeline-item tool-call">
+            <div class="timeline-header">
+                <span class="tool-name">🔧 write_file</span>
+                <span class="timeline-meta">
+                    <span class="tool-duration">55ms</span>
+                    <span class="timeline-time">10:00:02</span>
+                </span>
+            </div>
+            
+            <details class="tool-params-toggle">
+                <summary>Parameters</summary>
+                <pre class="tool-params">{
+  "content": "Hello World",
+  "path": "/tmp/test.txt"
+}</pre>
+            </details>
+            
+            
+            <details class="tool-result-toggle">
+                <summary>Result</summary>
+                <pre class="tool-result-content">[
+  {
+    "text": "{\"ok\":true,\"path\":\"/tmp/test.txt\",\"bytes\":11}",
+    "type": "text"
+  }
+]</pre>
+            </details>
+            
+        </div>
+        
+    </div>
+</div>
+
+
+        
+
+<details class="messages-section">
+    <summary class="subsection-title">💬 Conversation (2 messages)</summary>
+    <div class="conversation-timeline">
+        
+        <div class="timeline-item user">
+            <div class="timeline-header">
+                <span class="timeline-role">user</span>
+                <span class="timeline-time">00:00:00.000</span>
+            </div>
+            <div class="timeline-content">Initialize the configuration files</div>
+        </div>
+        
+        <div class="timeline-item assistant">
+            <div class="timeline-header">
+                <span class="timeline-role">assistant</span>
+                <span class="timeline-time">00:00:00.000</span>
+            </div>
+            <div class="timeline-content">Failed to initialize config.</div>
+        </div>
+        
+    </div>
+</details>
+
+
+        
+
+<details class="final-output-section">
+    <summary class="subsection-title">📤 Final Output</summary>
+    <div class="final-output-content">Failed to initialize config.</div>
 </details>
 
 
@@ -3140,21 +4285,219 @@ sequenceDiagram
             
             
             
-            
-            
-            
-            <div class="test-session-header">
-                <h4 class="test-session-title">🔄 Processing</h4>
             </div>
+            </div>
+            
+            
+            
+            
+            
+            <div class="session-container">
+            
+            <div class="test-session-header session-group-header">
+                <div class="session-header-main">
+                    <h4 class="test-session-title">🔄 Processing</h4>
+                    <span class="session-stats">
+                        
+                        <span class="success-bar"><span class="success-bar-fill success-high" style="width: 100%"></span></span>
+                        <span class="text-pass">
+                            9/9 (100%)
+                        </span>
+                        <span class="summary-metric">⏱ 1.8s–3.0s</span>
+                        <span class="summary-metric">🔢 280–510<span class="tok-suffix">tok</span></span>
+                        <span class="summary-metric">🤖 3 agents</span>
+                        
+                    </span>
+                </div>
+                
+                
+                <div class="session-overview-section">
+                    <div class="session-overview-label">📊 Session Overview — Agent Comparison</div>
+                    <div class="session-overview-table-wrapper">
+                        <table class="session-overview-table">
+                            <thead>
+                                <tr>
+                                    <th class="metric-col">Metric</th>
+                                    
+                                    <th class="agent-col success-high">
+                                        <span class="agent-status">✅</span>
+                                        <span class="agent-name">claude-agent</span>
+                                        <span class="provider-badge provider-ANTHROPIC">ANTHROPIC</span>
+                                    </th>
+                                    
+                                    <th class="agent-col success-high">
+                                        <span class="agent-status">✅</span>
+                                        <span class="agent-name">gemini-agent</span>
+                                        <span class="provider-badge provider-GOOGLE">GOOGLE</span>
+                                    </th>
+                                    
+                                    <th class="agent-col success-high">
+                                        <span class="agent-status">✅</span>
+                                        <span class="agent-name">gpt-agent</span>
+                                        <span class="provider-badge provider-OPENAI">OPENAI</span>
+                                    </th>
+                                    
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="metric-row">
+                                <td class="metric-label">📊 Pass Rate</td>
+                                
+                                <td class="metric-value text-pass">
+                                    3/3 (100%)
+                                </td>
+                                
+                                <td class="metric-value text-pass">
+                                    3/3 (100%)
+                                </td>
+                                
+                                <td class="metric-value text-pass">
+                                    3/3 (100%)
+                                </td>
+                                
+                            </tr>
+                            <tr class="metric-row">
+                                <td class="metric-label">⏱️ Duration</td>
+                                
+                                <td class="metric-value">1.8s–3.0s</td>
+                                
+                                <td class="metric-value">1.8s–3.0s</td>
+                                
+                                <td class="metric-value">1.8s–3.0s</td>
+                                
+                            </tr>
+                            <tr class="metric-row">
+                                <td class="metric-label">🎯 Tokens</td>
+                                
+                                <td class="metric-value">280–450</td>
+                                
+                                <td class="metric-value">305–480</td>
+                                
+                                <td class="metric-value">330–510</td>
+                                
+                            </tr>
+                        </tbody>
+                    </table>
+                    </div>
+                </div>
+                
+                
+                
+                <details class="session-diagram-details">
+                    <summary class="session-diagram-summary">📊 View Session Flow (3 agents)</summary>
+                    <div class="session-agent-diagrams-grid">
+                        
+                        <div class="agent-sequence-box">
+                            <div class="agent-sequence-header">claude-agent</div>
+                            <div class="mermaid">sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    rect rgb(40, 167, 69)
+    note over U,M: Test 1 - Connect database ✅ (2.5s · 280 tok)
+    U-&gt;&gt;A: Connect to the PostgreSQL database
+    A-&gt;&gt;M: db_connect()
+    M--&gt;&gt;A: result
+    A--&gt;&gt;U: Connected to database succe...
+    end
+    rect rgb(40, 167, 69)
+    note over U,M: Test 2 - Query data ✅ (1.8s · 320 tok)
+    U-&gt;&gt;A: Query all records from the data table
+    A-&gt;&gt;M: db_query()
+    M--&gt;&gt;A: result
+    A--&gt;&gt;U: Retrieved 1,234 records
+    end
+    rect rgb(40, 167, 69)
+    note over U,M: Test 3 - Generate report ✅ (3.0s · 450 tok)
+    U-&gt;&gt;A: Generate a summary report from the qu...
+    A-&gt;&gt;M: write_file()
+    M--&gt;&gt;A: result
+    A--&gt;&gt;U: Report generated at /report...
+    end
+</div>
+                        </div>
+                        
+                        <div class="agent-sequence-box">
+                            <div class="agent-sequence-header">gemini-agent</div>
+                            <div class="mermaid">sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    rect rgb(40, 167, 69)
+    note over U,M: Test 1 - Connect database ✅ (2.5s · 305 tok)
+    U-&gt;&gt;A: Connect to the PostgreSQL database
+    A-&gt;&gt;M: db_connect()
+    M--&gt;&gt;A: result
+    A--&gt;&gt;U: Connected to database succe...
+    end
+    rect rgb(40, 167, 69)
+    note over U,M: Test 2 - Query data ✅ (1.8s · 340 tok)
+    U-&gt;&gt;A: Query all records from the data table
+    A-&gt;&gt;M: db_query()
+    M--&gt;&gt;A: result
+    A--&gt;&gt;U: Retrieved 1,234 records
+    end
+    rect rgb(40, 167, 69)
+    note over U,M: Test 3 - Generate report ✅ (3.0s · 480 tok)
+    U-&gt;&gt;A: Generate a summary report from the qu...
+    A-&gt;&gt;M: write_file()
+    M--&gt;&gt;A: result
+    A--&gt;&gt;U: Report generated at /report...
+    end
+</div>
+                        </div>
+                        
+                        <div class="agent-sequence-box">
+                            <div class="agent-sequence-header">gpt-agent</div>
+                            <div class="mermaid">sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    rect rgb(40, 167, 69)
+    note over U,M: Test 1 - Connect database ✅ (2.5s · 330 tok)
+    U-&gt;&gt;A: Connect to the PostgreSQL database
+    A-&gt;&gt;M: db_connect()
+    M--&gt;&gt;A: result
+    A--&gt;&gt;U: Connected to database succe...
+    end
+    rect rgb(40, 167, 69)
+    note over U,M: Test 2 - Query data ✅ (1.8s · 360 tok)
+    U-&gt;&gt;A: Query all records from the data table
+    A-&gt;&gt;M: db_query()
+    M--&gt;&gt;A: result
+    A--&gt;&gt;U: Retrieved 1,234 records
+    end
+    rect rgb(40, 167, 69)
+    note over U,M: Test 3 - Generate report ✅ (3.0s · 510 tok)
+    U-&gt;&gt;A: Generate a summary report from the qu...
+    A-&gt;&gt;M: write_file()
+    M--&gt;&gt;A: result
+    A--&gt;&gt;U: Report generated at /report...
+    end
+</div>
+                        </div>
+                        
+                    </div>
+                </details>
+                
+                
+            </div>
+            <div class="session-tests-container">
+                <div class="session-tests-label">📋 Tests in this session</div>
             
             
             
             <div class="test-group-section">
                 
 <div class="test-group-header">
-    <h3 class="test-group-title">Process data</h3>
+    <h3 class="test-group-title">Connect database</h3>
     
     
+    
+    <div class="test-group-prompt">
+        <span class="prompt-label">📝 Prompt:</span>
+        <span class="prompt-text">Connect to the PostgreSQL database</span>
+    </div>
     
     
     
@@ -3194,21 +4537,671 @@ sequenceDiagram
             <tr class="metric-row">
                 <td class="metric-label">⏱️ Duration</td>
                 
-                <td class="metric-value">3.00s</td>
+                <td class="metric-value">2.50s</td>
                 
-                <td class="metric-value">3.00s</td>
+                <td class="metric-value">2.50s</td>
                 
-                <td class="metric-value">3.00s</td>
+                <td class="metric-value">2.50s</td>
                 
             </tr>
             <tr class="metric-row">
                 <td class="metric-label">🎯 Tokens</td>
                 
-                <td class="metric-value">350</td>
+                <td class="metric-value">280</td>
                 
-                <td class="metric-value">375</td>
+                <td class="metric-value">305</td>
                 
-                <td class="metric-value">400</td>
+                <td class="metric-value">330</td>
+                
+            </tr>
+            <tr class="metric-row">
+                <td class="metric-label">🔧 Tool Calls</td>
+                
+                <td class="metric-value">1</td>
+                
+                <td class="metric-value">1</td>
+                
+                <td class="metric-value">1</td>
+                
+            </tr>
+            <tr class="metric-row details-row">
+                <td class="metric-label">📋 Details</td>
+                
+                <td class="metric-value">
+                    <button class="details-toggle-btn" onclick="openAgentDetails( 0 , this)" title="Click to view full details">
+                        🔍 View
+                    </button>
+                </td>
+                
+                <td class="metric-value">
+                    <button class="details-toggle-btn" onclick="openAgentDetails( 1 , this)" title="Click to view full details">
+                        🔍 View
+                    </button>
+                </td>
+                
+                <td class="metric-value">
+                    <button class="details-toggle-btn" onclick="openAgentDetails( 2 , this)" title="Click to view full details">
+                        🔍 View
+                    </button>
+                </td>
+                
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+
+
+<details class="tool-comparison-section">
+    <summary class="tool-comparison-header">🔧 Compare Tool Calls</summary>
+    <div class="tool-comparison-content">
+        <div class="tool-lists-grid">
+            
+            <div class="agent-tool-list">
+                <div class="agent-tool-header">claude-agent</div>
+                <ol class="tool-sequence">
+                    
+                    <li class="tool-item">db_connect</li>
+                    
+                    
+                </ol>
+            </div>
+            
+            <div class="agent-tool-list">
+                <div class="agent-tool-header">gemini-agent</div>
+                <ol class="tool-sequence">
+                    
+                    <li class="tool-item">db_connect</li>
+                    
+                    
+                </ol>
+            </div>
+            
+            <div class="agent-tool-list">
+                <div class="agent-tool-header">gpt-agent</div>
+                <ol class="tool-sequence">
+                    
+                    <li class="tool-item">db_connect</li>
+                    
+                    
+                </ol>
+            </div>
+            
+        </div>
+    </div>
+</details>
+
+
+<details class="sequence-comparison-section">
+    <summary class="sequence-comparison-header">📊 Execution Flow</summary>
+    <div class="sequence-comparison-content">
+        <div class="sequence-grid">
+            
+            
+            <div class="agent-sequence-box">
+                <div class="agent-sequence-header">claude-agent</div>
+                <div class="mermaid">sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    rect rgb(40, 167, 69)
+    note over U,M: ✅ PASS (2.5s · 280 tok)
+    U-&gt;&gt;A: Connect to the PostgreSQL database
+    A-&gt;&gt;M: db_connect() [150ms]
+    M--&gt;&gt;A: result
+    A--&gt;&gt;U: Connected to database successfully
+    end
+</div>
+            </div>
+            
+            
+            
+            <div class="agent-sequence-box">
+                <div class="agent-sequence-header">gemini-agent</div>
+                <div class="mermaid">sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    rect rgb(40, 167, 69)
+    note over U,M: ✅ PASS (2.5s · 305 tok)
+    U-&gt;&gt;A: Connect to the PostgreSQL database
+    A-&gt;&gt;M: db_connect() [150ms]
+    M--&gt;&gt;A: result
+    A--&gt;&gt;U: Connected to database successfully
+    end
+</div>
+            </div>
+            
+            
+            
+            <div class="agent-sequence-box">
+                <div class="agent-sequence-header">gpt-agent</div>
+                <div class="mermaid">sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    rect rgb(40, 167, 69)
+    note over U,M: ✅ PASS (2.5s · 330 tok)
+    U-&gt;&gt;A: Connect to the PostgreSQL database
+    A-&gt;&gt;M: db_connect() [150ms]
+    M--&gt;&gt;A: result
+    A--&gt;&gt;U: Connected to database successfully
+    end
+</div>
+            </div>
+            
+            
+        </div>
+    </div>
+</details>
+
+
+
+<div class="agent-details-source" style="display: none;">
+    
+    <div class="agent-detail-panel" data-agent-idx="0" data-agent-name="claude-agent">
+        
+<details class="test-item passed" open>
+    <summary class="test-header">
+        <div class="test-info">
+            <span class="test-status-icon">✅</span>
+            <span class="test-agent">claude-agent</span>
+            <span class="provider-badge">ANTHROPIC</span>
+        </div>
+        <div class="test-meta">
+            <span class="duration">2.50s</span>
+            <span class="tokens">280 tokens</span>
+            <span class="expand-icon">▼</span>
+        </div>
+    </summary>
+    <div class="test-details">
+        
+
+<div class="assertions-section">
+    <h4 class="subsection-title">Assertions</h4>
+    <div class="assertions-list">
+        
+        <div class="assertion-item passed">
+            <span class="assertion-icon">✓</span>
+            <div class="assertion-content">
+                <span class="assertion-type">tool_called</span>
+                <span class="assertion-message">Tool &#39;db_connect&#39; was called</span>
+                
+            </div>
+        </div>
+        
+    </div>
+</div>
+
+
+        
+
+
+        
+
+
+        
+
+
+        
+
+<div class="sequence-section">
+    <h4 class="subsection-title">Execution Flow</h4>
+    <div class="mermaid">
+sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    rect rgb(40, 167, 69)
+    note over U,M: ✅ PASS (2.5s · 280 tok)
+    U-&gt;&gt;A: Connect to the PostgreSQL database
+    A-&gt;&gt;M: db_connect() [150ms]
+    M--&gt;&gt;A: result
+    A--&gt;&gt;U: Connected to database successfully
+    end
+
+    </div>
+</div>
+
+
+        
+
+<div class="toolcalls-section">
+    <h4 class="subsection-title">Tool Calls (1)</h4>
+    <div class="timeline">
+        
+        <div class="timeline-item tool-call">
+            <div class="timeline-header">
+                <span class="tool-name">🔧 db_connect</span>
+                <span class="timeline-meta">
+                    <span class="tool-duration">150ms</span>
+                    <span class="timeline-time">&#43;0.30s</span>
+                </span>
+            </div>
+            
+            <details class="tool-params-toggle">
+                <summary>Parameters</summary>
+                <pre class="tool-params">{
+  "host": "localhost",
+  "port": 5432
+}</pre>
+            </details>
+            
+            
+            <details class="tool-result-toggle">
+                <summary>Result</summary>
+                <pre class="tool-result-content">[
+  {
+    "text": "{\"ok\":true,\"connection\":{\"host\":\"localhost\",\"port\":5432,\"status\":\"connected\"}}",
+    "type": "text"
+  }
+]</pre>
+            </details>
+            
+        </div>
+        
+    </div>
+</div>
+
+
+        
+
+<details class="messages-section">
+    <summary class="subsection-title">💬 Conversation (2 messages)</summary>
+    <div class="conversation-timeline">
+        
+        <div class="timeline-item user">
+            <div class="timeline-header">
+                <span class="timeline-role">user</span>
+                <span class="timeline-time">00:00:00.000</span>
+            </div>
+            <div class="timeline-content">Connect to the PostgreSQL database</div>
+        </div>
+        
+        <div class="timeline-item assistant">
+            <div class="timeline-header">
+                <span class="timeline-role">assistant</span>
+                <span class="timeline-time">00:00:00.000</span>
+            </div>
+            <div class="timeline-content">Connected to database successfully</div>
+        </div>
+        
+    </div>
+</details>
+
+
+        
+
+<details class="final-output-section">
+    <summary class="subsection-title">📤 Final Output</summary>
+    <div class="final-output-content">Connected to database successfully</div>
+</details>
+
+
+    </div>
+</details>
+
+    </div>
+    
+    <div class="agent-detail-panel" data-agent-idx="1" data-agent-name="gemini-agent">
+        
+<details class="test-item passed" open>
+    <summary class="test-header">
+        <div class="test-info">
+            <span class="test-status-icon">✅</span>
+            <span class="test-agent">gemini-agent</span>
+            <span class="provider-badge">GOOGLE</span>
+        </div>
+        <div class="test-meta">
+            <span class="duration">2.50s</span>
+            <span class="tokens">305 tokens</span>
+            <span class="expand-icon">▼</span>
+        </div>
+    </summary>
+    <div class="test-details">
+        
+
+<div class="assertions-section">
+    <h4 class="subsection-title">Assertions</h4>
+    <div class="assertions-list">
+        
+        <div class="assertion-item passed">
+            <span class="assertion-icon">✓</span>
+            <div class="assertion-content">
+                <span class="assertion-type">tool_called</span>
+                <span class="assertion-message">Tool &#39;db_connect&#39; was called</span>
+                
+            </div>
+        </div>
+        
+    </div>
+</div>
+
+
+        
+
+
+        
+
+
+        
+
+
+        
+
+<div class="sequence-section">
+    <h4 class="subsection-title">Execution Flow</h4>
+    <div class="mermaid">
+sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    rect rgb(40, 167, 69)
+    note over U,M: ✅ PASS (2.5s · 305 tok)
+    U-&gt;&gt;A: Connect to the PostgreSQL database
+    A-&gt;&gt;M: db_connect() [150ms]
+    M--&gt;&gt;A: result
+    A--&gt;&gt;U: Connected to database successfully
+    end
+
+    </div>
+</div>
+
+
+        
+
+<div class="toolcalls-section">
+    <h4 class="subsection-title">Tool Calls (1)</h4>
+    <div class="timeline">
+        
+        <div class="timeline-item tool-call">
+            <div class="timeline-header">
+                <span class="tool-name">🔧 db_connect</span>
+                <span class="timeline-meta">
+                    <span class="tool-duration">150ms</span>
+                    <span class="timeline-time">10:00:05</span>
+                </span>
+            </div>
+            
+            <details class="tool-params-toggle">
+                <summary>Parameters</summary>
+                <pre class="tool-params">{
+  "host": "localhost",
+  "port": 5432
+}</pre>
+            </details>
+            
+            
+            <details class="tool-result-toggle">
+                <summary>Result</summary>
+                <pre class="tool-result-content">[
+  {
+    "text": "{\"ok\":true,\"connection\":{\"host\":\"localhost\",\"port\":5432,\"status\":\"connected\"}}",
+    "type": "text"
+  }
+]</pre>
+            </details>
+            
+        </div>
+        
+    </div>
+</div>
+
+
+        
+
+<details class="messages-section">
+    <summary class="subsection-title">💬 Conversation (2 messages)</summary>
+    <div class="conversation-timeline">
+        
+        <div class="timeline-item user">
+            <div class="timeline-header">
+                <span class="timeline-role">user</span>
+                <span class="timeline-time">00:00:00.000</span>
+            </div>
+            <div class="timeline-content">Connect to the PostgreSQL database</div>
+        </div>
+        
+        <div class="timeline-item assistant">
+            <div class="timeline-header">
+                <span class="timeline-role">assistant</span>
+                <span class="timeline-time">00:00:00.000</span>
+            </div>
+            <div class="timeline-content">Connected to database successfully</div>
+        </div>
+        
+    </div>
+</details>
+
+
+        
+
+<details class="final-output-section">
+    <summary class="subsection-title">📤 Final Output</summary>
+    <div class="final-output-content">Connected to database successfully</div>
+</details>
+
+
+    </div>
+</details>
+
+    </div>
+    
+    <div class="agent-detail-panel" data-agent-idx="2" data-agent-name="gpt-agent">
+        
+<details class="test-item passed" open>
+    <summary class="test-header">
+        <div class="test-info">
+            <span class="test-status-icon">✅</span>
+            <span class="test-agent">gpt-agent</span>
+            <span class="provider-badge">OPENAI</span>
+        </div>
+        <div class="test-meta">
+            <span class="duration">2.50s</span>
+            <span class="tokens">330 tokens</span>
+            <span class="expand-icon">▼</span>
+        </div>
+    </summary>
+    <div class="test-details">
+        
+
+<div class="assertions-section">
+    <h4 class="subsection-title">Assertions</h4>
+    <div class="assertions-list">
+        
+        <div class="assertion-item passed">
+            <span class="assertion-icon">✓</span>
+            <div class="assertion-content">
+                <span class="assertion-type">tool_called</span>
+                <span class="assertion-message">Tool &#39;db_connect&#39; was called</span>
+                
+            </div>
+        </div>
+        
+    </div>
+</div>
+
+
+        
+
+
+        
+
+
+        
+
+
+        
+
+<div class="sequence-section">
+    <h4 class="subsection-title">Execution Flow</h4>
+    <div class="mermaid">
+sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    rect rgb(40, 167, 69)
+    note over U,M: ✅ PASS (2.5s · 330 tok)
+    U-&gt;&gt;A: Connect to the PostgreSQL database
+    A-&gt;&gt;M: db_connect() [150ms]
+    M--&gt;&gt;A: result
+    A--&gt;&gt;U: Connected to database successfully
+    end
+
+    </div>
+</div>
+
+
+        
+
+<div class="toolcalls-section">
+    <h4 class="subsection-title">Tool Calls (1)</h4>
+    <div class="timeline">
+        
+        <div class="timeline-item tool-call">
+            <div class="timeline-header">
+                <span class="tool-name">🔧 db_connect</span>
+                <span class="timeline-meta">
+                    <span class="tool-duration">150ms</span>
+                    <span class="timeline-time">10:00:05</span>
+                </span>
+            </div>
+            
+            <details class="tool-params-toggle">
+                <summary>Parameters</summary>
+                <pre class="tool-params">{
+  "host": "localhost",
+  "port": 5432
+}</pre>
+            </details>
+            
+            
+            <details class="tool-result-toggle">
+                <summary>Result</summary>
+                <pre class="tool-result-content">[
+  {
+    "text": "{\"ok\":true,\"connection\":{\"host\":\"localhost\",\"port\":5432,\"status\":\"connected\"}}",
+    "type": "text"
+  }
+]</pre>
+            </details>
+            
+        </div>
+        
+    </div>
+</div>
+
+
+        
+
+<details class="messages-section">
+    <summary class="subsection-title">💬 Conversation (2 messages)</summary>
+    <div class="conversation-timeline">
+        
+        <div class="timeline-item user">
+            <div class="timeline-header">
+                <span class="timeline-role">user</span>
+                <span class="timeline-time">00:00:00.000</span>
+            </div>
+            <div class="timeline-content">Connect to the PostgreSQL database</div>
+        </div>
+        
+        <div class="timeline-item assistant">
+            <div class="timeline-header">
+                <span class="timeline-role">assistant</span>
+                <span class="timeline-time">00:00:00.000</span>
+            </div>
+            <div class="timeline-content">Connected to database successfully</div>
+        </div>
+        
+    </div>
+</details>
+
+
+        
+
+<details class="final-output-section">
+    <summary class="subsection-title">📤 Final Output</summary>
+    <div class="final-output-content">Connected to database successfully</div>
+</details>
+
+
+    </div>
+</details>
+
+    </div>
+    
+</div>
+
+
+
+            </div>
+            
+            <div class="test-group-section">
+                
+<div class="test-group-header">
+    <h3 class="test-group-title">Query data</h3>
+    
+    
+    
+    <div class="test-group-prompt">
+        <span class="prompt-label">📝 Prompt:</span>
+        <span class="prompt-text">Query all records from the data table</span>
+    </div>
+    
+    
+    
+</div>
+
+
+
+
+
+<div class="comparison-table-wrapper">
+    <table class="agent-comparison-table">
+        <thead>
+            <tr>
+                <th class="attribute-col">Metric</th>
+                
+                <th class="agent-col passed">
+                    <span class="agent-status">✅</span>
+                    <span class="agent-name">claude-agent</span>
+                    <span class="provider-badge provider-ANTHROPIC">ANTHROPIC</span>
+                </th>
+                
+                <th class="agent-col passed">
+                    <span class="agent-status">✅</span>
+                    <span class="agent-name">gemini-agent</span>
+                    <span class="provider-badge provider-GOOGLE">GOOGLE</span>
+                </th>
+                
+                <th class="agent-col passed">
+                    <span class="agent-status">✅</span>
+                    <span class="agent-name">gpt-agent</span>
+                    <span class="provider-badge provider-OPENAI">OPENAI</span>
+                </th>
+                
+            </tr>
+        </thead>
+        <tbody>
+            <tr class="metric-row">
+                <td class="metric-label">⏱️ Duration</td>
+                
+                <td class="metric-value">1.80s</td>
+                
+                <td class="metric-value">1.80s</td>
+                
+                <td class="metric-value">1.80s</td>
+                
+            </tr>
+            <tr class="metric-row">
+                <td class="metric-label">🎯 Tokens</td>
+                
+                <td class="metric-value">320</td>
+                
+                <td class="metric-value">340</td>
+                
+                <td class="metric-value">360</td>
                 
             </tr>
             <tr class="metric-row">
@@ -3301,9 +5294,13 @@ sequenceDiagram
     participant U as User
     participant A as Agent
     participant M as MCP Server
-    A-&gt;&gt;M: db_query() [120ms]
+    rect rgb(40, 167, 69)
+    note over U,M: ✅ PASS (1.8s · 320 tok)
+    U-&gt;&gt;A: Query all records from the data table
+    A-&gt;&gt;M: db_query() [95ms]
     M--&gt;&gt;A: result
-    A--&gt;&gt;U: Data processed successfully. [350 tokens]
+    A--&gt;&gt;U: Retrieved 1,234 records
+    end
 </div>
             </div>
             
@@ -3315,9 +5312,13 @@ sequenceDiagram
     participant U as User
     participant A as Agent
     participant M as MCP Server
-    A-&gt;&gt;M: db_query() [120ms]
+    rect rgb(40, 167, 69)
+    note over U,M: ✅ PASS (1.8s · 340 tok)
+    U-&gt;&gt;A: Query all records from the data table
+    A-&gt;&gt;M: db_query() [95ms]
     M--&gt;&gt;A: result
-    A--&gt;&gt;U: Data processed successfully. [375 tokens]
+    A--&gt;&gt;U: Retrieved 1,234 records
+    end
 </div>
             </div>
             
@@ -3329,9 +5330,13 @@ sequenceDiagram
     participant U as User
     participant A as Agent
     participant M as MCP Server
-    A-&gt;&gt;M: db_query() [120ms]
+    rect rgb(40, 167, 69)
+    note over U,M: ✅ PASS (1.8s · 360 tok)
+    U-&gt;&gt;A: Query all records from the data table
+    A-&gt;&gt;M: db_query() [95ms]
     M--&gt;&gt;A: result
-    A--&gt;&gt;U: Data processed successfully. [400 tokens]
+    A--&gt;&gt;U: Retrieved 1,234 records
+    end
 </div>
             </div>
             
@@ -3354,8 +5359,8 @@ sequenceDiagram
             <span class="provider-badge">ANTHROPIC</span>
         </div>
         <div class="test-meta">
-            <span class="duration">3.00s</span>
-            <span class="tokens">350 tokens</span>
+            <span class="duration">1.80s</span>
+            <span class="tokens">320 tokens</span>
             <span class="expand-icon">▼</span>
         </div>
     </summary>
@@ -3397,9 +5402,13 @@ sequenceDiagram
     participant U as User
     participant A as Agent
     participant M as MCP Server
-    A-&gt;&gt;M: db_query() [120ms]
+    rect rgb(40, 167, 69)
+    note over U,M: ✅ PASS (1.8s · 320 tok)
+    U-&gt;&gt;A: Query all records from the data table
+    A-&gt;&gt;M: db_query() [95ms]
     M--&gt;&gt;A: result
-    A--&gt;&gt;U: Data processed successfully. [350 tokens]
+    A--&gt;&gt;U: Retrieved 1,234 records
+    end
 
     </div>
 </div>
@@ -3415,8 +5424,8 @@ sequenceDiagram
             <div class="timeline-header">
                 <span class="tool-name">🔧 db_query</span>
                 <span class="timeline-meta">
-                    <span class="tool-duration">120ms</span>
-                    <span class="timeline-time">&#43;0.50s</span>
+                    <span class="tool-duration">95ms</span>
+                    <span class="timeline-time">&#43;0.20s</span>
                 </span>
             </div>
             
@@ -3446,12 +5455,683 @@ sequenceDiagram
 
         
 
+<details class="messages-section">
+    <summary class="subsection-title">💬 Conversation (2 messages)</summary>
+    <div class="conversation-timeline">
+        
+        <div class="timeline-item user">
+            <div class="timeline-header">
+                <span class="timeline-role">user</span>
+                <span class="timeline-time">00:00:00.000</span>
+            </div>
+            <div class="timeline-content">Query all records from the data table</div>
+        </div>
+        
+        <div class="timeline-item assistant">
+            <div class="timeline-header">
+                <span class="timeline-role">assistant</span>
+                <span class="timeline-time">00:00:00.000</span>
+            </div>
+            <div class="timeline-content">Retrieved 1,234 records</div>
+        </div>
+        
+    </div>
+</details>
+
 
         
 
 <details class="final-output-section">
     <summary class="subsection-title">📤 Final Output</summary>
-    <div class="final-output-content">Data processed successfully.</div>
+    <div class="final-output-content">Retrieved 1,234 records</div>
+</details>
+
+
+    </div>
+</details>
+
+    </div>
+    
+    <div class="agent-detail-panel" data-agent-idx="1" data-agent-name="gemini-agent">
+        
+<details class="test-item passed" open>
+    <summary class="test-header">
+        <div class="test-info">
+            <span class="test-status-icon">✅</span>
+            <span class="test-agent">gemini-agent</span>
+            <span class="provider-badge">GOOGLE</span>
+        </div>
+        <div class="test-meta">
+            <span class="duration">1.80s</span>
+            <span class="tokens">340 tokens</span>
+            <span class="expand-icon">▼</span>
+        </div>
+    </summary>
+    <div class="test-details">
+        
+
+<div class="assertions-section">
+    <h4 class="subsection-title">Assertions</h4>
+    <div class="assertions-list">
+        
+        <div class="assertion-item passed">
+            <span class="assertion-icon">✓</span>
+            <div class="assertion-content">
+                <span class="assertion-type">tool_called</span>
+                <span class="assertion-message">Tool &#39;db_query&#39; was called</span>
+                
+            </div>
+        </div>
+        
+    </div>
+</div>
+
+
+        
+
+
+        
+
+
+        
+
+
+        
+
+<div class="sequence-section">
+    <h4 class="subsection-title">Execution Flow</h4>
+    <div class="mermaid">
+sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    rect rgb(40, 167, 69)
+    note over U,M: ✅ PASS (1.8s · 340 tok)
+    U-&gt;&gt;A: Query all records from the data table
+    A-&gt;&gt;M: db_query() [95ms]
+    M--&gt;&gt;A: result
+    A--&gt;&gt;U: Retrieved 1,234 records
+    end
+
+    </div>
+</div>
+
+
+        
+
+<div class="toolcalls-section">
+    <h4 class="subsection-title">Tool Calls (1)</h4>
+    <div class="timeline">
+        
+        <div class="timeline-item tool-call">
+            <div class="timeline-header">
+                <span class="tool-name">🔧 db_query</span>
+                <span class="timeline-meta">
+                    <span class="tool-duration">95ms</span>
+                    <span class="timeline-time">10:00:08</span>
+                </span>
+            </div>
+            
+            <details class="tool-params-toggle">
+                <summary>Parameters</summary>
+                <pre class="tool-params">{
+  "sql": "SELECT * FROM data"
+}</pre>
+            </details>
+            
+            
+            <details class="tool-result-toggle">
+                <summary>Result</summary>
+                <pre class="tool-result-content">[
+  {
+    "text": "{\"ok\":true,\"rows\":[{\"id\":1,\"name\":\"test\"}],\"rowCount\":1}",
+    "type": "text"
+  }
+]</pre>
+            </details>
+            
+        </div>
+        
+    </div>
+</div>
+
+
+        
+
+<details class="messages-section">
+    <summary class="subsection-title">💬 Conversation (2 messages)</summary>
+    <div class="conversation-timeline">
+        
+        <div class="timeline-item user">
+            <div class="timeline-header">
+                <span class="timeline-role">user</span>
+                <span class="timeline-time">00:00:00.000</span>
+            </div>
+            <div class="timeline-content">Query all records from the data table</div>
+        </div>
+        
+        <div class="timeline-item assistant">
+            <div class="timeline-header">
+                <span class="timeline-role">assistant</span>
+                <span class="timeline-time">00:00:00.000</span>
+            </div>
+            <div class="timeline-content">Retrieved 1,234 records</div>
+        </div>
+        
+    </div>
+</details>
+
+
+        
+
+<details class="final-output-section">
+    <summary class="subsection-title">📤 Final Output</summary>
+    <div class="final-output-content">Retrieved 1,234 records</div>
+</details>
+
+
+    </div>
+</details>
+
+    </div>
+    
+    <div class="agent-detail-panel" data-agent-idx="2" data-agent-name="gpt-agent">
+        
+<details class="test-item passed" open>
+    <summary class="test-header">
+        <div class="test-info">
+            <span class="test-status-icon">✅</span>
+            <span class="test-agent">gpt-agent</span>
+            <span class="provider-badge">OPENAI</span>
+        </div>
+        <div class="test-meta">
+            <span class="duration">1.80s</span>
+            <span class="tokens">360 tokens</span>
+            <span class="expand-icon">▼</span>
+        </div>
+    </summary>
+    <div class="test-details">
+        
+
+<div class="assertions-section">
+    <h4 class="subsection-title">Assertions</h4>
+    <div class="assertions-list">
+        
+        <div class="assertion-item passed">
+            <span class="assertion-icon">✓</span>
+            <div class="assertion-content">
+                <span class="assertion-type">tool_called</span>
+                <span class="assertion-message">Tool &#39;db_query&#39; was called</span>
+                
+            </div>
+        </div>
+        
+    </div>
+</div>
+
+
+        
+
+
+        
+
+
+        
+
+
+        
+
+<div class="sequence-section">
+    <h4 class="subsection-title">Execution Flow</h4>
+    <div class="mermaid">
+sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    rect rgb(40, 167, 69)
+    note over U,M: ✅ PASS (1.8s · 360 tok)
+    U-&gt;&gt;A: Query all records from the data table
+    A-&gt;&gt;M: db_query() [95ms]
+    M--&gt;&gt;A: result
+    A--&gt;&gt;U: Retrieved 1,234 records
+    end
+
+    </div>
+</div>
+
+
+        
+
+<div class="toolcalls-section">
+    <h4 class="subsection-title">Tool Calls (1)</h4>
+    <div class="timeline">
+        
+        <div class="timeline-item tool-call">
+            <div class="timeline-header">
+                <span class="tool-name">🔧 db_query</span>
+                <span class="timeline-meta">
+                    <span class="tool-duration">95ms</span>
+                    <span class="timeline-time">10:00:08</span>
+                </span>
+            </div>
+            
+            <details class="tool-params-toggle">
+                <summary>Parameters</summary>
+                <pre class="tool-params">{
+  "sql": "SELECT * FROM data"
+}</pre>
+            </details>
+            
+            
+            <details class="tool-result-toggle">
+                <summary>Result</summary>
+                <pre class="tool-result-content">[
+  {
+    "text": "{\"ok\":true,\"rows\":[{\"id\":1,\"name\":\"test\"}],\"rowCount\":1}",
+    "type": "text"
+  }
+]</pre>
+            </details>
+            
+        </div>
+        
+    </div>
+</div>
+
+
+        
+
+<details class="messages-section">
+    <summary class="subsection-title">💬 Conversation (2 messages)</summary>
+    <div class="conversation-timeline">
+        
+        <div class="timeline-item user">
+            <div class="timeline-header">
+                <span class="timeline-role">user</span>
+                <span class="timeline-time">00:00:00.000</span>
+            </div>
+            <div class="timeline-content">Query all records from the data table</div>
+        </div>
+        
+        <div class="timeline-item assistant">
+            <div class="timeline-header">
+                <span class="timeline-role">assistant</span>
+                <span class="timeline-time">00:00:00.000</span>
+            </div>
+            <div class="timeline-content">Retrieved 1,234 records</div>
+        </div>
+        
+    </div>
+</details>
+
+
+        
+
+<details class="final-output-section">
+    <summary class="subsection-title">📤 Final Output</summary>
+    <div class="final-output-content">Retrieved 1,234 records</div>
+</details>
+
+
+    </div>
+</details>
+
+    </div>
+    
+</div>
+
+
+
+            </div>
+            
+            <div class="test-group-section">
+                
+<div class="test-group-header">
+    <h3 class="test-group-title">Generate report</h3>
+    
+    
+    
+    <div class="test-group-prompt">
+        <span class="prompt-label">📝 Prompt:</span>
+        <span class="prompt-text">Generate a summary report from the queried data</span>
+    </div>
+    
+    
+    
+</div>
+
+
+
+
+
+<div class="comparison-table-wrapper">
+    <table class="agent-comparison-table">
+        <thead>
+            <tr>
+                <th class="attribute-col">Metric</th>
+                
+                <th class="agent-col passed">
+                    <span class="agent-status">✅</span>
+                    <span class="agent-name">claude-agent</span>
+                    <span class="provider-badge provider-ANTHROPIC">ANTHROPIC</span>
+                </th>
+                
+                <th class="agent-col passed">
+                    <span class="agent-status">✅</span>
+                    <span class="agent-name">gemini-agent</span>
+                    <span class="provider-badge provider-GOOGLE">GOOGLE</span>
+                </th>
+                
+                <th class="agent-col passed">
+                    <span class="agent-status">✅</span>
+                    <span class="agent-name">gpt-agent</span>
+                    <span class="provider-badge provider-OPENAI">OPENAI</span>
+                </th>
+                
+            </tr>
+        </thead>
+        <tbody>
+            <tr class="metric-row">
+                <td class="metric-label">⏱️ Duration</td>
+                
+                <td class="metric-value">3.00s</td>
+                
+                <td class="metric-value">3.00s</td>
+                
+                <td class="metric-value">3.00s</td>
+                
+            </tr>
+            <tr class="metric-row">
+                <td class="metric-label">🎯 Tokens</td>
+                
+                <td class="metric-value">450</td>
+                
+                <td class="metric-value">480</td>
+                
+                <td class="metric-value">510</td>
+                
+            </tr>
+            <tr class="metric-row">
+                <td class="metric-label">🔧 Tool Calls</td>
+                
+                <td class="metric-value">1</td>
+                
+                <td class="metric-value">1</td>
+                
+                <td class="metric-value">1</td>
+                
+            </tr>
+            <tr class="metric-row details-row">
+                <td class="metric-label">📋 Details</td>
+                
+                <td class="metric-value">
+                    <button class="details-toggle-btn" onclick="openAgentDetails( 0 , this)" title="Click to view full details">
+                        🔍 View
+                    </button>
+                </td>
+                
+                <td class="metric-value">
+                    <button class="details-toggle-btn" onclick="openAgentDetails( 1 , this)" title="Click to view full details">
+                        🔍 View
+                    </button>
+                </td>
+                
+                <td class="metric-value">
+                    <button class="details-toggle-btn" onclick="openAgentDetails( 2 , this)" title="Click to view full details">
+                        🔍 View
+                    </button>
+                </td>
+                
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+
+
+<details class="tool-comparison-section">
+    <summary class="tool-comparison-header">🔧 Compare Tool Calls</summary>
+    <div class="tool-comparison-content">
+        <div class="tool-lists-grid">
+            
+            <div class="agent-tool-list">
+                <div class="agent-tool-header">claude-agent</div>
+                <ol class="tool-sequence">
+                    
+                    <li class="tool-item">write_file</li>
+                    
+                    
+                </ol>
+            </div>
+            
+            <div class="agent-tool-list">
+                <div class="agent-tool-header">gemini-agent</div>
+                <ol class="tool-sequence">
+                    
+                    <li class="tool-item">write_file</li>
+                    
+                    
+                </ol>
+            </div>
+            
+            <div class="agent-tool-list">
+                <div class="agent-tool-header">gpt-agent</div>
+                <ol class="tool-sequence">
+                    
+                    <li class="tool-item">write_file</li>
+                    
+                    
+                </ol>
+            </div>
+            
+        </div>
+    </div>
+</details>
+
+
+<details class="sequence-comparison-section">
+    <summary class="sequence-comparison-header">📊 Execution Flow</summary>
+    <div class="sequence-comparison-content">
+        <div class="sequence-grid">
+            
+            
+            <div class="agent-sequence-box">
+                <div class="agent-sequence-header">claude-agent</div>
+                <div class="mermaid">sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    rect rgb(40, 167, 69)
+    note over U,M: ✅ PASS (3.0s · 450 tok)
+    U-&gt;&gt;A: Generate a summary report from the queried data
+    A-&gt;&gt;M: write_file() [180ms]
+    M--&gt;&gt;A: result
+    A--&gt;&gt;U: Report generated at /reports/summary.pdf
+    end
+</div>
+            </div>
+            
+            
+            
+            <div class="agent-sequence-box">
+                <div class="agent-sequence-header">gemini-agent</div>
+                <div class="mermaid">sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    rect rgb(40, 167, 69)
+    note over U,M: ✅ PASS (3.0s · 480 tok)
+    U-&gt;&gt;A: Generate a summary report from the queried data
+    A-&gt;&gt;M: write_file() [180ms]
+    M--&gt;&gt;A: result
+    A--&gt;&gt;U: Report generated at /reports/summary.pdf
+    end
+</div>
+            </div>
+            
+            
+            
+            <div class="agent-sequence-box">
+                <div class="agent-sequence-header">gpt-agent</div>
+                <div class="mermaid">sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    rect rgb(40, 167, 69)
+    note over U,M: ✅ PASS (3.0s · 510 tok)
+    U-&gt;&gt;A: Generate a summary report from the queried data
+    A-&gt;&gt;M: write_file() [180ms]
+    M--&gt;&gt;A: result
+    A--&gt;&gt;U: Report generated at /reports/summary.pdf
+    end
+</div>
+            </div>
+            
+            
+        </div>
+    </div>
+</details>
+
+
+
+<div class="agent-details-source" style="display: none;">
+    
+    <div class="agent-detail-panel" data-agent-idx="0" data-agent-name="claude-agent">
+        
+<details class="test-item passed" open>
+    <summary class="test-header">
+        <div class="test-info">
+            <span class="test-status-icon">✅</span>
+            <span class="test-agent">claude-agent</span>
+            <span class="provider-badge">ANTHROPIC</span>
+        </div>
+        <div class="test-meta">
+            <span class="duration">3.00s</span>
+            <span class="tokens">450 tokens</span>
+            <span class="expand-icon">▼</span>
+        </div>
+    </summary>
+    <div class="test-details">
+        
+
+<div class="assertions-section">
+    <h4 class="subsection-title">Assertions</h4>
+    <div class="assertions-list">
+        
+        <div class="assertion-item passed">
+            <span class="assertion-icon">✓</span>
+            <div class="assertion-content">
+                <span class="assertion-type">tool_called</span>
+                <span class="assertion-message">Tool &#39;write_file&#39; was called</span>
+                
+            </div>
+        </div>
+        
+    </div>
+</div>
+
+
+        
+
+
+        
+
+
+        
+
+
+        
+
+<div class="sequence-section">
+    <h4 class="subsection-title">Execution Flow</h4>
+    <div class="mermaid">
+sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    rect rgb(40, 167, 69)
+    note over U,M: ✅ PASS (3.0s · 450 tok)
+    U-&gt;&gt;A: Generate a summary report from the queried data
+    A-&gt;&gt;M: write_file() [180ms]
+    M--&gt;&gt;A: result
+    A--&gt;&gt;U: Report generated at /reports/summary.pdf
+    end
+
+    </div>
+</div>
+
+
+        
+
+<div class="toolcalls-section">
+    <h4 class="subsection-title">Tool Calls (1)</h4>
+    <div class="timeline">
+        
+        <div class="timeline-item tool-call">
+            <div class="timeline-header">
+                <span class="tool-name">🔧 write_file</span>
+                <span class="timeline-meta">
+                    <span class="tool-duration">180ms</span>
+                    <span class="timeline-time">&#43;0.50s</span>
+                </span>
+            </div>
+            
+            <details class="tool-params-toggle">
+                <summary>Parameters</summary>
+                <pre class="tool-params">{
+  "content": "Hello World",
+  "path": "/tmp/test.txt"
+}</pre>
+            </details>
+            
+            
+            <details class="tool-result-toggle">
+                <summary>Result</summary>
+                <pre class="tool-result-content">[
+  {
+    "text": "{\"ok\":true,\"path\":\"/tmp/test.txt\",\"bytes\":11}",
+    "type": "text"
+  }
+]</pre>
+            </details>
+            
+        </div>
+        
+    </div>
+</div>
+
+
+        
+
+<details class="messages-section">
+    <summary class="subsection-title">💬 Conversation (2 messages)</summary>
+    <div class="conversation-timeline">
+        
+        <div class="timeline-item user">
+            <div class="timeline-header">
+                <span class="timeline-role">user</span>
+                <span class="timeline-time">00:00:00.000</span>
+            </div>
+            <div class="timeline-content">Generate a summary report from the queried data</div>
+        </div>
+        
+        <div class="timeline-item assistant">
+            <div class="timeline-header">
+                <span class="timeline-role">assistant</span>
+                <span class="timeline-time">00:00:00.000</span>
+            </div>
+            <div class="timeline-content">Report generated at /reports/summary.pdf</div>
+        </div>
+        
+    </div>
+</details>
+
+
+        
+
+<details class="final-output-section">
+    <summary class="subsection-title">📤 Final Output</summary>
+    <div class="final-output-content">Report generated at /reports/summary.pdf</div>
 </details>
 
 
@@ -3471,7 +6151,7 @@ sequenceDiagram
         </div>
         <div class="test-meta">
             <span class="duration">3.00s</span>
-            <span class="tokens">375 tokens</span>
+            <span class="tokens">480 tokens</span>
             <span class="expand-icon">▼</span>
         </div>
     </summary>
@@ -3486,7 +6166,7 @@ sequenceDiagram
             <span class="assertion-icon">✓</span>
             <div class="assertion-content">
                 <span class="assertion-type">tool_called</span>
-                <span class="assertion-message">Tool &#39;db_query&#39; was called</span>
+                <span class="assertion-message">Tool &#39;write_file&#39; was called</span>
                 
             </div>
         </div>
@@ -3513,9 +6193,13 @@ sequenceDiagram
     participant U as User
     participant A as Agent
     participant M as MCP Server
-    A-&gt;&gt;M: db_query() [120ms]
+    rect rgb(40, 167, 69)
+    note over U,M: ✅ PASS (3.0s · 480 tok)
+    U-&gt;&gt;A: Generate a summary report from the queried data
+    A-&gt;&gt;M: write_file() [180ms]
     M--&gt;&gt;A: result
-    A--&gt;&gt;U: Data processed successfully. [375 tokens]
+    A--&gt;&gt;U: Report generated at /reports/summary.pdf
+    end
 
     </div>
 </div>
@@ -3529,9 +6213,9 @@ sequenceDiagram
         
         <div class="timeline-item tool-call">
             <div class="timeline-header">
-                <span class="tool-name">🔧 db_query</span>
+                <span class="tool-name">🔧 write_file</span>
                 <span class="timeline-meta">
-                    <span class="tool-duration">120ms</span>
+                    <span class="tool-duration">180ms</span>
                     <span class="timeline-time">&#43;0.00s</span>
                 </span>
             </div>
@@ -3539,7 +6223,8 @@ sequenceDiagram
             <details class="tool-params-toggle">
                 <summary>Parameters</summary>
                 <pre class="tool-params">{
-  "sql": "SELECT * FROM data"
+  "content": "Hello World",
+  "path": "/tmp/test.txt"
 }</pre>
             </details>
             
@@ -3548,7 +6233,7 @@ sequenceDiagram
                 <summary>Result</summary>
                 <pre class="tool-result-content">[
   {
-    "text": "{\"ok\":true,\"rows\":[{\"id\":1,\"name\":\"test\"}],\"rowCount\":1}",
+    "text": "{\"ok\":true,\"path\":\"/tmp/test.txt\",\"bytes\":11}",
     "type": "text"
   }
 ]</pre>
@@ -3562,12 +6247,35 @@ sequenceDiagram
 
         
 
+<details class="messages-section">
+    <summary class="subsection-title">💬 Conversation (2 messages)</summary>
+    <div class="conversation-timeline">
+        
+        <div class="timeline-item user">
+            <div class="timeline-header">
+                <span class="timeline-role">user</span>
+                <span class="timeline-time">00:00:00.000</span>
+            </div>
+            <div class="timeline-content">Generate a summary report from the queried data</div>
+        </div>
+        
+        <div class="timeline-item assistant">
+            <div class="timeline-header">
+                <span class="timeline-role">assistant</span>
+                <span class="timeline-time">00:00:00.000</span>
+            </div>
+            <div class="timeline-content">Report generated at /reports/summary.pdf</div>
+        </div>
+        
+    </div>
+</details>
+
 
         
 
 <details class="final-output-section">
     <summary class="subsection-title">📤 Final Output</summary>
-    <div class="final-output-content">Data processed successfully.</div>
+    <div class="final-output-content">Report generated at /reports/summary.pdf</div>
 </details>
 
 
@@ -3587,7 +6295,7 @@ sequenceDiagram
         </div>
         <div class="test-meta">
             <span class="duration">3.00s</span>
-            <span class="tokens">400 tokens</span>
+            <span class="tokens">510 tokens</span>
             <span class="expand-icon">▼</span>
         </div>
     </summary>
@@ -3602,7 +6310,7 @@ sequenceDiagram
             <span class="assertion-icon">✓</span>
             <div class="assertion-content">
                 <span class="assertion-type">tool_called</span>
-                <span class="assertion-message">Tool &#39;db_query&#39; was called</span>
+                <span class="assertion-message">Tool &#39;write_file&#39; was called</span>
                 
             </div>
         </div>
@@ -3629,9 +6337,13 @@ sequenceDiagram
     participant U as User
     participant A as Agent
     participant M as MCP Server
-    A-&gt;&gt;M: db_query() [120ms]
+    rect rgb(40, 167, 69)
+    note over U,M: ✅ PASS (3.0s · 510 tok)
+    U-&gt;&gt;A: Generate a summary report from the queried data
+    A-&gt;&gt;M: write_file() [180ms]
     M--&gt;&gt;A: result
-    A--&gt;&gt;U: Data processed successfully. [400 tokens]
+    A--&gt;&gt;U: Report generated at /reports/summary.pdf
+    end
 
     </div>
 </div>
@@ -3645,17 +6357,18 @@ sequenceDiagram
         
         <div class="timeline-item tool-call">
             <div class="timeline-header">
-                <span class="tool-name">🔧 db_query</span>
+                <span class="tool-name">🔧 write_file</span>
                 <span class="timeline-meta">
-                    <span class="tool-duration">120ms</span>
-                    <span class="timeline-time">10:00:05</span>
+                    <span class="tool-duration">180ms</span>
+                    <span class="timeline-time">10:00:11</span>
                 </span>
             </div>
             
             <details class="tool-params-toggle">
                 <summary>Parameters</summary>
                 <pre class="tool-params">{
-  "sql": "SELECT * FROM data"
+  "content": "Hello World",
+  "path": "/tmp/test.txt"
 }</pre>
             </details>
             
@@ -3664,7 +6377,7 @@ sequenceDiagram
                 <summary>Result</summary>
                 <pre class="tool-result-content">[
   {
-    "text": "{\"ok\":true,\"rows\":[{\"id\":1,\"name\":\"test\"}],\"rowCount\":1}",
+    "text": "{\"ok\":true,\"path\":\"/tmp/test.txt\",\"bytes\":11}",
     "type": "text"
   }
 ]</pre>
@@ -3678,12 +6391,35 @@ sequenceDiagram
 
         
 
+<details class="messages-section">
+    <summary class="subsection-title">💬 Conversation (2 messages)</summary>
+    <div class="conversation-timeline">
+        
+        <div class="timeline-item user">
+            <div class="timeline-header">
+                <span class="timeline-role">user</span>
+                <span class="timeline-time">00:00:00.000</span>
+            </div>
+            <div class="timeline-content">Generate a summary report from the queried data</div>
+        </div>
+        
+        <div class="timeline-item assistant">
+            <div class="timeline-header">
+                <span class="timeline-role">assistant</span>
+                <span class="timeline-time">00:00:00.000</span>
+            </div>
+            <div class="timeline-content">Report generated at /reports/summary.pdf</div>
+        </div>
+        
+    </div>
+</details>
+
 
         
 
 <details class="final-output-section">
     <summary class="subsection-title">📤 Final Output</summary>
-    <div class="final-output-content">Data processed successfully.</div>
+    <div class="final-output-content">Report generated at /reports/summary.pdf</div>
 </details>
 
 
@@ -3700,21 +6436,198 @@ sequenceDiagram
             
             
             
-            
-            
-            
-            <div class="test-session-header">
-                <h4 class="test-session-title">🔄 Cleanup</h4>
             </div>
+            </div>
+            
+            
+            
+            
+            
+            <div class="session-container">
+            
+            <div class="test-session-header session-group-header">
+                <div class="session-header-main">
+                    <h4 class="test-session-title">🔄 Cleanup</h4>
+                    <span class="session-stats">
+                        
+                        <span class="success-bar"><span class="success-bar-fill success-medium" style="width: 50%"></span></span>
+                        <span class="text-muted">
+                            3/6 (50%)
+                        </span>
+                        <span class="summary-metric">⏱ 1.2s–1.5s</span>
+                        <span class="summary-metric">🔢 140–200<span class="tok-suffix">tok</span></span>
+                        <span class="summary-metric">🤖 3 agents</span>
+                        
+                    </span>
+                </div>
+                
+                
+                <div class="session-overview-section">
+                    <div class="session-overview-label">📊 Session Overview — Agent Comparison</div>
+                    <div class="session-overview-table-wrapper">
+                        <table class="session-overview-table">
+                            <thead>
+                                <tr>
+                                    <th class="metric-col">Metric</th>
+                                    
+                                    <th class="agent-col success-high">
+                                        <span class="agent-status">✅</span>
+                                        <span class="agent-name">claude-agent</span>
+                                        <span class="provider-badge provider-ANTHROPIC">ANTHROPIC</span>
+                                    </th>
+                                    
+                                    <th class="agent-col success-low">
+                                        <span class="agent-status">❌</span>
+                                        <span class="agent-name">gemini-agent</span>
+                                        <span class="provider-badge provider-GOOGLE">GOOGLE</span>
+                                    </th>
+                                    
+                                    <th class="agent-col success-medium">
+                                        <span class="agent-status">⚠️</span>
+                                        <span class="agent-name">gpt-agent</span>
+                                        <span class="provider-badge provider-OPENAI">OPENAI</span>
+                                    </th>
+                                    
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="metric-row">
+                                <td class="metric-label">📊 Pass Rate</td>
+                                
+                                <td class="metric-value text-pass">
+                                    2/2 (100%)
+                                </td>
+                                
+                                <td class="metric-value text-fail">
+                                    0/2 (0%)
+                                </td>
+                                
+                                <td class="metric-value text-muted">
+                                    1/2 (50%)
+                                </td>
+                                
+                            </tr>
+                            <tr class="metric-row">
+                                <td class="metric-label">⏱️ Duration</td>
+                                
+                                <td class="metric-value">1.2s–1.5s</td>
+                                
+                                <td class="metric-value">1.2s–1.5s</td>
+                                
+                                <td class="metric-value">1.2s–1.5s</td>
+                                
+                            </tr>
+                            <tr class="metric-row">
+                                <td class="metric-label">🎯 Tokens</td>
+                                
+                                <td class="metric-value">140–160</td>
+                                
+                                <td class="metric-value">155–180</td>
+                                
+                                <td class="metric-value">170–200</td>
+                                
+                            </tr>
+                        </tbody>
+                    </table>
+                    </div>
+                </div>
+                
+                
+                
+                <details class="session-diagram-details">
+                    <summary class="session-diagram-summary">📊 View Session Flow (3 agents)</summary>
+                    <div class="session-agent-diagrams-grid">
+                        
+                        <div class="agent-sequence-box">
+                            <div class="agent-sequence-header">claude-agent</div>
+                            <div class="mermaid">sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    rect rgb(40, 167, 69)
+    note over U,M: Test 1 - Delete temp files ✅ (1.2s · 140 tok)
+    U-&gt;&gt;A: Delete all temporary files
+    A-&gt;&gt;M: delete_file()
+    M--&gt;&gt;A: result
+    A--&gt;&gt;U: Temp files deleted.
+    end
+    rect rgb(40, 167, 69)
+    note over U,M: Test 2 - Close connections ✅ (1.5s · 160 tok)
+    U-&gt;&gt;A: Close all database and network connec...
+    A-&gt;&gt;M: db_disconnect()
+    M--&gt;&gt;A: result
+    A--&gt;&gt;U: All connections closed.
+    end
+</div>
+                        </div>
+                        
+                        <div class="agent-sequence-box">
+                            <div class="agent-sequence-header">gemini-agent</div>
+                            <div class="mermaid">sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    rect rgb(220, 53, 69)
+    note over U,M: Test 1 - Delete temp files ❌ (1.2s · 155 tok)
+    U-&gt;&gt;A: Delete all temporary files
+    A-&gt;&gt;M: delete_file()
+    M--&gt;&gt;A: result
+    A--&gt;&gt;U: Some temp files could not b...
+    end
+    rect rgb(220, 53, 69)
+    note over U,M: Test 2 - Close connections ❌ (1.5s · 180 tok)
+    U-&gt;&gt;A: Close all database and network connec...
+    A-&gt;&gt;M: db_disconnect()
+    M--&gt;&gt;A: result
+    A--&gt;&gt;U: Warning - Some connections ...
+    end
+</div>
+                        </div>
+                        
+                        <div class="agent-sequence-box">
+                            <div class="agent-sequence-header">gpt-agent</div>
+                            <div class="mermaid">sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    rect rgb(40, 167, 69)
+    note over U,M: Test 1 - Delete temp files ✅ (1.2s · 170 tok)
+    U-&gt;&gt;A: Delete all temporary files
+    A-&gt;&gt;M: delete_file()
+    M--&gt;&gt;A: result
+    A--&gt;&gt;U: Temp files deleted.
+    end
+    rect rgb(220, 53, 69)
+    note over U,M: Test 2 - Close connections ❌ (1.5s · 200 tok)
+    U-&gt;&gt;A: Close all database and network connec...
+    A-&gt;&gt;M: db_disconnect()
+    M--&gt;&gt;A: result
+    A--&gt;&gt;U: Warning - Some connections ...
+    end
+</div>
+                        </div>
+                        
+                    </div>
+                </details>
+                
+                
+            </div>
+            <div class="session-tests-container">
+                <div class="session-tests-label">📋 Tests in this session</div>
             
             
             
             <div class="test-group-section">
                 
 <div class="test-group-header">
-    <h3 class="test-group-title">Cleanup resources</h3>
+    <h3 class="test-group-title">Delete temp files</h3>
     
     
+    
+    <div class="test-group-prompt">
+        <span class="prompt-label">📝 Prompt:</span>
+        <span class="prompt-text">Delete all temporary files</span>
+    </div>
     
     
     
@@ -3742,8 +6655,8 @@ sequenceDiagram
                     <span class="provider-badge provider-GOOGLE">GOOGLE</span>
                 </th>
                 
-                <th class="agent-col failed">
-                    <span class="agent-status">❌</span>
+                <th class="agent-col passed">
+                    <span class="agent-status">✅</span>
                     <span class="agent-name">gpt-agent</span>
                     <span class="provider-badge provider-OPENAI">OPENAI</span>
                 </th>
@@ -3754,21 +6667,21 @@ sequenceDiagram
             <tr class="metric-row">
                 <td class="metric-label">⏱️ Duration</td>
                 
-                <td class="metric-value">1.50s</td>
+                <td class="metric-value">1.20s</td>
                 
-                <td class="metric-value">1.50s</td>
+                <td class="metric-value">1.20s</td>
                 
-                <td class="metric-value">1.50s</td>
+                <td class="metric-value">1.20s</td>
                 
             </tr>
             <tr class="metric-row">
                 <td class="metric-label">🎯 Tokens</td>
                 
-                <td class="metric-value">150</td>
+                <td class="metric-value">140</td>
+                
+                <td class="metric-value">155</td>
                 
                 <td class="metric-value">170</td>
-                
-                <td class="metric-value">190</td>
                 
             </tr>
             <tr class="metric-row">
@@ -3861,9 +6774,13 @@ sequenceDiagram
     participant U as User
     participant A as Agent
     participant M as MCP Server
-    A-&gt;&gt;M: delete_file() [30ms]
+    rect rgb(40, 167, 69)
+    note over U,M: ✅ PASS (1.2s · 140 tok)
+    U-&gt;&gt;A: Delete all temporary files
+    A-&gt;&gt;M: delete_file() [25ms]
     M--&gt;&gt;A: result
-    A--&gt;&gt;U: Cleanup completed. [150 tokens]
+    A--&gt;&gt;U: Temp files deleted.
+    end
 </div>
             </div>
             
@@ -3875,9 +6792,13 @@ sequenceDiagram
     participant U as User
     participant A as Agent
     participant M as MCP Server
-    A-&gt;&gt;M: delete_file() [30ms]
+    rect rgb(220, 53, 69)
+    note over U,M: ❌ FAIL (1.2s · 155 tok)
+    U-&gt;&gt;A: Delete all temporary files
+    A-&gt;&gt;M: delete_file() [25ms]
     M--&gt;&gt;A: result
-    A--&gt;&gt;U: Partial cleanup - some files remain. [170 tokens]
+    A--&gt;&gt;U: Some temp files could not be deleted.
+    end
 </div>
             </div>
             
@@ -3889,9 +6810,13 @@ sequenceDiagram
     participant U as User
     participant A as Agent
     participant M as MCP Server
-    A-&gt;&gt;M: delete_file() [30ms]
+    rect rgb(40, 167, 69)
+    note over U,M: ✅ PASS (1.2s · 170 tok)
+    U-&gt;&gt;A: Delete all temporary files
+    A-&gt;&gt;M: delete_file() [25ms]
     M--&gt;&gt;A: result
-    A--&gt;&gt;U: Partial cleanup - some files remain. [190 tokens]
+    A--&gt;&gt;U: Temp files deleted.
+    end
 </div>
             </div>
             
@@ -3914,8 +6839,8 @@ sequenceDiagram
             <span class="provider-badge">ANTHROPIC</span>
         </div>
         <div class="test-meta">
-            <span class="duration">1.50s</span>
-            <span class="tokens">150 tokens</span>
+            <span class="duration">1.20s</span>
+            <span class="tokens">140 tokens</span>
             <span class="expand-icon">▼</span>
         </div>
     </summary>
@@ -3931,15 +6856,6 @@ sequenceDiagram
             <div class="assertion-content">
                 <span class="assertion-type">tool_called</span>
                 <span class="assertion-message">Tool &#39;delete_file&#39; was called</span>
-                
-            </div>
-        </div>
-        
-        <div class="assertion-item passed">
-            <span class="assertion-icon">✓</span>
-            <div class="assertion-content">
-                <span class="assertion-type">output_contains</span>
-                <span class="assertion-message">Output contains &#39;completed&#39;</span>
                 
             </div>
         </div>
@@ -3966,9 +6882,13 @@ sequenceDiagram
     participant U as User
     participant A as Agent
     participant M as MCP Server
-    A-&gt;&gt;M: delete_file() [30ms]
+    rect rgb(40, 167, 69)
+    note over U,M: ✅ PASS (1.2s · 140 tok)
+    U-&gt;&gt;A: Delete all temporary files
+    A-&gt;&gt;M: delete_file() [25ms]
     M--&gt;&gt;A: result
-    A--&gt;&gt;U: Cleanup completed. [150 tokens]
+    A--&gt;&gt;U: Temp files deleted.
+    end
 
     </div>
 </div>
@@ -3984,15 +6904,15 @@ sequenceDiagram
             <div class="timeline-header">
                 <span class="tool-name">🔧 delete_file</span>
                 <span class="timeline-meta">
-                    <span class="tool-duration">30ms</span>
-                    <span class="timeline-time">&#43;0.50s</span>
+                    <span class="tool-duration">25ms</span>
+                    <span class="timeline-time">&#43;0.30s</span>
                 </span>
             </div>
             
             <details class="tool-params-toggle">
                 <summary>Parameters</summary>
                 <pre class="tool-params">{
-  "path": "/tmp/data"
+  "path": "/tmp/*"
 }</pre>
             </details>
             
@@ -4015,12 +6935,35 @@ sequenceDiagram
 
         
 
+<details class="messages-section">
+    <summary class="subsection-title">💬 Conversation (2 messages)</summary>
+    <div class="conversation-timeline">
+        
+        <div class="timeline-item user">
+            <div class="timeline-header">
+                <span class="timeline-role">user</span>
+                <span class="timeline-time">00:00:00.000</span>
+            </div>
+            <div class="timeline-content">Delete all temporary files</div>
+        </div>
+        
+        <div class="timeline-item assistant">
+            <div class="timeline-header">
+                <span class="timeline-role">assistant</span>
+                <span class="timeline-time">00:00:00.000</span>
+            </div>
+            <div class="timeline-content">Temp files deleted.</div>
+        </div>
+        
+    </div>
+</details>
+
 
         
 
 <details class="final-output-section">
     <summary class="subsection-title">📤 Final Output</summary>
-    <div class="final-output-content">Cleanup completed.</div>
+    <div class="final-output-content">Temp files deleted.</div>
 </details>
 
 
@@ -4039,7 +6982,150 @@ sequenceDiagram
             <span class="provider-badge">GOOGLE</span>
         </div>
         <div class="test-meta">
-            <span class="duration">1.50s</span>
+            <span class="duration">1.20s</span>
+            <span class="tokens">155 tokens</span>
+            <span class="expand-icon">▼</span>
+        </div>
+    </summary>
+    <div class="test-details">
+        
+
+<div class="assertions-section">
+    <h4 class="subsection-title">Assertions</h4>
+    <div class="assertions-list">
+        
+        <div class="assertion-item passed">
+            <span class="assertion-icon">✓</span>
+            <div class="assertion-content">
+                <span class="assertion-type">tool_called</span>
+                <span class="assertion-message">Tool &#39;delete_file&#39; was called</span>
+                
+            </div>
+        </div>
+        
+    </div>
+</div>
+
+
+        
+
+
+        
+
+
+        
+
+
+        
+
+<div class="sequence-section">
+    <h4 class="subsection-title">Execution Flow</h4>
+    <div class="mermaid">
+sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    rect rgb(220, 53, 69)
+    note over U,M: ❌ FAIL (1.2s · 155 tok)
+    U-&gt;&gt;A: Delete all temporary files
+    A-&gt;&gt;M: delete_file() [25ms]
+    M--&gt;&gt;A: result
+    A--&gt;&gt;U: Some temp files could not be deleted.
+    end
+
+    </div>
+</div>
+
+
+        
+
+<div class="toolcalls-section">
+    <h4 class="subsection-title">Tool Calls (1)</h4>
+    <div class="timeline">
+        
+        <div class="timeline-item tool-call">
+            <div class="timeline-header">
+                <span class="tool-name">🔧 delete_file</span>
+                <span class="timeline-meta">
+                    <span class="tool-duration">25ms</span>
+                    <span class="timeline-time">10:00:15</span>
+                </span>
+            </div>
+            
+            <details class="tool-params-toggle">
+                <summary>Parameters</summary>
+                <pre class="tool-params">{
+  "path": "/tmp/*"
+}</pre>
+            </details>
+            
+            
+            <details class="tool-result-toggle">
+                <summary>Result</summary>
+                <pre class="tool-result-content">[
+  {
+    "text": "{\"ok\":true,\"tool\":\"delete_file\",\"completed\":true}",
+    "type": "text"
+  }
+]</pre>
+            </details>
+            
+        </div>
+        
+    </div>
+</div>
+
+
+        
+
+<details class="messages-section">
+    <summary class="subsection-title">💬 Conversation (2 messages)</summary>
+    <div class="conversation-timeline">
+        
+        <div class="timeline-item user">
+            <div class="timeline-header">
+                <span class="timeline-role">user</span>
+                <span class="timeline-time">00:00:00.000</span>
+            </div>
+            <div class="timeline-content">Delete all temporary files</div>
+        </div>
+        
+        <div class="timeline-item assistant">
+            <div class="timeline-header">
+                <span class="timeline-role">assistant</span>
+                <span class="timeline-time">00:00:00.000</span>
+            </div>
+            <div class="timeline-content">Some temp files could not be deleted.</div>
+        </div>
+        
+    </div>
+</details>
+
+
+        
+
+<details class="final-output-section">
+    <summary class="subsection-title">📤 Final Output</summary>
+    <div class="final-output-content">Some temp files could not be deleted.</div>
+</details>
+
+
+    </div>
+</details>
+
+    </div>
+    
+    <div class="agent-detail-panel" data-agent-idx="2" data-agent-name="gpt-agent">
+        
+<details class="test-item passed" open>
+    <summary class="test-header">
+        <div class="test-info">
+            <span class="test-status-icon">✅</span>
+            <span class="test-agent">gpt-agent</span>
+            <span class="provider-badge">OPENAI</span>
+        </div>
+        <div class="test-meta">
+            <span class="duration">1.20s</span>
             <span class="tokens">170 tokens</span>
             <span class="expand-icon">▼</span>
         </div>
@@ -4060,11 +7146,372 @@ sequenceDiagram
             </div>
         </div>
         
-        <div class="assertion-item failed">
-            <span class="assertion-icon">✗</span>
+    </div>
+</div>
+
+
+        
+
+
+        
+
+
+        
+
+
+        
+
+<div class="sequence-section">
+    <h4 class="subsection-title">Execution Flow</h4>
+    <div class="mermaid">
+sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    rect rgb(40, 167, 69)
+    note over U,M: ✅ PASS (1.2s · 170 tok)
+    U-&gt;&gt;A: Delete all temporary files
+    A-&gt;&gt;M: delete_file() [25ms]
+    M--&gt;&gt;A: result
+    A--&gt;&gt;U: Temp files deleted.
+    end
+
+    </div>
+</div>
+
+
+        
+
+<div class="toolcalls-section">
+    <h4 class="subsection-title">Tool Calls (1)</h4>
+    <div class="timeline">
+        
+        <div class="timeline-item tool-call">
+            <div class="timeline-header">
+                <span class="tool-name">🔧 delete_file</span>
+                <span class="timeline-meta">
+                    <span class="tool-duration">25ms</span>
+                    <span class="timeline-time">10:00:15</span>
+                </span>
+            </div>
+            
+            <details class="tool-params-toggle">
+                <summary>Parameters</summary>
+                <pre class="tool-params">{
+  "path": "/tmp/*"
+}</pre>
+            </details>
+            
+            
+            <details class="tool-result-toggle">
+                <summary>Result</summary>
+                <pre class="tool-result-content">[
+  {
+    "text": "{\"ok\":true,\"tool\":\"delete_file\",\"completed\":true}",
+    "type": "text"
+  }
+]</pre>
+            </details>
+            
+        </div>
+        
+    </div>
+</div>
+
+
+        
+
+<details class="messages-section">
+    <summary class="subsection-title">💬 Conversation (2 messages)</summary>
+    <div class="conversation-timeline">
+        
+        <div class="timeline-item user">
+            <div class="timeline-header">
+                <span class="timeline-role">user</span>
+                <span class="timeline-time">00:00:00.000</span>
+            </div>
+            <div class="timeline-content">Delete all temporary files</div>
+        </div>
+        
+        <div class="timeline-item assistant">
+            <div class="timeline-header">
+                <span class="timeline-role">assistant</span>
+                <span class="timeline-time">00:00:00.000</span>
+            </div>
+            <div class="timeline-content">Temp files deleted.</div>
+        </div>
+        
+    </div>
+</details>
+
+
+        
+
+<details class="final-output-section">
+    <summary class="subsection-title">📤 Final Output</summary>
+    <div class="final-output-content">Temp files deleted.</div>
+</details>
+
+
+    </div>
+</details>
+
+    </div>
+    
+</div>
+
+
+
+            </div>
+            
+            <div class="test-group-section">
+                
+<div class="test-group-header">
+    <h3 class="test-group-title">Close connections</h3>
+    
+    
+    
+    <div class="test-group-prompt">
+        <span class="prompt-label">📝 Prompt:</span>
+        <span class="prompt-text">Close all database and network connections</span>
+    </div>
+    
+    
+    
+</div>
+
+
+
+
+
+<div class="comparison-table-wrapper">
+    <table class="agent-comparison-table">
+        <thead>
+            <tr>
+                <th class="attribute-col">Metric</th>
+                
+                <th class="agent-col passed">
+                    <span class="agent-status">✅</span>
+                    <span class="agent-name">claude-agent</span>
+                    <span class="provider-badge provider-ANTHROPIC">ANTHROPIC</span>
+                </th>
+                
+                <th class="agent-col failed">
+                    <span class="agent-status">❌</span>
+                    <span class="agent-name">gemini-agent</span>
+                    <span class="provider-badge provider-GOOGLE">GOOGLE</span>
+                </th>
+                
+                <th class="agent-col failed">
+                    <span class="agent-status">❌</span>
+                    <span class="agent-name">gpt-agent</span>
+                    <span class="provider-badge provider-OPENAI">OPENAI</span>
+                </th>
+                
+            </tr>
+        </thead>
+        <tbody>
+            <tr class="metric-row">
+                <td class="metric-label">⏱️ Duration</td>
+                
+                <td class="metric-value">1.50s</td>
+                
+                <td class="metric-value">1.50s</td>
+                
+                <td class="metric-value">1.50s</td>
+                
+            </tr>
+            <tr class="metric-row">
+                <td class="metric-label">🎯 Tokens</td>
+                
+                <td class="metric-value">160</td>
+                
+                <td class="metric-value">180</td>
+                
+                <td class="metric-value">200</td>
+                
+            </tr>
+            <tr class="metric-row">
+                <td class="metric-label">🔧 Tool Calls</td>
+                
+                <td class="metric-value">1</td>
+                
+                <td class="metric-value">1</td>
+                
+                <td class="metric-value">1</td>
+                
+            </tr>
+            <tr class="metric-row details-row">
+                <td class="metric-label">📋 Details</td>
+                
+                <td class="metric-value">
+                    <button class="details-toggle-btn" onclick="openAgentDetails( 0 , this)" title="Click to view full details">
+                        🔍 View
+                    </button>
+                </td>
+                
+                <td class="metric-value">
+                    <button class="details-toggle-btn" onclick="openAgentDetails( 1 , this)" title="Click to view full details">
+                        🔍 View
+                    </button>
+                </td>
+                
+                <td class="metric-value">
+                    <button class="details-toggle-btn" onclick="openAgentDetails( 2 , this)" title="Click to view full details">
+                        🔍 View
+                    </button>
+                </td>
+                
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+
+
+<details class="tool-comparison-section">
+    <summary class="tool-comparison-header">🔧 Compare Tool Calls</summary>
+    <div class="tool-comparison-content">
+        <div class="tool-lists-grid">
+            
+            <div class="agent-tool-list">
+                <div class="agent-tool-header">claude-agent</div>
+                <ol class="tool-sequence">
+                    
+                    <li class="tool-item">db_disconnect</li>
+                    
+                    
+                </ol>
+            </div>
+            
+            <div class="agent-tool-list">
+                <div class="agent-tool-header">gemini-agent</div>
+                <ol class="tool-sequence">
+                    
+                    <li class="tool-item">db_disconnect</li>
+                    
+                    
+                </ol>
+            </div>
+            
+            <div class="agent-tool-list">
+                <div class="agent-tool-header">gpt-agent</div>
+                <ol class="tool-sequence">
+                    
+                    <li class="tool-item">db_disconnect</li>
+                    
+                    
+                </ol>
+            </div>
+            
+        </div>
+    </div>
+</details>
+
+
+<details class="sequence-comparison-section">
+    <summary class="sequence-comparison-header">📊 Execution Flow</summary>
+    <div class="sequence-comparison-content">
+        <div class="sequence-grid">
+            
+            
+            <div class="agent-sequence-box">
+                <div class="agent-sequence-header">claude-agent</div>
+                <div class="mermaid">sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    rect rgb(40, 167, 69)
+    note over U,M: ✅ PASS (1.5s · 160 tok)
+    U-&gt;&gt;A: Close all database and network connections
+    A-&gt;&gt;M: db_disconnect() [40ms]
+    M--&gt;&gt;A: result
+    A--&gt;&gt;U: All connections closed.
+    end
+</div>
+            </div>
+            
+            
+            
+            <div class="agent-sequence-box">
+                <div class="agent-sequence-header">gemini-agent</div>
+                <div class="mermaid">sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    rect rgb(220, 53, 69)
+    note over U,M: ❌ FAIL (1.5s · 180 tok)
+    U-&gt;&gt;A: Close all database and network connections
+    A-&gt;&gt;M: db_disconnect() [40ms]
+    M--&gt;&gt;A: result
+    A--&gt;&gt;U: Warning - Some connections timed out.
+    end
+</div>
+            </div>
+            
+            
+            
+            <div class="agent-sequence-box">
+                <div class="agent-sequence-header">gpt-agent</div>
+                <div class="mermaid">sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    rect rgb(220, 53, 69)
+    note over U,M: ❌ FAIL (1.5s · 200 tok)
+    U-&gt;&gt;A: Close all database and network connections
+    A-&gt;&gt;M: db_disconnect() [40ms]
+    M--&gt;&gt;A: result
+    A--&gt;&gt;U: Warning - Some connections timed out.
+    end
+</div>
+            </div>
+            
+            
+        </div>
+    </div>
+</details>
+
+
+
+<div class="agent-details-source" style="display: none;">
+    
+    <div class="agent-detail-panel" data-agent-idx="0" data-agent-name="claude-agent">
+        
+<details class="test-item passed" open>
+    <summary class="test-header">
+        <div class="test-info">
+            <span class="test-status-icon">✅</span>
+            <span class="test-agent">claude-agent</span>
+            <span class="provider-badge">ANTHROPIC</span>
+        </div>
+        <div class="test-meta">
+            <span class="duration">1.50s</span>
+            <span class="tokens">160 tokens</span>
+            <span class="expand-icon">▼</span>
+        </div>
+    </summary>
+    <div class="test-details">
+        
+
+<div class="assertions-section">
+    <h4 class="subsection-title">Assertions</h4>
+    <div class="assertions-list">
+        
+        <div class="assertion-item passed">
+            <span class="assertion-icon">✓</span>
+            <div class="assertion-content">
+                <span class="assertion-type">tool_called</span>
+                <span class="assertion-message">Tool &#39;db_disconnect&#39; was called</span>
+                
+            </div>
+        </div>
+        
+        <div class="assertion-item passed">
+            <span class="assertion-icon">✓</span>
             <div class="assertion-content">
                 <span class="assertion-type">output_contains</span>
-                <span class="assertion-message">Output does not contain &#39;completed&#39;</span>
+                <span class="assertion-message">Output contains &#39;closed&#39;</span>
                 
             </div>
         </div>
@@ -4091,9 +7538,13 @@ sequenceDiagram
     participant U as User
     participant A as Agent
     participant M as MCP Server
-    A-&gt;&gt;M: delete_file() [30ms]
+    rect rgb(40, 167, 69)
+    note over U,M: ✅ PASS (1.5s · 160 tok)
+    U-&gt;&gt;A: Close all database and network connections
+    A-&gt;&gt;M: db_disconnect() [40ms]
     M--&gt;&gt;A: result
-    A--&gt;&gt;U: Partial cleanup - some files remain. [170 tokens]
+    A--&gt;&gt;U: All connections closed.
+    end
 
     </div>
 </div>
@@ -4107,18 +7558,16 @@ sequenceDiagram
         
         <div class="timeline-item tool-call">
             <div class="timeline-header">
-                <span class="tool-name">🔧 delete_file</span>
+                <span class="tool-name">🔧 db_disconnect</span>
                 <span class="timeline-meta">
-                    <span class="tool-duration">30ms</span>
-                    <span class="timeline-time">&#43;0.00s</span>
+                    <span class="tool-duration">40ms</span>
+                    <span class="timeline-time">&#43;0.30s</span>
                 </span>
             </div>
             
             <details class="tool-params-toggle">
                 <summary>Parameters</summary>
-                <pre class="tool-params">{
-  "path": "/tmp/data"
-}</pre>
+                <pre class="tool-params">{}</pre>
             </details>
             
             
@@ -4126,7 +7575,7 @@ sequenceDiagram
                 <summary>Result</summary>
                 <pre class="tool-result-content">[
   {
-    "text": "{\"ok\":true,\"tool\":\"delete_file\",\"completed\":true}",
+    "text": "{\"ok\":true,\"tool\":\"db_disconnect\",\"completed\":true}",
     "type": "text"
   }
 ]</pre>
@@ -4140,12 +7589,185 @@ sequenceDiagram
 
         
 
+<details class="messages-section">
+    <summary class="subsection-title">💬 Conversation (2 messages)</summary>
+    <div class="conversation-timeline">
+        
+        <div class="timeline-item user">
+            <div class="timeline-header">
+                <span class="timeline-role">user</span>
+                <span class="timeline-time">00:00:00.000</span>
+            </div>
+            <div class="timeline-content">Close all database and network connections</div>
+        </div>
+        
+        <div class="timeline-item assistant">
+            <div class="timeline-header">
+                <span class="timeline-role">assistant</span>
+                <span class="timeline-time">00:00:00.000</span>
+            </div>
+            <div class="timeline-content">All connections closed.</div>
+        </div>
+        
+    </div>
+</details>
+
 
         
 
 <details class="final-output-section">
     <summary class="subsection-title">📤 Final Output</summary>
-    <div class="final-output-content">Partial cleanup - some files remain.</div>
+    <div class="final-output-content">All connections closed.</div>
+</details>
+
+
+    </div>
+</details>
+
+    </div>
+    
+    <div class="agent-detail-panel" data-agent-idx="1" data-agent-name="gemini-agent">
+        
+<details class="test-item failed" open>
+    <summary class="test-header">
+        <div class="test-info">
+            <span class="test-status-icon">❌</span>
+            <span class="test-agent">gemini-agent</span>
+            <span class="provider-badge">GOOGLE</span>
+        </div>
+        <div class="test-meta">
+            <span class="duration">1.50s</span>
+            <span class="tokens">180 tokens</span>
+            <span class="expand-icon">▼</span>
+        </div>
+    </summary>
+    <div class="test-details">
+        
+
+<div class="assertions-section">
+    <h4 class="subsection-title">Assertions</h4>
+    <div class="assertions-list">
+        
+        <div class="assertion-item passed">
+            <span class="assertion-icon">✓</span>
+            <div class="assertion-content">
+                <span class="assertion-type">tool_called</span>
+                <span class="assertion-message">Tool &#39;db_disconnect&#39; was called</span>
+                
+            </div>
+        </div>
+        
+        <div class="assertion-item failed">
+            <span class="assertion-icon">✗</span>
+            <div class="assertion-content">
+                <span class="assertion-type">output_contains</span>
+                <span class="assertion-message">Output does not contain &#39;closed&#39;</span>
+                
+            </div>
+        </div>
+        
+    </div>
+</div>
+
+
+        
+
+
+        
+
+
+        
+
+
+        
+
+<div class="sequence-section">
+    <h4 class="subsection-title">Execution Flow</h4>
+    <div class="mermaid">
+sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    rect rgb(220, 53, 69)
+    note over U,M: ❌ FAIL (1.5s · 180 tok)
+    U-&gt;&gt;A: Close all database and network connections
+    A-&gt;&gt;M: db_disconnect() [40ms]
+    M--&gt;&gt;A: result
+    A--&gt;&gt;U: Warning - Some connections timed out.
+    end
+
+    </div>
+</div>
+
+
+        
+
+<div class="toolcalls-section">
+    <h4 class="subsection-title">Tool Calls (1)</h4>
+    <div class="timeline">
+        
+        <div class="timeline-item tool-call">
+            <div class="timeline-header">
+                <span class="tool-name">🔧 db_disconnect</span>
+                <span class="timeline-meta">
+                    <span class="tool-duration">40ms</span>
+                    <span class="timeline-time">10:00:17</span>
+                </span>
+            </div>
+            
+            <details class="tool-params-toggle">
+                <summary>Parameters</summary>
+                <pre class="tool-params">{}</pre>
+            </details>
+            
+            
+            <details class="tool-result-toggle">
+                <summary>Result</summary>
+                <pre class="tool-result-content">[
+  {
+    "text": "{\"ok\":true,\"tool\":\"db_disconnect\",\"completed\":true}",
+    "type": "text"
+  }
+]</pre>
+            </details>
+            
+        </div>
+        
+    </div>
+</div>
+
+
+        
+
+<details class="messages-section">
+    <summary class="subsection-title">💬 Conversation (2 messages)</summary>
+    <div class="conversation-timeline">
+        
+        <div class="timeline-item user">
+            <div class="timeline-header">
+                <span class="timeline-role">user</span>
+                <span class="timeline-time">00:00:00.000</span>
+            </div>
+            <div class="timeline-content">Close all database and network connections</div>
+        </div>
+        
+        <div class="timeline-item assistant">
+            <div class="timeline-header">
+                <span class="timeline-role">assistant</span>
+                <span class="timeline-time">00:00:00.000</span>
+            </div>
+            <div class="timeline-content">Warning: Some connections timed out.</div>
+        </div>
+        
+    </div>
+</details>
+
+
+        
+
+<details class="final-output-section">
+    <summary class="subsection-title">📤 Final Output</summary>
+    <div class="final-output-content">Warning: Some connections timed out.</div>
 </details>
 
 
@@ -4165,7 +7787,7 @@ sequenceDiagram
         </div>
         <div class="test-meta">
             <span class="duration">1.50s</span>
-            <span class="tokens">190 tokens</span>
+            <span class="tokens">200 tokens</span>
             <span class="expand-icon">▼</span>
         </div>
     </summary>
@@ -4180,7 +7802,7 @@ sequenceDiagram
             <span class="assertion-icon">✓</span>
             <div class="assertion-content">
                 <span class="assertion-type">tool_called</span>
-                <span class="assertion-message">Tool &#39;delete_file&#39; was called</span>
+                <span class="assertion-message">Tool &#39;db_disconnect&#39; was called</span>
                 
             </div>
         </div>
@@ -4189,7 +7811,7 @@ sequenceDiagram
             <span class="assertion-icon">✗</span>
             <div class="assertion-content">
                 <span class="assertion-type">output_contains</span>
-                <span class="assertion-message">Output does not contain &#39;completed&#39;</span>
+                <span class="assertion-message">Output does not contain &#39;closed&#39;</span>
                 
             </div>
         </div>
@@ -4216,9 +7838,13 @@ sequenceDiagram
     participant U as User
     participant A as Agent
     participant M as MCP Server
-    A-&gt;&gt;M: delete_file() [30ms]
+    rect rgb(220, 53, 69)
+    note over U,M: ❌ FAIL (1.5s · 200 tok)
+    U-&gt;&gt;A: Close all database and network connections
+    A-&gt;&gt;M: db_disconnect() [40ms]
     M--&gt;&gt;A: result
-    A--&gt;&gt;U: Partial cleanup - some files remain. [190 tokens]
+    A--&gt;&gt;U: Warning - Some connections timed out.
+    end
 
     </div>
 </div>
@@ -4232,18 +7858,16 @@ sequenceDiagram
         
         <div class="timeline-item tool-call">
             <div class="timeline-header">
-                <span class="tool-name">🔧 delete_file</span>
+                <span class="tool-name">🔧 db_disconnect</span>
                 <span class="timeline-meta">
-                    <span class="tool-duration">30ms</span>
-                    <span class="timeline-time">10:00:10</span>
+                    <span class="tool-duration">40ms</span>
+                    <span class="timeline-time">10:00:17</span>
                 </span>
             </div>
             
             <details class="tool-params-toggle">
                 <summary>Parameters</summary>
-                <pre class="tool-params">{
-  "path": "/tmp/data"
-}</pre>
+                <pre class="tool-params">{}</pre>
             </details>
             
             
@@ -4251,7 +7875,7 @@ sequenceDiagram
                 <summary>Result</summary>
                 <pre class="tool-result-content">[
   {
-    "text": "{\"ok\":true,\"tool\":\"delete_file\",\"completed\":true}",
+    "text": "{\"ok\":true,\"tool\":\"db_disconnect\",\"completed\":true}",
     "type": "text"
   }
 ]</pre>
@@ -4265,12 +7889,35 @@ sequenceDiagram
 
         
 
+<details class="messages-section">
+    <summary class="subsection-title">💬 Conversation (2 messages)</summary>
+    <div class="conversation-timeline">
+        
+        <div class="timeline-item user">
+            <div class="timeline-header">
+                <span class="timeline-role">user</span>
+                <span class="timeline-time">00:00:00.000</span>
+            </div>
+            <div class="timeline-content">Close all database and network connections</div>
+        </div>
+        
+        <div class="timeline-item assistant">
+            <div class="timeline-header">
+                <span class="timeline-role">assistant</span>
+                <span class="timeline-time">00:00:00.000</span>
+            </div>
+            <div class="timeline-content">Warning: Some connections timed out.</div>
+        </div>
+        
+    </div>
+</details>
+
 
         
 
 <details class="final-output-section">
     <summary class="subsection-title">📤 Final Output</summary>
-    <div class="final-output-content">Partial cleanup - some files remain.</div>
+    <div class="final-output-content">Warning: Some connections timed out.</div>
 </details>
 
 
@@ -4285,6 +7932,10 @@ sequenceDiagram
 
             </div>
             
+            
+            
+            </div>
+            </div>
             
             
             
@@ -4457,9 +8108,6 @@ sequenceDiagram
 
 </body>
 </html>
-
-
-
 
 
 

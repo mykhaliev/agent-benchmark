@@ -1044,10 +1044,16 @@ func createMultiAgent() []model.TestRun {
 }
 
 func createFailedTest() []model.TestRun {
+	dbConnectPrompt := "Connect to the production database at prod-db.example.com"
 	return []model.TestRun{
 		buildTestRun("Connect to database", agentGemini, false, TestRunOpts{
 			DurationMs: 5000,
 			TokensUsed: 423,
+			Messages: []model.Message{
+				{Role: "user", Content: dbConnectPrompt},
+				{Role: "assistant", Content: "I'll try to connect to the database..."},
+				{Role: "assistant", Content: "Would you like me to try a different connection method?"},
+			},
 			ToolCalls: []model.ToolCall{
 				{Name: "db_connect", Parameters: map[string]interface{}{"host": "prod-db.example.com"}, Timestamp: baseTime.Add(500 * time.Millisecond)},
 			},
@@ -1182,6 +1188,12 @@ func createMultiAgentSingleTest() []model.TestRun {
 }
 
 func createSingleAgentMultiSession() []model.TestRun {
+	// Prompts for each test
+	createConfigPrompt := "Create a configuration file at /etc/config.yaml with key: value"
+	readConfigPrompt := "Read the config file and verify its contents"
+	connectDBPrompt := "Connect to the PostgreSQL database at localhost:5432"
+	queryUsersPrompt := "Query the users table and return the count"
+
 	return []model.TestRun{
 		// Session 1: File Operations (same file)
 		buildTestRun("Create config file", agentGemini, true, TestRunOpts{
@@ -1189,6 +1201,10 @@ func createSingleAgentMultiSession() []model.TestRun {
 			SourceFile:  "tests/workflow.yaml",
 			DurationMs:  1500,
 			TokensUsed:  245,
+			Messages: []model.Message{
+				{Role: "user", Content: createConfigPrompt},
+				{Role: "assistant", Content: "Config file created!"},
+			},
 			ToolCalls: []model.ToolCall{
 				{Name: "write_file", Parameters: map[string]interface{}{"path": "/etc/config.yaml", "content": "key: value"}, Timestamp: baseTime.Add(500 * time.Millisecond)},
 			},
@@ -1201,6 +1217,10 @@ func createSingleAgentMultiSession() []model.TestRun {
 			StartTime:   baseTime.Add(2 * time.Second),
 			DurationMs:  1500,
 			TokensUsed:  189,
+			Messages: []model.Message{
+				{Role: "user", Content: readConfigPrompt},
+				{Role: "assistant", Content: "Config content: key: value"},
+			},
 			ToolCalls:   []model.ToolCall{toolReadFile(2500*time.Millisecond, 45)},
 			FinalOutput: "Config content: key: value",
 			Assertions:  []model.AssertionResult{assertOutputContains("key: value")},
@@ -1212,6 +1232,10 @@ func createSingleAgentMultiSession() []model.TestRun {
 			StartTime:   baseTime.Add(5 * time.Second),
 			DurationMs:  2000,
 			TokensUsed:  312,
+			Messages: []model.Message{
+				{Role: "user", Content: connectDBPrompt},
+				{Role: "assistant", Content: "Database connection established."},
+			},
 			ToolCalls:   []model.ToolCall{toolDBConnect(5500*time.Millisecond, 150, "localhost", 5432)},
 			FinalOutput: "Database connection established.",
 			Assertions:  []model.AssertionResult{assertToolCalled("db_connect")},
@@ -1222,6 +1246,10 @@ func createSingleAgentMultiSession() []model.TestRun {
 			StartTime:   baseTime.Add(8 * time.Second),
 			DurationMs:  1000,
 			TokensUsed:  278,
+			Messages: []model.Message{
+				{Role: "user", Content: queryUsersPrompt},
+				{Role: "assistant", Content: "Found 42 users in the database."},
+			},
 			ToolCalls:   []model.ToolCall{toolDBQuery(8200*time.Millisecond, 85, "SELECT * FROM users")},
 			FinalOutput: "Found 42 users in the database.",
 			Assertions:  []model.AssertionResult{assertOutputContains("42 users")},
@@ -1234,65 +1262,148 @@ func createMultiAgentMultiSession() []model.TestRun {
 	agents := []AgentConfig{agentClaude, agentGemini, agentGPT}
 	var runs []model.TestRun
 
-	// Session 1: Setup
+	// Session 1: Setup - 2 tests per agent
+	// Test 1: Create workspace
 	for i, agent := range agents {
-		passed := i != 2 // GPT fails
-		runs = append(runs, buildTestRun("Initialize workspace", agent, passed, TestRunOpts{
+		passed := true
+		runs = append(runs, buildTestRun("Create workspace", agent, passed, TestRunOpts{
 			SessionName: "Setup",
 			SourceFile:  "tests/multi_session.yaml",
 			StartTime:   baseTime.Add(time.Duration(i) * 500 * time.Millisecond),
+			DurationMs:  1500,
+			TokensUsed:  180 + i*20,
+			Messages: []model.Message{
+				{Role: "user", Content: "Create a workspace directory structure"},
+				{Role: "assistant", Content: "Workspace created at /workspace"},
+			},
+			ToolCalls:   []model.ToolCall{toolWriteFile(300*time.Millisecond, 35)},
+			FinalOutput: "Workspace created at /workspace",
+			Assertions:  []model.AssertionResult{assertToolCalled("write_file")},
+		}))
+	}
+	// Test 2: Initialize config
+	for i, agent := range agents {
+		passed := i != 2 // GPT fails
+		finalOutput := "Config initialized successfully."
+		if !passed {
+			finalOutput = "Failed to initialize config."
+		}
+		runs = append(runs, buildTestRun("Initialize config", agent, passed, TestRunOpts{
+			SessionName: "Setup",
+			SourceFile:  "tests/multi_session.yaml",
+			StartTime:   baseTime.Add(2*time.Second + time.Duration(i)*500*time.Millisecond),
 			DurationMs:  2000,
-			TokensUsed:  200 + i*30,
-			ToolCalls:   []model.ToolCall{toolWriteFile(500*time.Millisecond, 45)},
-			FinalOutput: func() string {
-				if passed {
-					return "Workspace initialized successfully."
-				}
-				return "Failed to initialize workspace."
-			}(),
-			Assertions: []model.AssertionResult{assertToolCalled("write_file")},
+			TokensUsed:  220 + i*30,
+			Messages: []model.Message{
+				{Role: "user", Content: "Initialize the configuration files"},
+				{Role: "assistant", Content: finalOutput},
+			},
+			ToolCalls:   []model.ToolCall{toolWriteFile(2300*time.Millisecond, 55)},
+			FinalOutput: finalOutput,
+			Assertions:  []model.AssertionResult{assertToolCalled("write_file")},
 		}))
 	}
 
-	// Session 2: Processing
+	// Session 2: Processing - 3 tests per agent
+	// Test 1: Connect database
 	for i, agent := range agents {
-		passed := true
-		runs = append(runs, buildTestRun("Process data", agent, passed, TestRunOpts{
+		runs = append(runs, buildTestRun("Connect database", agent, true, TestRunOpts{
 			SessionName: "Processing",
 			SourceFile:  "tests/multi_session.yaml",
 			StartTime:   baseTime.Add(5*time.Second + time.Duration(i)*500*time.Millisecond),
-			DurationMs:  3000,
-			TokensUsed:  350 + i*25,
-			ToolCalls:   []model.ToolCall{toolDBQuery(5500*time.Millisecond, 120, "SELECT * FROM data")},
-			FinalOutput: "Data processed successfully.",
+			DurationMs:  2500,
+			TokensUsed:  280 + i*25,
+			Messages: []model.Message{
+				{Role: "user", Content: "Connect to the PostgreSQL database"},
+				{Role: "assistant", Content: "Connected to database successfully"},
+			},
+			ToolCalls:   []model.ToolCall{toolDBConnect(5300*time.Millisecond, 150, "localhost", 5432)},
+			FinalOutput: "Connected to database successfully",
+			Assertions:  []model.AssertionResult{assertToolCalled("db_connect")},
+		}))
+	}
+	// Test 2: Query data
+	for i, agent := range agents {
+		runs = append(runs, buildTestRun("Query data", agent, true, TestRunOpts{
+			SessionName: "Processing",
+			SourceFile:  "tests/multi_session.yaml",
+			StartTime:   baseTime.Add(8*time.Second + time.Duration(i)*500*time.Millisecond),
+			DurationMs:  1800,
+			TokensUsed:  320 + i*20,
+			Messages: []model.Message{
+				{Role: "user", Content: "Query all records from the data table"},
+				{Role: "assistant", Content: "Retrieved 1,234 records"},
+			},
+			ToolCalls:   []model.ToolCall{toolDBQuery(8200*time.Millisecond, 95, "SELECT * FROM data")},
+			FinalOutput: "Retrieved 1,234 records",
 			Assertions:  []model.AssertionResult{assertToolCalled("db_query")},
 		}))
 	}
-
-	// Session 3: Cleanup
+	// Test 3: Generate report
 	for i, agent := range agents {
-		passed := i == 0 // Only Claude succeeds
-		runs = append(runs, buildTestRun("Cleanup resources", agent, passed, TestRunOpts{
+		runs = append(runs, buildTestRun("Generate report", agent, true, TestRunOpts{
+			SessionName: "Processing",
+			SourceFile:  "tests/multi_session.yaml",
+			StartTime:   baseTime.Add(11*time.Second + time.Duration(i)*500*time.Millisecond),
+			DurationMs:  3000,
+			TokensUsed:  450 + i*30,
+			Messages: []model.Message{
+				{Role: "user", Content: "Generate a summary report from the queried data"},
+				{Role: "assistant", Content: "Report generated at /reports/summary.pdf"},
+			},
+			ToolCalls:   []model.ToolCall{toolWriteFile(11500*time.Millisecond, 180)},
+			FinalOutput: "Report generated at /reports/summary.pdf",
+			Assertions:  []model.AssertionResult{assertToolCalled("write_file")},
+		}))
+	}
+
+	// Session 3: Cleanup - 2 tests per agent
+	// Test 1: Delete temp files
+	for i, agent := range agents {
+		passed := i != 1 // Gemini fails
+		finalOutput := "Temp files deleted."
+		if !passed {
+			finalOutput = "Some temp files could not be deleted."
+		}
+		runs = append(runs, buildTestRun("Delete temp files", agent, passed, TestRunOpts{
 			SessionName: "Cleanup",
 			SourceFile:  "tests/multi_session.yaml",
-			StartTime:   baseTime.Add(10*time.Second + time.Duration(i)*500*time.Millisecond),
+			StartTime:   baseTime.Add(15*time.Second + time.Duration(i)*500*time.Millisecond),
+			DurationMs:  1200,
+			TokensUsed:  140 + i*15,
+			Messages: []model.Message{
+				{Role: "user", Content: "Delete all temporary files"},
+				{Role: "assistant", Content: finalOutput},
+			},
+			ToolCalls:   []model.ToolCall{toolGeneric(15300*time.Millisecond, 25, "delete_file", map[string]interface{}{"path": "/tmp/*"})},
+			FinalOutput: finalOutput,
+			Assertions:  []model.AssertionResult{assertToolCalled("delete_file")},
+		}))
+	}
+	// Test 2: Close connections
+	for i, agent := range agents {
+		passed := i == 0 // Only Claude succeeds
+		finalOutput := "All connections closed."
+		assertMsg := "Output contains 'closed'"
+		if !passed {
+			finalOutput = "Warning: Some connections timed out."
+			assertMsg = "Output does not contain 'closed'"
+		}
+		runs = append(runs, buildTestRun("Close connections", agent, passed, TestRunOpts{
+			SessionName: "Cleanup",
+			SourceFile:  "tests/multi_session.yaml",
+			StartTime:   baseTime.Add(17*time.Second + time.Duration(i)*500*time.Millisecond),
 			DurationMs:  1500,
-			TokensUsed:  150 + i*20,
-			ToolCalls:   []model.ToolCall{toolGeneric(10500*time.Millisecond, 30, "delete_file", map[string]interface{}{"path": "/tmp/data"})},
-			FinalOutput: func() string {
-				if passed {
-					return "Cleanup completed."
-				}
-				return "Partial cleanup - some files remain."
-			}(),
+			TokensUsed:  160 + i*20,
+			Messages: []model.Message{
+				{Role: "user", Content: "Close all database and network connections"},
+				{Role: "assistant", Content: finalOutput},
+			},
+			ToolCalls:   []model.ToolCall{toolGeneric(17300*time.Millisecond, 40, "db_disconnect", map[string]interface{}{})},
+			FinalOutput: finalOutput,
 			Assertions: []model.AssertionResult{
-				assertToolCalled("delete_file"),
-				{Type: "output_contains", Passed: passed, Message: func() string {
-					if passed {
-						return "Output contains 'completed'"
-					}
-					return "Output does not contain 'completed'"
-				}()},
+				assertToolCalled("db_disconnect"),
+				{Type: "output_contains", Passed: passed, Message: assertMsg},
 			},
 		}))
 	}
@@ -1302,6 +1413,14 @@ func createMultiAgentMultiSession() []model.TestRun {
 
 // createSingleAgentMultiFile creates a single agent running tests across multiple files with multiple sessions
 func createSingleAgentMultiFile() []model.TestRun {
+	// Prompts for each test
+	createConfigPrompt := "Create a config file at /etc/app/config.yaml"
+	validateConfigPrompt := "Validate the config syntax is valid YAML"
+	connectDBPrompt := "Connect to the PostgreSQL database at localhost:5432"
+	queryUsersPrompt := "Query the users table and return the count"
+	testHealthPrompt := "Test the /health endpoint returns 200"
+	testUsersAPIPrompt := "Test the /api/users endpoint returns user list"
+
 	return []model.TestRun{
 		// File 1: config_tests.yaml - Session: Configuration
 		buildTestRun("Create config file", agentClaude, true, TestRunOpts{
@@ -1309,6 +1428,10 @@ func createSingleAgentMultiFile() []model.TestRun {
 			SourceFile:  "tests/config_tests.yaml",
 			DurationMs:  1800,
 			TokensUsed:  256,
+			Messages: []model.Message{
+				{Role: "user", Content: createConfigPrompt},
+				{Role: "assistant", Content: "Config file created at /etc/app/config.yaml"},
+			},
 			ToolCalls:   []model.ToolCall{toolWriteFile(500*time.Millisecond, 60)},
 			FinalOutput: "Config file created at /etc/app/config.yaml",
 			Assertions:  []model.AssertionResult{assertToolCalled("write_file")},
@@ -1319,6 +1442,10 @@ func createSingleAgentMultiFile() []model.TestRun {
 			StartTime:   baseTime.Add(2 * time.Second),
 			DurationMs:  1200,
 			TokensUsed:  189,
+			Messages: []model.Message{
+				{Role: "user", Content: validateConfigPrompt},
+				{Role: "assistant", Content: "Config syntax is valid YAML"},
+			},
 			ToolCalls:   []model.ToolCall{toolReadFile(2300*time.Millisecond, 40)},
 			FinalOutput: "Config syntax is valid YAML",
 			Assertions:  []model.AssertionResult{assertOutputContains("valid")},
@@ -1330,6 +1457,10 @@ func createSingleAgentMultiFile() []model.TestRun {
 			StartTime:   baseTime.Add(5 * time.Second),
 			DurationMs:  2500,
 			TokensUsed:  312,
+			Messages: []model.Message{
+				{Role: "user", Content: connectDBPrompt},
+				{Role: "assistant", Content: "Connected to PostgreSQL at localhost:5432"},
+			},
 			ToolCalls:   []model.ToolCall{toolDBConnect(5500*time.Millisecond, 180, "localhost", 5432)},
 			FinalOutput: "Connected to PostgreSQL at localhost:5432",
 			Assertions:  []model.AssertionResult{assertToolCalled("db_connect")},
@@ -1340,6 +1471,10 @@ func createSingleAgentMultiFile() []model.TestRun {
 			StartTime:   baseTime.Add(8 * time.Second),
 			DurationMs:  1100,
 			TokensUsed:  245,
+			Messages: []model.Message{
+				{Role: "user", Content: queryUsersPrompt},
+				{Role: "assistant", Content: "Query returned 156 users"},
+			},
 			ToolCalls:   []model.ToolCall{toolDBQuery(8200*time.Millisecond, 75, "SELECT COUNT(*) FROM users")},
 			FinalOutput: "Query returned 156 users",
 			Assertions:  []model.AssertionResult{assertOutputContains("users")},
@@ -1351,6 +1486,10 @@ func createSingleAgentMultiFile() []model.TestRun {
 			StartTime:   baseTime.Add(12 * time.Second),
 			DurationMs:  800,
 			TokensUsed:  178,
+			Messages: []model.Message{
+				{Role: "user", Content: testHealthPrompt},
+				{Role: "assistant", Content: "Health endpoint returned 200 OK"},
+			},
 			ToolCalls:   []model.ToolCall{toolGeneric(12300*time.Millisecond, 50, "http_get", map[string]interface{}{"url": "/health"})},
 			FinalOutput: "Health endpoint returned 200 OK",
 			Assertions:  []model.AssertionResult{assertOutputContains("200")},
@@ -1362,6 +1501,10 @@ func createSingleAgentMultiFile() []model.TestRun {
 			DurationMs:  1500,
 			TokensUsed:  298,
 			Errors:      []string{"Response timeout after 1000ms"},
+			Messages: []model.Message{
+				{Role: "user", Content: testUsersAPIPrompt},
+				{Role: "assistant", Content: "Request timed out"},
+			},
 			ToolCalls:   []model.ToolCall{toolGeneric(14200*time.Millisecond, 1200, "http_get", map[string]interface{}{"url": "/api/users"})},
 			FinalOutput: "Request timed out",
 			Assertions: []model.AssertionResult{

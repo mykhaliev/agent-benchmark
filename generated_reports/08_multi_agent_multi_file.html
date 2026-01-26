@@ -98,6 +98,7 @@ body {
 .summary-card.passed { border-top: 4px solid var(--color-pass); }
 .summary-card.failed { border-top: 4px solid var(--color-fail); }
 .summary-card.agents { border-top: 4px solid var(--color-primary); }
+.summary-card.sessions { border-top: 4px solid #17a2b8; }
 .summary-card.agent-info { border-top: 4px solid var(--color-primary); }
 .summary-card.rate { border-top: 4px solid #9b59b6; }
 .summary-card.tokens { border-top: 4px solid var(--color-warning); }
@@ -113,6 +114,7 @@ body {
 .summary-card.passed .summary-value { color: var(--color-pass); }
 .summary-card.failed .summary-value { color: var(--color-fail); }
 .summary-card.agents .summary-value { color: var(--color-primary); }
+.summary-card.sessions .summary-value { color: #17a2b8; }
 .summary-card.agent-info .summary-value { 
     color: var(--color-primary);
     font-size: 18px;
@@ -121,6 +123,52 @@ body {
 .summary-card.rate .summary-value { color: #9b59b6; }
 .summary-card.tokens .summary-value { color: var(--color-warning); }
 .summary-card.duration .summary-value { color: #3498db; }
+
+/* Token Range Bar */
+.summary-card.token-range {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.summary-card.token-range .summary-value {
+    font-size: 18px;
+}
+.token-bar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 6px;
+    font-size: 10px;
+    color: var(--color-text-light);
+}
+.token-bar-fill {
+    width: 40px;
+    height: 6px;
+    background: linear-gradient(to right, var(--color-success), var(--color-warning), var(--color-danger));
+    border-radius: 3px;
+}
+.token-min, .token-max {
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.duration-bar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 6px;
+    font-size: 10px;
+    color: var(--color-text-light);
+}
+.duration-bar-fill {
+    width: 40px;
+    height: 6px;
+    background: linear-gradient(to right, #17a2b8, #6c757d, #343a40);
+    border-radius: 3px;
+}
+.duration-min, .duration-max {
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
 
 .summary-label {
     font-size: 13px;
@@ -259,13 +307,14 @@ body {
 }
 
 .matrix-session-header td {
-    background: #f8f9fa;
-    font-weight: 500;
+    background: linear-gradient(135deg, #e8f4fd 0%, #f0f7ff 100%);
+    font-weight: 600;
     text-align: left !important;
-    padding: 10px 16px 10px 32px;
-    border-bottom: 1px solid var(--color-border);
-    color: var(--color-text-light);
-    font-size: 13px;
+    padding: 12px 16px 12px 32px;
+    border-bottom: 2px solid #b8d4f0;
+    border-left: 4px solid var(--color-primary);
+    color: var(--color-primary);
+    font-size: 14px;
 }
 
 .matrix-test-indented td:first-child {
@@ -510,11 +559,83 @@ body {
     margin: 0;
 }
 
+/* Session Container - wraps header + all tests */
+.session-container {
+    margin: 24px 0;
+    border-left: 4px solid var(--color-primary);
+    border-radius: 0 var(--radius-md) var(--radius-md) 0;
+    background: linear-gradient(to right, rgba(0, 102, 204, 0.03) 0%, transparent 100%);
+}
+
+.session-container .test-session-header.session-group-header {
+    margin: 0;
+    border-left: none;
+    border-radius: 0 var(--radius-md) 0 0;
+}
+
+.session-tests-container {
+    padding: 16px 16px 8px 20px;
+    border-top: 1px solid rgba(0, 102, 204, 0.1);
+    background: rgba(255, 255, 255, 0.5);
+}
+
+.session-tests-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px dashed var(--color-border);
+}
+
+.session-tests-container .test-group-section {
+    margin-bottom: 16px;
+    padding-left: 12px;
+    border-left: 2px solid var(--color-border);
+}
+
+.session-tests-container .test-group-section:last-child {
+    margin-bottom: 8px;
+}
+
 .test-session-header {
     margin-top: 16px;
     margin-bottom: 12px;
     padding-left: 8px;
     border-left: 3px solid var(--color-border);
+}
+
+.test-session-header.session-group-header {
+    background: linear-gradient(135deg, #e8f4fd 0%, #f0f7ff 100%);
+    border: 2px solid #b8d4f0;
+    border-left: 6px solid var(--color-primary);
+    border-radius: var(--radius-md);
+    padding: 16px 20px;
+    margin: 24px 0 16px 0;
+    box-shadow: 0 2px 8px rgba(0, 102, 204, 0.08);
+}
+
+.session-header-main {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.session-stats {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    background: rgba(255, 255, 255, 0.7);
+    padding: 6px 12px;
+    border-radius: var(--radius-sm);
+}
+
+.session-stats .success-bar {
+    width: 80px;
 }
 
 .test-session-title {
@@ -524,15 +645,131 @@ body {
     margin: 0;
 }
 
+.session-group-header .test-session-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--color-primary);
+    letter-spacing: -0.3px;
+}
+
+.session-group-header .session-diagram-details {
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(0, 102, 204, 0.15);
+}
+
+/* Session Overview Section */
+.session-overview-section {
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(0, 102, 204, 0.15);
+}
+
+.session-overview-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-primary);
+    margin-bottom: 12px;
+}
+
+.session-overview-table-wrapper {
+    overflow-x: auto;
+}
+
+.session-overview-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    background: white;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+}
+
+.session-overview-table th,
+.session-overview-table td {
+    padding: 10px 14px;
+    text-align: center;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.session-overview-table th {
+    background: var(--color-background);
+    font-weight: 600;
+    border-bottom: 2px solid var(--color-border);
+}
+
+.session-overview-table th.metric-col {
+    text-align: left;
+    width: 120px;
+    color: var(--color-text-muted);
+}
+
+.session-overview-table th.agent-col {
+    min-width: 150px;
+}
+
+.session-overview-table th.agent-col.success-high {
+    border-top: 3px solid var(--color-success);
+}
+
+.session-overview-table th.agent-col.success-medium {
+    border-top: 3px solid var(--color-warning);
+}
+
+.session-overview-table th.agent-col.success-low {
+    border-top: 3px solid var(--color-danger);
+}
+
+.session-overview-table .agent-status {
+    display: block;
+    font-size: 16px;
+    margin-bottom: 4px;
+}
+
+.session-overview-table .agent-name {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.session-overview-table .provider-badge {
+    font-size: 9px;
+    padding: 2px 6px;
+    margin-top: 4px;
+}
+
+.session-overview-table td.metric-label {
+    text-align: left;
+    color: var(--color-text-muted);
+    font-weight: 500;
+}
+
+.session-overview-table td.metric-value {
+    font-weight: 500;
+    color: var(--color-text);
+}
+
+.session-overview-table tr:last-child td {
+    border-bottom: none;
+}
+
 .test-group-section { margin-bottom: 16px; }
 
 .test-group-title {
-    font-size: 18px;
+    font-size: 15px;
     font-weight: 600;
     color: var(--color-text);
-    margin: 0 0 16px 0;
-    padding-bottom: 8px;
-    border-bottom: 2px solid var(--color-primary);
+    margin: 0 0 12px 0;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.session-tests-container .test-group-title {
+    font-size: 14px;
+    color: var(--color-text-muted);
+    border-bottom-color: transparent;
+    padding-bottom: 4px;
 }
 
 /* Test Item (Collapsible) */
@@ -1972,7 +2209,7 @@ body {
             <h1>🧪 Agent Benchmark Report</h1>
             <div class="report-meta">
                 <span>📦 Version: 0.0.0-SNAPSHOT</span>
-                <span>📅 Generated: 2026-01-26T09:45:33&#43;01:00</span>
+                <span>📅 Generated: 2026-01-26T12:00:06&#43;01:00</span>
                 
                 
                 <span>📄 Files: 4</span>
@@ -2002,26 +2239,40 @@ body {
         <div class="summary-label">Agents</div>
     </div>
     
+    
+    <div class="summary-card sessions">
+        <div class="summary-value">4</div>
+        <div class="summary-label">Sessions</div>
+    </div>
+    
     <div class="summary-card rate">
         <div class="summary-value">62%</div>
         <div class="summary-label">Pass Rate</div>
     </div>
-    <div class="summary-card tokens">
-        <div class="summary-value">3,220</div>
-        <div class="summary-label">Total Tokens</div>
+    
+    
+    <div class="summary-card tokens token-range">
+        <div class="summary-value">85–205</div>
+        <div class="summary-label">Token Range</div>
+        <div class="token-bar">
+            <span class="token-min">min</span>
+            <span class="token-bar-fill"></span>
+            <span class="token-max">max</span>
+        </div>
     </div>
-    <div class="summary-card tokens">
-        <div class="summary-value">125</div>
-        <div class="summary-label">Avg Tokens ✓</div>
+    
+    
+    
+    <div class="summary-card duration duration-range">
+        <div class="summary-value">0.8s–2.0s</div>
+        <div class="summary-label">Duration Range</div>
+        <div class="duration-bar">
+            <span class="duration-min">min</span>
+            <span class="duration-bar-fill"></span>
+            <span class="duration-max">max</span>
+        </div>
     </div>
-    <div class="summary-card duration">
-        <div class="summary-value">30.8s</div>
-        <div class="summary-label">Total Duration</div>
-    </div>
-    <div class="summary-card duration">
-        <div class="summary-value">1.3s</div>
-        <div class="summary-label">Avg Duration</div>
-    </div>
+    
 </div>
 
         
@@ -2081,7 +2332,7 @@ phoenix-agent (70%): Inconsistent tool selection. Sometimes chose http_get when 
             <table class="comparison-matrix">
                 <thead>
                     <tr>
-                        <th>Test</th>
+                        <th>Session</th>
                         
                         <th>claude-agent</th>
                         
@@ -2101,7 +2352,7 @@ phoenix-agent (70%): Inconsistent tool selection. Sometimes chose http_get when 
                     <tr class="matrix-file-header">
                         <td colspan="5">
                             <span class="matrix-group-icon">📁</span> tests/file_ops.yaml
-                            <span class="group-stats">— 5/8 passed · 10.8s · 1,010 tok</span>
+                            <span class="group-stats">— 5/8 passed · 1.2s–1.5s · 95–165 tok</span>
                         </td>
                     </tr>
                     
@@ -2110,7 +2361,7 @@ phoenix-agent (70%): Inconsistent tool selection. Sometimes chose http_get when 
                     <tr class="matrix-session-header">
                         <td colspan="5">
                             <span class="matrix-group-icon">🔄</span> File Operations
-                            <span class="group-stats">— 5/8 passed · 10.8s · 1,010 tok</span>
+                            <span class="group-stats">— 5/8 passed · 1.2s–1.5s · 95–165 tok</span>
                         </td>
                     </tr>
                     
@@ -2219,7 +2470,7 @@ phoenix-agent (70%): Inconsistent tool selection. Sometimes chose http_get when 
                     <tr class="matrix-file-header">
                         <td colspan="5">
                             <span class="matrix-group-icon">📁</span> tests/db_ops.yaml
-                            <span class="group-stats">— 5/8 passed · 12.0s · 1,212 tok</span>
+                            <span class="group-stats">— 5/8 passed · 1.0s–2.0s · 110–205 tok</span>
                         </td>
                     </tr>
                     
@@ -2228,7 +2479,7 @@ phoenix-agent (70%): Inconsistent tool selection. Sometimes chose http_get when 
                     <tr class="matrix-session-header">
                         <td colspan="5">
                             <span class="matrix-group-icon">🔄</span> Database Operations
-                            <span class="group-stats">— 5/8 passed · 12.0s · 1,212 tok</span>
+                            <span class="group-stats">— 5/8 passed · 1.0s–2.0s · 110–205 tok</span>
                         </td>
                     </tr>
                     
@@ -2337,7 +2588,7 @@ phoenix-agent (70%): Inconsistent tool selection. Sometimes chose http_get when 
                     <tr class="matrix-file-header">
                         <td colspan="5">
                             <span class="matrix-group-icon">📁</span> tests/api_tests.yaml
-                            <span class="group-stats">— 3/4 passed · 3.2s · 388 tok</span>
+                            <span class="group-stats">— 3/4 passed · 0.8s–0.8s · 85–109 tok</span>
                         </td>
                     </tr>
                     
@@ -2346,7 +2597,7 @@ phoenix-agent (70%): Inconsistent tool selection. Sometimes chose http_get when 
                     <tr class="matrix-session-header">
                         <td colspan="5">
                             <span class="matrix-group-icon">🔄</span> API Testing
-                            <span class="group-stats">— 3/4 passed · 3.2s · 388 tok</span>
+                            <span class="group-stats">— 3/4 passed · 0.8s–0.8s · 85–109 tok</span>
                         </td>
                     </tr>
                     
@@ -2406,7 +2657,7 @@ phoenix-agent (70%): Inconsistent tool selection. Sometimes chose http_get when 
                     <tr class="matrix-file-header">
                         <td colspan="5">
                             <span class="matrix-group-icon">📁</span> tests/cleanup.yaml
-                            <span class="group-stats">— 2/4 passed · 4.8s · 610 tok</span>
+                            <span class="group-stats">— 2/4 passed · 1.2s–1.2s · 130–175 tok</span>
                         </td>
                     </tr>
                     
@@ -2415,7 +2666,7 @@ phoenix-agent (70%): Inconsistent tool selection. Sometimes chose http_get when 
                     <tr class="matrix-session-header">
                         <td colspan="5">
                             <span class="matrix-group-icon">🔄</span> Cleanup
-                            <span class="group-stats">— 2/4 passed · 4.8s · 610 tok</span>
+                            <span class="group-stats">— 2/4 passed · 1.2s–1.2s · 130–175 tok</span>
                         </td>
                     </tr>
                     
@@ -2494,6 +2745,9 @@ phoenix-agent (70%): Inconsistent tool selection. Sometimes chose http_get when 
                     <th class="rank-col">Rank</th>
                     <th>Agent</th>
                     <th>Success Rate</th>
+                    
+                    <th>Sessions</th>
+                    
                     <th>Results</th>
                     <th>Total Tokens</th>
                     <th>Efficiency</th>
@@ -2520,6 +2774,12 @@ phoenix-agent (70%): Inconsistent tool selection. Sometimes chose http_get when 
                             <span class="stat-value">83%</span>
                         </div>
                     </td>
+                    
+                    <td class="stat-value">
+                        <span class="session-coverage">3/4</span>
+                        <span class="text-muted">(75%)</span>
+                    </td>
+                    
                     <td class="results-cell">
                         <span class="result-pass">✓5</span>
                         <span class="result-fail">✗1</span>
@@ -2548,6 +2808,12 @@ phoenix-agent (70%): Inconsistent tool selection. Sometimes chose http_get when 
                             <span class="stat-value">83%</span>
                         </div>
                     </td>
+                    
+                    <td class="stat-value">
+                        <span class="session-coverage">4/4</span>
+                        <span class="text-muted">(100%)</span>
+                    </td>
+                    
                     <td class="results-cell">
                         <span class="result-pass">✓5</span>
                         <span class="result-fail">✗1</span>
@@ -2576,6 +2842,12 @@ phoenix-agent (70%): Inconsistent tool selection. Sometimes chose http_get when 
                             <span class="stat-value">83%</span>
                         </div>
                     </td>
+                    
+                    <td class="stat-value">
+                        <span class="session-coverage">4/4</span>
+                        <span class="text-muted">(100%)</span>
+                    </td>
+                    
                     <td class="results-cell">
                         <span class="result-pass">✓5</span>
                         <span class="result-fail">✗1</span>
@@ -2604,6 +2876,12 @@ phoenix-agent (70%): Inconsistent tool selection. Sometimes chose http_get when 
                             <span class="stat-value">0%</span>
                         </div>
                     </td>
+                    
+                    <td class="stat-value">
+                        <span class="session-coverage">0/4</span>
+                        <span class="text-muted">(0%)</span>
+                    </td>
+                    
                     <td class="results-cell">
                         <span class="result-pass">✓0</span>
                         <span class="result-fail">✗6</span>
@@ -2707,353 +2985,6 @@ phoenix-agent (70%): Inconsistent tool selection. Sometimes chose http_get when 
         
 <section class="section">
     <div class="section-header">
-        <h2 class="section-title">🔄 Sessions Summary</h2>
-    </div>
-    <div class="section-body">
-        <div class="file-summary-list">
-            
-            <div class="file-summary-item ">
-                <div class="file-summary-header">
-                    <span class="file-name">🔄 File Operations <span class="session-source-file">(📄 tests/file_ops.yaml)</span></span>
-                    <span class="success-bar"><span class="success-bar-fill success-medium" style="width: 62%"></span></span>
-                    <span class="file-stats">
-                        5/8 tests
-                        <span class="text-muted">
-                            (62%)
-                        </span>
-                        <span class="summary-metric">⏱ 10.8s</span>
-                        <span class="summary-metric">🔢 1,010<span class="tok-suffix">tok</span></span>
-                        <span class="summary-metric">🤖 4 agents</span>
-                    </span>
-                </div>
-                
-                <details class="session-diagram-details">
-                    <summary class="session-diagram-summary">📊 View Session Flow (4 agents)</summary>
-                    <div class="session-agent-diagrams-grid">
-                        
-                        <div class="agent-sequence-box">
-                            <div class="agent-sequence-header">claude-agent</div>
-                            <div class="mermaid">sequenceDiagram
-    participant U as User
-    participant A as Agent
-    participant M as MCP Server
-    note over U,M: Test 1 - Create config file
-    U-&gt;&gt;A: Create a configuration file at /etc/a...
-    A-&gt;&gt;M: write_file()
-    A--&gt;&gt;U: ✓ Configuration file created ...
-    note over U,M: Test 2 - Read and verify config
-    U-&gt;&gt;A: Read the config file and verify its c...
-    A-&gt;&gt;M: read_file()
-    A--&gt;&gt;U: ✓ Config verified - port=8080...
-</div>
-                        </div>
-                        
-                        <div class="agent-sequence-box">
-                            <div class="agent-sequence-header">gemini-agent</div>
-                            <div class="mermaid">sequenceDiagram
-    participant U as User
-    participant A as Agent
-    participant M as MCP Server
-    note over U,M: Test 1 - Create config file
-    U-&gt;&gt;A: Create a configuration file at /etc/a...
-    A-&gt;&gt;M: write_file()
-    A--&gt;&gt;U: ✓ Configuration file created ...
-    note over U,M: Test 2 - Read and verify config
-    U-&gt;&gt;A: Read the config file and verify its c...
-    A-&gt;&gt;M: read_file()
-    A--&gt;&gt;U: ✗ Config file found but forma...
-</div>
-                        </div>
-                        
-                        <div class="agent-sequence-box">
-                            <div class="agent-sequence-header">gpt-agent</div>
-                            <div class="mermaid">sequenceDiagram
-    participant U as User
-    participant A as Agent
-    participant M as MCP Server
-    note over U,M: Test 1 - Create config file
-    U-&gt;&gt;A: Create a configuration file at /etc/a...
-    A-&gt;&gt;M: write_file()
-    A--&gt;&gt;U: ✓ Configuration file created ...
-    note over U,M: Test 2 - Read and verify config
-    U-&gt;&gt;A: Read the config file and verify its c...
-    A-&gt;&gt;M: read_file()
-    A--&gt;&gt;U: ✓ Config verified - port=8080...
-</div>
-                        </div>
-                        
-                        <div class="agent-sequence-box">
-                            <div class="agent-sequence-header">phoenix-agent</div>
-                            <div class="mermaid">sequenceDiagram
-    participant U as User
-    participant A as Agent
-    participant M as MCP Server
-    note over U,M: Test 1 - Create config file
-    U-&gt;&gt;A: Create a configuration file at /etc/a...
-    A-&gt;&gt;M: write_file()
-    A--&gt;&gt;U: ✗ Failed to create configurat...
-    note over U,M: Test 2 - Read and verify config
-    U-&gt;&gt;A: Read the config file and verify its c...
-    A-&gt;&gt;M: read_file()
-    A--&gt;&gt;U: ✗ Failed to read config file
-</div>
-                        </div>
-                        
-                    </div>
-                </details>
-                
-            </div>
-            
-            <div class="file-summary-item ">
-                <div class="file-summary-header">
-                    <span class="file-name">🔄 Database Operations <span class="session-source-file">(📄 tests/db_ops.yaml)</span></span>
-                    <span class="success-bar"><span class="success-bar-fill success-medium" style="width: 62%"></span></span>
-                    <span class="file-stats">
-                        5/8 tests
-                        <span class="text-muted">
-                            (62%)
-                        </span>
-                        <span class="summary-metric">⏱ 12.0s</span>
-                        <span class="summary-metric">🔢 1,212<span class="tok-suffix">tok</span></span>
-                        <span class="summary-metric">🤖 4 agents</span>
-                    </span>
-                </div>
-                
-                <details class="session-diagram-details">
-                    <summary class="session-diagram-summary">📊 View Session Flow (4 agents)</summary>
-                    <div class="session-agent-diagrams-grid">
-                        
-                        <div class="agent-sequence-box">
-                            <div class="agent-sequence-header">claude-agent</div>
-                            <div class="mermaid">sequenceDiagram
-    participant U as User
-    participant A as Agent
-    participant M as MCP Server
-    note over U,M: Test 1 - Connect to database
-    U-&gt;&gt;A: Connect to the PostgreSQL database at...
-    A-&gt;&gt;M: db_connect()
-    A--&gt;&gt;U: ✓ Connected to PostgreSQL dat...
-    note over U,M: Test 2 - Query users table
-    U-&gt;&gt;A: Query the users table and return the ...
-    A-&gt;&gt;M: db_query()
-    A--&gt;&gt;U: ✓ Found 42 users in the datab...
-</div>
-                        </div>
-                        
-                        <div class="agent-sequence-box">
-                            <div class="agent-sequence-header">gemini-agent</div>
-                            <div class="mermaid">sequenceDiagram
-    participant U as User
-    participant A as Agent
-    participant M as MCP Server
-    note over U,M: Test 1 - Connect to database
-    U-&gt;&gt;A: Connect to the PostgreSQL database at...
-    A-&gt;&gt;M: db_connect()
-    A--&gt;&gt;U: ✓ Connected to PostgreSQL dat...
-    note over U,M: Test 2 - Query users table
-    U-&gt;&gt;A: Query the users table and return the ...
-    A-&gt;&gt;M: db_query()
-    A--&gt;&gt;U: ✓ Found 42 users in the datab...
-</div>
-                        </div>
-                        
-                        <div class="agent-sequence-box">
-                            <div class="agent-sequence-header">gpt-agent</div>
-                            <div class="mermaid">sequenceDiagram
-    participant U as User
-    participant A as Agent
-    participant M as MCP Server
-    note over U,M: Test 1 - Connect to database
-    U-&gt;&gt;A: Connect to the PostgreSQL database at...
-    A-&gt;&gt;M: db_connect()
-    A--&gt;&gt;U: ✗ Connection timeout after 30s
-    note over U,M: Test 2 - Query users table
-    U-&gt;&gt;A: Query the users table and return the ...
-    A-&gt;&gt;M: db_query()
-    A--&gt;&gt;U: ✓ Found 42 users in the datab...
-</div>
-                        </div>
-                        
-                        <div class="agent-sequence-box">
-                            <div class="agent-sequence-header">phoenix-agent</div>
-                            <div class="mermaid">sequenceDiagram
-    participant U as User
-    participant A as Agent
-    participant M as MCP Server
-    note over U,M: Test 1 - Connect to database
-    U-&gt;&gt;A: Connect to the PostgreSQL database at...
-    A-&gt;&gt;M: db_connect()
-    A--&gt;&gt;U: ✗ Database connection failed ...
-    note over U,M: Test 2 - Query users table
-    U-&gt;&gt;A: Query the users table and return the ...
-    A-&gt;&gt;M: db_query()
-    A--&gt;&gt;U: ✗ SQL syntax error near &#39;SELEC&#39;
-</div>
-                        </div>
-                        
-                    </div>
-                </details>
-                
-            </div>
-            
-            <div class="file-summary-item ">
-                <div class="file-summary-header">
-                    <span class="file-name">🔄 API Testing <span class="session-source-file">(📄 tests/api_tests.yaml)</span></span>
-                    <span class="success-bar"><span class="success-bar-fill success-medium" style="width: 75%"></span></span>
-                    <span class="file-stats">
-                        3/4 tests
-                        <span class="text-muted">
-                            (75%)
-                        </span>
-                        <span class="summary-metric">⏱ 3.2s</span>
-                        <span class="summary-metric">🔢 388<span class="tok-suffix">tok</span></span>
-                        <span class="summary-metric">🤖 4 agents</span>
-                    </span>
-                </div>
-                
-                <details class="session-diagram-details">
-                    <summary class="session-diagram-summary">📊 View Session Flow (4 agents)</summary>
-                    <div class="session-agent-diagrams-grid">
-                        
-                        <div class="agent-sequence-box">
-                            <div class="agent-sequence-header">claude-agent</div>
-                            <div class="mermaid">sequenceDiagram
-    participant U as User
-    participant A as Agent
-    participant M as MCP Server
-    U-&gt;&gt;A: Call the /api/health endpoint and ver...
-    A-&gt;&gt;M: http_get()
-    A--&gt;&gt;U: ✓ API health check passed - {...
-</div>
-                        </div>
-                        
-                        <div class="agent-sequence-box">
-                            <div class="agent-sequence-header">gemini-agent</div>
-                            <div class="mermaid">sequenceDiagram
-    participant U as User
-    participant A as Agent
-    participant M as MCP Server
-    U-&gt;&gt;A: Call the /api/health endpoint and ver...
-    A-&gt;&gt;M: http_get()
-    A--&gt;&gt;U: ✓ API health check passed - {...
-</div>
-                        </div>
-                        
-                        <div class="agent-sequence-box">
-                            <div class="agent-sequence-header">gpt-agent</div>
-                            <div class="mermaid">sequenceDiagram
-    participant U as User
-    participant A as Agent
-    participant M as MCP Server
-    U-&gt;&gt;A: Call the /api/health endpoint and ver...
-    A-&gt;&gt;M: http_get()
-    A--&gt;&gt;U: ✓ API health check passed - {...
-</div>
-                        </div>
-                        
-                        <div class="agent-sequence-box">
-                            <div class="agent-sequence-header">phoenix-agent</div>
-                            <div class="mermaid">sequenceDiagram
-    participant U as User
-    participant A as Agent
-    participant M as MCP Server
-    U-&gt;&gt;A: Call the /api/health endpoint and ver...
-    A-&gt;&gt;M: http_get()
-    A--&gt;&gt;U: ✗ Error - Connection refused
-</div>
-                        </div>
-                        
-                    </div>
-                </details>
-                
-            </div>
-            
-            <div class="file-summary-item ">
-                <div class="file-summary-header">
-                    <span class="file-name">🔄 Cleanup <span class="session-source-file">(📄 tests/cleanup.yaml)</span></span>
-                    <span class="success-bar"><span class="success-bar-fill success-medium" style="width: 50%"></span></span>
-                    <span class="file-stats">
-                        2/4 tests
-                        <span class="text-muted">
-                            (50%)
-                        </span>
-                        <span class="summary-metric">⏱ 4.8s</span>
-                        <span class="summary-metric">🔢 610<span class="tok-suffix">tok</span></span>
-                        <span class="summary-metric">🤖 4 agents</span>
-                    </span>
-                </div>
-                
-                <details class="session-diagram-details">
-                    <summary class="session-diagram-summary">📊 View Session Flow (4 agents)</summary>
-                    <div class="session-agent-diagrams-grid">
-                        
-                        <div class="agent-sequence-box">
-                            <div class="agent-sequence-header">claude-agent</div>
-                            <div class="mermaid">sequenceDiagram
-    participant U as User
-    participant A as Agent
-    participant M as MCP Server
-    U-&gt;&gt;A: Delete all temporary files created du...
-    A-&gt;&gt;M: delete_file()
-    A-&gt;&gt;M: list_files()
-    A--&gt;&gt;U: ✗ Cleanup completed but 1 fil...
-</div>
-                        </div>
-                        
-                        <div class="agent-sequence-box">
-                            <div class="agent-sequence-header">gemini-agent</div>
-                            <div class="mermaid">sequenceDiagram
-    participant U as User
-    participant A as Agent
-    participant M as MCP Server
-    U-&gt;&gt;A: Delete all temporary files created du...
-    A-&gt;&gt;M: delete_file()
-    A-&gt;&gt;M: list_files()
-    A--&gt;&gt;U: ✓ All temporary files deleted...
-</div>
-                        </div>
-                        
-                        <div class="agent-sequence-box">
-                            <div class="agent-sequence-header">gpt-agent</div>
-                            <div class="mermaid">sequenceDiagram
-    participant U as User
-    participant A as Agent
-    participant M as MCP Server
-    U-&gt;&gt;A: Delete all temporary files created du...
-    A-&gt;&gt;M: delete_file()
-    A-&gt;&gt;M: list_files()
-    A--&gt;&gt;U: ✓ All temporary files deleted...
-</div>
-                        </div>
-                        
-                        <div class="agent-sequence-box">
-                            <div class="agent-sequence-header">phoenix-agent</div>
-                            <div class="mermaid">sequenceDiagram
-    participant U as User
-    participant A as Agent
-    participant M as MCP Server
-    U-&gt;&gt;A: Delete all temporary files created du...
-    A-&gt;&gt;M: delete_file()
-    A-&gt;&gt;M: list_files()
-    A--&gt;&gt;U: ✗ Error - Path not found, cle...
-</div>
-                        </div>
-                        
-                    </div>
-                </details>
-                
-            </div>
-            
-        </div>
-    </div>
-</section>
-
-        
-
-        
-        
-<section class="section">
-    <div class="section-header">
         <h2 class="section-title">📋 Detailed Test Results</h2>
     </div>
     <div class="section-body">
@@ -3072,9 +3003,206 @@ phoenix-agent (70%): Inconsistent tool selection. Sometimes chose http_get when 
             
             
             
-            <div class="test-session-header">
-                <h4 class="test-session-title">🔄 File Operations</h4>
+            <div class="session-container">
+            
+            <div class="test-session-header session-group-header">
+                <div class="session-header-main">
+                    <h4 class="test-session-title">🔄 File Operations</h4>
+                    <span class="session-stats">
+                        
+                        <span class="success-bar"><span class="success-bar-fill success-medium" style="width: 62%"></span></span>
+                        <span class="text-muted">
+                            5/8 (62%)
+                        </span>
+                        <span class="summary-metric">⏱ 1.2s–1.5s</span>
+                        <span class="summary-metric">🔢 95–165<span class="tok-suffix">tok</span></span>
+                        <span class="summary-metric">🤖 4 agents</span>
+                        
+                    </span>
+                </div>
+                
+                
+                <div class="session-overview-section">
+                    <div class="session-overview-label">📊 Session Overview — Agent Comparison</div>
+                    <div class="session-overview-table-wrapper">
+                        <table class="session-overview-table">
+                            <thead>
+                                <tr>
+                                    <th class="metric-col">Metric</th>
+                                    
+                                    <th class="agent-col success-high">
+                                        <span class="agent-status">✅</span>
+                                        <span class="agent-name">claude-agent</span>
+                                        <span class="provider-badge provider-ANTHROPIC">ANTHROPIC</span>
+                                    </th>
+                                    
+                                    <th class="agent-col success-medium">
+                                        <span class="agent-status">⚠️</span>
+                                        <span class="agent-name">gemini-agent</span>
+                                        <span class="provider-badge provider-GOOGLE">GOOGLE</span>
+                                    </th>
+                                    
+                                    <th class="agent-col success-high">
+                                        <span class="agent-status">✅</span>
+                                        <span class="agent-name">gpt-agent</span>
+                                        <span class="provider-badge provider-AZURE">AZURE</span>
+                                    </th>
+                                    
+                                    <th class="agent-col success-low">
+                                        <span class="agent-status">❌</span>
+                                        <span class="agent-name">phoenix-agent</span>
+                                        <span class="provider-badge provider-OPENAI">OPENAI</span>
+                                    </th>
+                                    
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="metric-row">
+                                <td class="metric-label">📊 Pass Rate</td>
+                                
+                                <td class="metric-value text-pass">
+                                    2/2 (100%)
+                                </td>
+                                
+                                <td class="metric-value text-muted">
+                                    1/2 (50%)
+                                </td>
+                                
+                                <td class="metric-value text-pass">
+                                    2/2 (100%)
+                                </td>
+                                
+                                <td class="metric-value text-fail">
+                                    0/2 (0%)
+                                </td>
+                                
+                            </tr>
+                            <tr class="metric-row">
+                                <td class="metric-label">⏱️ Duration</td>
+                                
+                                <td class="metric-value">1.2s–1.5s</td>
+                                
+                                <td class="metric-value">1.2s–1.5s</td>
+                                
+                                <td class="metric-value">1.2s–1.5s</td>
+                                
+                                <td class="metric-value">1.2s–1.5s</td>
+                                
+                            </tr>
+                            <tr class="metric-row">
+                                <td class="metric-label">🎯 Tokens</td>
+                                
+                                <td class="metric-value">95–120</td>
+                                
+                                <td class="metric-value">115–150</td>
+                                
+                                <td class="metric-value">105–135</td>
+                                
+                                <td class="metric-value">125–165</td>
+                                
+                            </tr>
+                        </tbody>
+                    </table>
+                    </div>
+                </div>
+                
+                
+                
+                <details class="session-diagram-details">
+                    <summary class="session-diagram-summary">📊 View Session Flow (4 agents)</summary>
+                    <div class="session-agent-diagrams-grid">
+                        
+                        <div class="agent-sequence-box">
+                            <div class="agent-sequence-header">claude-agent</div>
+                            <div class="mermaid">sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    rect rgb(40, 167, 69)
+    note over U,M: Test 1 - Create config file ✅ (1.5s · 120 tok)
+    U-&gt;&gt;A: Create a configuration file at /etc/a...
+    A-&gt;&gt;M: write_file()
+    A--&gt;&gt;U: Configuration file created ...
+    end
+    rect rgb(40, 167, 69)
+    note over U,M: Test 2 - Read and verify config ✅ (1.2s · 95 tok)
+    U-&gt;&gt;A: Read the config file and verify its c...
+    A-&gt;&gt;M: read_file()
+    A--&gt;&gt;U: Config verified - port=8080...
+    end
+</div>
+                        </div>
+                        
+                        <div class="agent-sequence-box">
+                            <div class="agent-sequence-header">gemini-agent</div>
+                            <div class="mermaid">sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    rect rgb(40, 167, 69)
+    note over U,M: Test 1 - Create config file ✅ (1.5s · 150 tok)
+    U-&gt;&gt;A: Create a configuration file at /etc/a...
+    A-&gt;&gt;M: write_file()
+    A--&gt;&gt;U: Configuration file created ...
+    end
+    rect rgb(220, 53, 69)
+    note over U,M: Test 2 - Read and verify config ❌ (1.2s · 115 tok)
+    U-&gt;&gt;A: Read the config file and verify its c...
+    A-&gt;&gt;M: read_file()
+    A--&gt;&gt;U: Config file found but forma...
+    end
+</div>
+                        </div>
+                        
+                        <div class="agent-sequence-box">
+                            <div class="agent-sequence-header">gpt-agent</div>
+                            <div class="mermaid">sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    rect rgb(40, 167, 69)
+    note over U,M: Test 1 - Create config file ✅ (1.5s · 135 tok)
+    U-&gt;&gt;A: Create a configuration file at /etc/a...
+    A-&gt;&gt;M: write_file()
+    A--&gt;&gt;U: Configuration file created ...
+    end
+    rect rgb(40, 167, 69)
+    note over U,M: Test 2 - Read and verify config ✅ (1.2s · 105 tok)
+    U-&gt;&gt;A: Read the config file and verify its c...
+    A-&gt;&gt;M: read_file()
+    A--&gt;&gt;U: Config verified - port=8080...
+    end
+</div>
+                        </div>
+                        
+                        <div class="agent-sequence-box">
+                            <div class="agent-sequence-header">phoenix-agent</div>
+                            <div class="mermaid">sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    rect rgb(220, 53, 69)
+    note over U,M: Test 1 - Create config file ❌ (1.5s · 165 tok)
+    U-&gt;&gt;A: Create a configuration file at /etc/a...
+    A-&gt;&gt;M: write_file()
+    A--&gt;&gt;U: Failed to create configurat...
+    end
+    rect rgb(220, 53, 69)
+    note over U,M: Test 2 - Read and verify config ❌ (1.2s · 125 tok)
+    U-&gt;&gt;A: Read the config file and verify its c...
+    A-&gt;&gt;M: read_file()
+    A--&gt;&gt;U: Failed to read config file
+    end
+</div>
+                        </div>
+                        
+                    </div>
+                </details>
+                
+                
             </div>
+            <div class="session-tests-container">
+                <div class="session-tests-label">📋 Tests in this session</div>
             
             
             
@@ -3263,9 +3391,12 @@ phoenix-agent (70%): Inconsistent tool selection. Sometimes chose http_get when 
     participant U as User
     participant A as Agent
     participant M as MCP Server
+    rect rgb(40, 167, 69)
+    note over U,M: ✅ PASS (1.5s · 120 tok)
     U-&gt;&gt;A: Create a configuration file at /etc/app/config....
     A-&gt;&gt;M: write_file()
-    A--&gt;&gt;U: Configuration file created successfully. [120 tokens]
+    A--&gt;&gt;U: Configuration file created successfully.
+    end
 </div>
             </div>
             
@@ -3277,9 +3408,12 @@ phoenix-agent (70%): Inconsistent tool selection. Sometimes chose http_get when 
     participant U as User
     participant A as Agent
     participant M as MCP Server
+    rect rgb(40, 167, 69)
+    note over U,M: ✅ PASS (1.5s · 135 tok)
     U-&gt;&gt;A: Create a configuration file at /etc/app/config....
     A-&gt;&gt;M: write_file()
-    A--&gt;&gt;U: Configuration file created successfully. [135 tokens]
+    A--&gt;&gt;U: Configuration file created successfully.
+    end
 </div>
             </div>
             
@@ -3291,9 +3425,12 @@ phoenix-agent (70%): Inconsistent tool selection. Sometimes chose http_get when 
     participant U as User
     participant A as Agent
     participant M as MCP Server
+    rect rgb(40, 167, 69)
+    note over U,M: ✅ PASS (1.5s · 150 tok)
     U-&gt;&gt;A: Create a configuration file at /etc/app/config....
     A-&gt;&gt;M: write_file()
-    A--&gt;&gt;U: Configuration file created successfully. [150 tokens]
+    A--&gt;&gt;U: Configuration file created successfully.
+    end
 </div>
             </div>
             
@@ -3305,9 +3442,12 @@ phoenix-agent (70%): Inconsistent tool selection. Sometimes chose http_get when 
     participant U as User
     participant A as Agent
     participant M as MCP Server
+    rect rgb(220, 53, 69)
+    note over U,M: ❌ FAIL (1.5s · 165 tok)
     U-&gt;&gt;A: Create a configuration file at /etc/app/config....
     A-&gt;&gt;M: write_file()
-    A--&gt;&gt;U: Failed to create configuration file. [165 tokens]
+    A--&gt;&gt;U: Failed to create configuration file.
+    end
 </div>
             </div>
             
@@ -3382,9 +3522,12 @@ sequenceDiagram
     participant U as User
     participant A as Agent
     participant M as MCP Server
+    rect rgb(40, 167, 69)
+    note over U,M: ✅ PASS (1.5s · 120 tok)
     U-&gt;&gt;A: Create a configuration file at /etc/app/config....
     A-&gt;&gt;M: write_file()
-    A--&gt;&gt;U: Configuration file created successfully. [120 tokens]
+    A--&gt;&gt;U: Configuration file created successfully.
+    end
 
     </div>
 </div>
@@ -3513,9 +3656,12 @@ sequenceDiagram
     participant U as User
     participant A as Agent
     participant M as MCP Server
+    rect rgb(40, 167, 69)
+    note over U,M: ✅ PASS (1.5s · 135 tok)
     U-&gt;&gt;A: Create a configuration file at /etc/app/config....
     A-&gt;&gt;M: write_file()
-    A--&gt;&gt;U: Configuration file created successfully. [135 tokens]
+    A--&gt;&gt;U: Configuration file created successfully.
+    end
 
     </div>
 </div>
@@ -3644,9 +3790,12 @@ sequenceDiagram
     participant U as User
     participant A as Agent
     participant M as MCP Server
+    rect rgb(40, 167, 69)
+    note over U,M: ✅ PASS (1.5s · 150 tok)
     U-&gt;&gt;A: Create a configuration file at /etc/app/config....
     A-&gt;&gt;M: write_file()
-    A--&gt;&gt;U: Configuration file created successfully. [150 tokens]
+    A--&gt;&gt;U: Configuration file created successfully.
+    end
 
     </div>
 </div>
@@ -3784,9 +3933,12 @@ sequenceDiagram
     participant U as User
     participant A as Agent
     participant M as MCP Server
+    rect rgb(220, 53, 69)
+    note over U,M: ❌ FAIL (1.5s · 165 tok)
     U-&gt;&gt;A: Create a configuration file at /etc/app/config....
     A-&gt;&gt;M: write_file()
-    A--&gt;&gt;U: Failed to create configuration file. [165 tokens]
+    A--&gt;&gt;U: Failed to create configuration file.
+    end
 
     </div>
 </div>
@@ -4044,9 +4196,12 @@ sequenceDiagram
     participant U as User
     participant A as Agent
     participant M as MCP Server
+    rect rgb(40, 167, 69)
+    note over U,M: ✅ PASS (1.2s · 95 tok)
     U-&gt;&gt;A: Read the config file and verify its contents
     A-&gt;&gt;M: read_file()
-    A--&gt;&gt;U: Config verified - port=8080, env=prod... [95 tokens]
+    A--&gt;&gt;U: Config verified - port=8080, env=prod...
+    end
 </div>
             </div>
             
@@ -4058,9 +4213,12 @@ sequenceDiagram
     participant U as User
     participant A as Agent
     participant M as MCP Server
+    rect rgb(40, 167, 69)
+    note over U,M: ✅ PASS (1.2s · 105 tok)
     U-&gt;&gt;A: Read the config file and verify its contents
     A-&gt;&gt;M: read_file()
-    A--&gt;&gt;U: Config verified - port=8080, env=prod... [105 tokens]
+    A--&gt;&gt;U: Config verified - port=8080, env=prod...
+    end
 </div>
             </div>
             
@@ -4072,9 +4230,12 @@ sequenceDiagram
     participant U as User
     participant A as Agent
     participant M as MCP Server
+    rect rgb(220, 53, 69)
+    note over U,M: ❌ FAIL (1.2s · 115 tok)
     U-&gt;&gt;A: Read the config file and verify its contents
     A-&gt;&gt;M: read_file()
-    A--&gt;&gt;U: Config file found but format unclear [115 tokens]
+    A--&gt;&gt;U: Config file found but format unclear
+    end
 </div>
             </div>
             
@@ -4086,9 +4247,12 @@ sequenceDiagram
     participant U as User
     participant A as Agent
     participant M as MCP Server
+    rect rgb(220, 53, 69)
+    note over U,M: ❌ FAIL (1.2s · 125 tok)
     U-&gt;&gt;A: Read the config file and verify its contents
     A-&gt;&gt;M: read_file()
-    A--&gt;&gt;U: Failed to read config file [125 tokens]
+    A--&gt;&gt;U: Failed to read config file
+    end
 </div>
             </div>
             
@@ -4154,9 +4318,12 @@ sequenceDiagram
     participant U as User
     participant A as Agent
     participant M as MCP Server
+    rect rgb(40, 167, 69)
+    note over U,M: ✅ PASS (1.2s · 95 tok)
     U-&gt;&gt;A: Read the config file and verify its contents
     A-&gt;&gt;M: read_file()
-    A--&gt;&gt;U: Config verified - port=8080, env=prod... [95 tokens]
+    A--&gt;&gt;U: Config verified - port=8080, env=prod...
+    end
 
     </div>
 </div>
@@ -4275,9 +4442,12 @@ sequenceDiagram
     participant U as User
     participant A as Agent
     participant M as MCP Server
+    rect rgb(40, 167, 69)
+    note over U,M: ✅ PASS (1.2s · 105 tok)
     U-&gt;&gt;A: Read the config file and verify its contents
     A-&gt;&gt;M: read_file()
-    A--&gt;&gt;U: Config verified - port=8080, env=prod... [105 tokens]
+    A--&gt;&gt;U: Config verified - port=8080, env=prod...
+    end
 
     </div>
 </div>
@@ -4396,9 +4566,12 @@ sequenceDiagram
     participant U as User
     participant A as Agent
     participant M as MCP Server
+    rect rgb(220, 53, 69)
+    note over U,M: ❌ FAIL (1.2s · 115 tok)
     U-&gt;&gt;A: Read the config file and verify its contents
     A-&gt;&gt;M: read_file()
-    A--&gt;&gt;U: Config file found but format unclear [115 tokens]
+    A--&gt;&gt;U: Config file found but format unclear
+    end
 
     </div>
 </div>
@@ -4524,9 +4697,12 @@ sequenceDiagram
     participant U as User
     participant A as Agent
     participant M as MCP Server
+    rect rgb(220, 53, 69)
+    note over U,M: ❌ FAIL (1.2s · 125 tok)
     U-&gt;&gt;A: Read the config file and verify its contents
     A-&gt;&gt;M: read_file()
-    A--&gt;&gt;U: Failed to read config file [125 tokens]
+    A--&gt;&gt;U: Failed to read config file
+    end
 
     </div>
 </div>
@@ -4600,6 +4776,10 @@ sequenceDiagram
             
             
             
+            </div>
+            </div>
+            
+            
             
             
             
@@ -4613,9 +4793,206 @@ sequenceDiagram
             
             
             
-            <div class="test-session-header">
-                <h4 class="test-session-title">🔄 Database Operations</h4>
+            <div class="session-container">
+            
+            <div class="test-session-header session-group-header">
+                <div class="session-header-main">
+                    <h4 class="test-session-title">🔄 Database Operations</h4>
+                    <span class="session-stats">
+                        
+                        <span class="success-bar"><span class="success-bar-fill success-medium" style="width: 62%"></span></span>
+                        <span class="text-muted">
+                            5/8 (62%)
+                        </span>
+                        <span class="summary-metric">⏱ 1.0s–2.0s</span>
+                        <span class="summary-metric">🔢 110–205<span class="tok-suffix">tok</span></span>
+                        <span class="summary-metric">🤖 4 agents</span>
+                        
+                    </span>
+                </div>
+                
+                
+                <div class="session-overview-section">
+                    <div class="session-overview-label">📊 Session Overview — Agent Comparison</div>
+                    <div class="session-overview-table-wrapper">
+                        <table class="session-overview-table">
+                            <thead>
+                                <tr>
+                                    <th class="metric-col">Metric</th>
+                                    
+                                    <th class="agent-col success-high">
+                                        <span class="agent-status">✅</span>
+                                        <span class="agent-name">claude-agent</span>
+                                        <span class="provider-badge provider-ANTHROPIC">ANTHROPIC</span>
+                                    </th>
+                                    
+                                    <th class="agent-col success-high">
+                                        <span class="agent-status">✅</span>
+                                        <span class="agent-name">gemini-agent</span>
+                                        <span class="provider-badge provider-GOOGLE">GOOGLE</span>
+                                    </th>
+                                    
+                                    <th class="agent-col success-medium">
+                                        <span class="agent-status">⚠️</span>
+                                        <span class="agent-name">gpt-agent</span>
+                                        <span class="provider-badge provider-AZURE">AZURE</span>
+                                    </th>
+                                    
+                                    <th class="agent-col success-low">
+                                        <span class="agent-status">❌</span>
+                                        <span class="agent-name">phoenix-agent</span>
+                                        <span class="provider-badge provider-OPENAI">OPENAI</span>
+                                    </th>
+                                    
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="metric-row">
+                                <td class="metric-label">📊 Pass Rate</td>
+                                
+                                <td class="metric-value text-pass">
+                                    2/2 (100%)
+                                </td>
+                                
+                                <td class="metric-value text-pass">
+                                    2/2 (100%)
+                                </td>
+                                
+                                <td class="metric-value text-muted">
+                                    1/2 (50%)
+                                </td>
+                                
+                                <td class="metric-value text-fail">
+                                    0/2 (0%)
+                                </td>
+                                
+                            </tr>
+                            <tr class="metric-row">
+                                <td class="metric-label">⏱️ Duration</td>
+                                
+                                <td class="metric-value">1.0s–2.0s</td>
+                                
+                                <td class="metric-value">1.0s–2.0s</td>
+                                
+                                <td class="metric-value">1.0s–2.0s</td>
+                                
+                                <td class="metric-value">1.0s–2.0s</td>
+                                
+                            </tr>
+                            <tr class="metric-row">
+                                <td class="metric-label">🎯 Tokens</td>
+                                
+                                <td class="metric-value">110–145</td>
+                                
+                                <td class="metric-value">134–185</td>
+                                
+                                <td class="metric-value">122–165</td>
+                                
+                                <td class="metric-value">146–205</td>
+                                
+                            </tr>
+                        </tbody>
+                    </table>
+                    </div>
+                </div>
+                
+                
+                
+                <details class="session-diagram-details">
+                    <summary class="session-diagram-summary">📊 View Session Flow (4 agents)</summary>
+                    <div class="session-agent-diagrams-grid">
+                        
+                        <div class="agent-sequence-box">
+                            <div class="agent-sequence-header">claude-agent</div>
+                            <div class="mermaid">sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    rect rgb(40, 167, 69)
+    note over U,M: Test 1 - Connect to database ✅ (2.0s · 145 tok)
+    U-&gt;&gt;A: Connect to the PostgreSQL database at...
+    A-&gt;&gt;M: db_connect()
+    A--&gt;&gt;U: Connected to PostgreSQL dat...
+    end
+    rect rgb(40, 167, 69)
+    note over U,M: Test 2 - Query users table ✅ (1.0s · 110 tok)
+    U-&gt;&gt;A: Query the users table and return the ...
+    A-&gt;&gt;M: db_query()
+    A--&gt;&gt;U: Found 42 users in the datab...
+    end
+</div>
+                        </div>
+                        
+                        <div class="agent-sequence-box">
+                            <div class="agent-sequence-header">gemini-agent</div>
+                            <div class="mermaid">sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    rect rgb(40, 167, 69)
+    note over U,M: Test 1 - Connect to database ✅ (2.0s · 185 tok)
+    U-&gt;&gt;A: Connect to the PostgreSQL database at...
+    A-&gt;&gt;M: db_connect()
+    A--&gt;&gt;U: Connected to PostgreSQL dat...
+    end
+    rect rgb(40, 167, 69)
+    note over U,M: Test 2 - Query users table ✅ (1.0s · 134 tok)
+    U-&gt;&gt;A: Query the users table and return the ...
+    A-&gt;&gt;M: db_query()
+    A--&gt;&gt;U: Found 42 users in the datab...
+    end
+</div>
+                        </div>
+                        
+                        <div class="agent-sequence-box">
+                            <div class="agent-sequence-header">gpt-agent</div>
+                            <div class="mermaid">sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    rect rgb(220, 53, 69)
+    note over U,M: Test 1 - Connect to database ❌ (2.0s · 165 tok)
+    U-&gt;&gt;A: Connect to the PostgreSQL database at...
+    A-&gt;&gt;M: db_connect()
+    A--&gt;&gt;U: Connection timeout after 30s
+    end
+    rect rgb(40, 167, 69)
+    note over U,M: Test 2 - Query users table ✅ (1.0s · 122 tok)
+    U-&gt;&gt;A: Query the users table and return the ...
+    A-&gt;&gt;M: db_query()
+    A--&gt;&gt;U: Found 42 users in the datab...
+    end
+</div>
+                        </div>
+                        
+                        <div class="agent-sequence-box">
+                            <div class="agent-sequence-header">phoenix-agent</div>
+                            <div class="mermaid">sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    rect rgb(220, 53, 69)
+    note over U,M: Test 1 - Connect to database ❌ (2.0s · 205 tok)
+    U-&gt;&gt;A: Connect to the PostgreSQL database at...
+    A-&gt;&gt;M: db_connect()
+    A--&gt;&gt;U: Database connection failed ...
+    end
+    rect rgb(220, 53, 69)
+    note over U,M: Test 2 - Query users table ❌ (1.0s · 146 tok)
+    U-&gt;&gt;A: Query the users table and return the ...
+    A-&gt;&gt;M: db_query()
+    A--&gt;&gt;U: SQL syntax error near &#39;SELEC&#39;
+    end
+</div>
+                        </div>
+                        
+                    </div>
+                </details>
+                
+                
             </div>
+            <div class="session-tests-container">
+                <div class="session-tests-label">📋 Tests in this session</div>
             
             
             
@@ -4804,9 +5181,12 @@ sequenceDiagram
     participant U as User
     participant A as Agent
     participant M as MCP Server
+    rect rgb(40, 167, 69)
+    note over U,M: ✅ PASS (2.0s · 145 tok)
     U-&gt;&gt;A: Connect to the PostgreSQL database at localhost...
     A-&gt;&gt;M: db_connect()
-    A--&gt;&gt;U: Connected to PostgreSQL database succ... [145 tokens]
+    A--&gt;&gt;U: Connected to PostgreSQL database succ...
+    end
 </div>
             </div>
             
@@ -4818,9 +5198,12 @@ sequenceDiagram
     participant U as User
     participant A as Agent
     participant M as MCP Server
+    rect rgb(220, 53, 69)
+    note over U,M: ❌ FAIL (2.0s · 165 tok)
     U-&gt;&gt;A: Connect to the PostgreSQL database at localhost...
     A-&gt;&gt;M: db_connect()
-    A--&gt;&gt;U: Connection timeout after 30s [165 tokens]
+    A--&gt;&gt;U: Connection timeout after 30s
+    end
 </div>
             </div>
             
@@ -4832,9 +5215,12 @@ sequenceDiagram
     participant U as User
     participant A as Agent
     participant M as MCP Server
+    rect rgb(40, 167, 69)
+    note over U,M: ✅ PASS (2.0s · 185 tok)
     U-&gt;&gt;A: Connect to the PostgreSQL database at localhost...
     A-&gt;&gt;M: db_connect()
-    A--&gt;&gt;U: Connected to PostgreSQL database succ... [185 tokens]
+    A--&gt;&gt;U: Connected to PostgreSQL database succ...
+    end
 </div>
             </div>
             
@@ -4846,9 +5232,12 @@ sequenceDiagram
     participant U as User
     participant A as Agent
     participant M as MCP Server
+    rect rgb(220, 53, 69)
+    note over U,M: ❌ FAIL (2.0s · 205 tok)
     U-&gt;&gt;A: Connect to the PostgreSQL database at localhost...
     A-&gt;&gt;M: db_connect()
-    A--&gt;&gt;U: Database connection failed - unknown ... [205 tokens]
+    A--&gt;&gt;U: Database connection failed - unknown ...
+    end
 </div>
             </div>
             
@@ -4923,9 +5312,12 @@ sequenceDiagram
     participant U as User
     participant A as Agent
     participant M as MCP Server
+    rect rgb(40, 167, 69)
+    note over U,M: ✅ PASS (2.0s · 145 tok)
     U-&gt;&gt;A: Connect to the PostgreSQL database at localhost...
     A-&gt;&gt;M: db_connect()
-    A--&gt;&gt;U: Connected to PostgreSQL database succ... [145 tokens]
+    A--&gt;&gt;U: Connected to PostgreSQL database succ...
+    end
 
     </div>
 </div>
@@ -5062,9 +5454,12 @@ sequenceDiagram
     participant U as User
     participant A as Agent
     participant M as MCP Server
+    rect rgb(220, 53, 69)
+    note over U,M: ❌ FAIL (2.0s · 165 tok)
     U-&gt;&gt;A: Connect to the PostgreSQL database at localhost...
     A-&gt;&gt;M: db_connect()
-    A--&gt;&gt;U: Connection timeout after 30s [165 tokens]
+    A--&gt;&gt;U: Connection timeout after 30s
+    end
 
     </div>
 </div>
@@ -5194,9 +5589,12 @@ sequenceDiagram
     participant U as User
     participant A as Agent
     participant M as MCP Server
+    rect rgb(40, 167, 69)
+    note over U,M: ✅ PASS (2.0s · 185 tok)
     U-&gt;&gt;A: Connect to the PostgreSQL database at localhost...
     A-&gt;&gt;M: db_connect()
-    A--&gt;&gt;U: Connected to PostgreSQL database succ... [185 tokens]
+    A--&gt;&gt;U: Connected to PostgreSQL database succ...
+    end
 
     </div>
 </div>
@@ -5335,9 +5733,12 @@ sequenceDiagram
     participant U as User
     participant A as Agent
     participant M as MCP Server
+    rect rgb(220, 53, 69)
+    note over U,M: ❌ FAIL (2.0s · 205 tok)
     U-&gt;&gt;A: Connect to the PostgreSQL database at localhost...
     A-&gt;&gt;M: db_connect()
-    A--&gt;&gt;U: Database connection failed - unknown ... [205 tokens]
+    A--&gt;&gt;U: Database connection failed - unknown ...
+    end
 
     </div>
 </div>
@@ -5596,9 +5997,12 @@ sequenceDiagram
     participant U as User
     participant A as Agent
     participant M as MCP Server
+    rect rgb(40, 167, 69)
+    note over U,M: ✅ PASS (1.0s · 110 tok)
     U-&gt;&gt;A: Query the users table and return the count
     A-&gt;&gt;M: db_query()
-    A--&gt;&gt;U: Found 42 users in the database. [110 tokens]
+    A--&gt;&gt;U: Found 42 users in the database.
+    end
 </div>
             </div>
             
@@ -5610,9 +6014,12 @@ sequenceDiagram
     participant U as User
     participant A as Agent
     participant M as MCP Server
+    rect rgb(40, 167, 69)
+    note over U,M: ✅ PASS (1.0s · 122 tok)
     U-&gt;&gt;A: Query the users table and return the count
     A-&gt;&gt;M: db_query()
-    A--&gt;&gt;U: Found 42 users in the database. [122 tokens]
+    A--&gt;&gt;U: Found 42 users in the database.
+    end
 </div>
             </div>
             
@@ -5624,9 +6031,12 @@ sequenceDiagram
     participant U as User
     participant A as Agent
     participant M as MCP Server
+    rect rgb(40, 167, 69)
+    note over U,M: ✅ PASS (1.0s · 134 tok)
     U-&gt;&gt;A: Query the users table and return the count
     A-&gt;&gt;M: db_query()
-    A--&gt;&gt;U: Found 42 users in the database. [134 tokens]
+    A--&gt;&gt;U: Found 42 users in the database.
+    end
 </div>
             </div>
             
@@ -5638,9 +6048,12 @@ sequenceDiagram
     participant U as User
     participant A as Agent
     participant M as MCP Server
+    rect rgb(220, 53, 69)
+    note over U,M: ❌ FAIL (1.0s · 146 tok)
     U-&gt;&gt;A: Query the users table and return the count
     A-&gt;&gt;M: db_query()
-    A--&gt;&gt;U: SQL syntax error near &#39;SELEC&#39; [146 tokens]
+    A--&gt;&gt;U: SQL syntax error near &#39;SELEC&#39;
+    end
 </div>
             </div>
             
@@ -5706,9 +6119,12 @@ sequenceDiagram
     participant U as User
     participant A as Agent
     participant M as MCP Server
+    rect rgb(40, 167, 69)
+    note over U,M: ✅ PASS (1.0s · 110 tok)
     U-&gt;&gt;A: Query the users table and return the count
     A-&gt;&gt;M: db_query()
-    A--&gt;&gt;U: Found 42 users in the database. [110 tokens]
+    A--&gt;&gt;U: Found 42 users in the database.
+    end
 
     </div>
 </div>
@@ -5827,9 +6243,12 @@ sequenceDiagram
     participant U as User
     participant A as Agent
     participant M as MCP Server
+    rect rgb(40, 167, 69)
+    note over U,M: ✅ PASS (1.0s · 122 tok)
     U-&gt;&gt;A: Query the users table and return the count
     A-&gt;&gt;M: db_query()
-    A--&gt;&gt;U: Found 42 users in the database. [122 tokens]
+    A--&gt;&gt;U: Found 42 users in the database.
+    end
 
     </div>
 </div>
@@ -5948,9 +6367,12 @@ sequenceDiagram
     participant U as User
     participant A as Agent
     participant M as MCP Server
+    rect rgb(40, 167, 69)
+    note over U,M: ✅ PASS (1.0s · 134 tok)
     U-&gt;&gt;A: Query the users table and return the count
     A-&gt;&gt;M: db_query()
-    A--&gt;&gt;U: Found 42 users in the database. [134 tokens]
+    A--&gt;&gt;U: Found 42 users in the database.
+    end
 
     </div>
 </div>
@@ -6076,9 +6498,12 @@ sequenceDiagram
     participant U as User
     participant A as Agent
     participant M as MCP Server
+    rect rgb(220, 53, 69)
+    note over U,M: ❌ FAIL (1.0s · 146 tok)
     U-&gt;&gt;A: Query the users table and return the count
     A-&gt;&gt;M: db_query()
-    A--&gt;&gt;U: SQL syntax error near &#39;SELEC&#39; [146 tokens]
+    A--&gt;&gt;U: SQL syntax error near &#39;SELEC&#39;
+    end
 
     </div>
 </div>
@@ -6152,6 +6577,10 @@ sequenceDiagram
             
             
             
+            </div>
+            </div>
+            
+            
             
             
             
@@ -6165,9 +6594,170 @@ sequenceDiagram
             
             
             
-            <div class="test-session-header">
-                <h4 class="test-session-title">🔄 API Testing</h4>
+            <div class="session-container">
+            
+            <div class="test-session-header session-group-header">
+                <div class="session-header-main">
+                    <h4 class="test-session-title">🔄 API Testing</h4>
+                    <span class="session-stats">
+                        
+                        <span class="success-bar"><span class="success-bar-fill success-medium" style="width: 75%"></span></span>
+                        <span class="text-muted">
+                            3/4 (75%)
+                        </span>
+                        <span class="summary-metric">⏱ 0.8s–0.8s</span>
+                        <span class="summary-metric">🔢 85–109<span class="tok-suffix">tok</span></span>
+                        <span class="summary-metric">🤖 4 agents</span>
+                        
+                    </span>
+                </div>
+                
+                
+                <div class="session-overview-section">
+                    <div class="session-overview-label">📊 Session Overview — Agent Comparison</div>
+                    <div class="session-overview-table-wrapper">
+                        <table class="session-overview-table">
+                            <thead>
+                                <tr>
+                                    <th class="metric-col">Metric</th>
+                                    
+                                    <th class="agent-col success-high">
+                                        <span class="agent-status">✅</span>
+                                        <span class="agent-name">claude-agent</span>
+                                        <span class="provider-badge provider-ANTHROPIC">ANTHROPIC</span>
+                                    </th>
+                                    
+                                    <th class="agent-col success-high">
+                                        <span class="agent-status">✅</span>
+                                        <span class="agent-name">gemini-agent</span>
+                                        <span class="provider-badge provider-GOOGLE">GOOGLE</span>
+                                    </th>
+                                    
+                                    <th class="agent-col success-high">
+                                        <span class="agent-status">✅</span>
+                                        <span class="agent-name">gpt-agent</span>
+                                        <span class="provider-badge provider-AZURE">AZURE</span>
+                                    </th>
+                                    
+                                    <th class="agent-col success-low">
+                                        <span class="agent-status">❌</span>
+                                        <span class="agent-name">phoenix-agent</span>
+                                        <span class="provider-badge provider-OPENAI">OPENAI</span>
+                                    </th>
+                                    
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="metric-row">
+                                <td class="metric-label">📊 Pass Rate</td>
+                                
+                                <td class="metric-value text-pass">
+                                    1/1 (100%)
+                                </td>
+                                
+                                <td class="metric-value text-pass">
+                                    1/1 (100%)
+                                </td>
+                                
+                                <td class="metric-value text-pass">
+                                    1/1 (100%)
+                                </td>
+                                
+                                <td class="metric-value text-fail">
+                                    0/1 (0%)
+                                </td>
+                                
+                            </tr>
+                            <tr class="metric-row">
+                                <td class="metric-label">⏱️ Duration</td>
+                                
+                                <td class="metric-value">0.8s–0.8s</td>
+                                
+                                <td class="metric-value">0.8s–0.8s</td>
+                                
+                                <td class="metric-value">0.8s–0.8s</td>
+                                
+                                <td class="metric-value">0.8s–0.8s</td>
+                                
+                            </tr>
+                            <tr class="metric-row">
+                                <td class="metric-label">🎯 Tokens</td>
+                                
+                                <td class="metric-value">85–85</td>
+                                
+                                <td class="metric-value">101–101</td>
+                                
+                                <td class="metric-value">93–93</td>
+                                
+                                <td class="metric-value">109–109</td>
+                                
+                            </tr>
+                        </tbody>
+                    </table>
+                    </div>
+                </div>
+                
+                
+                
+                <details class="session-diagram-details">
+                    <summary class="session-diagram-summary">📊 View Session Flow (4 agents)</summary>
+                    <div class="session-agent-diagrams-grid">
+                        
+                        <div class="agent-sequence-box">
+                            <div class="agent-sequence-header">claude-agent</div>
+                            <div class="mermaid">sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    U-&gt;&gt;A: Call the /api/health endpoint and ver...
+    A-&gt;&gt;M: http_get()
+    A--&gt;&gt;U: API health check passed - {...
+</div>
+                        </div>
+                        
+                        <div class="agent-sequence-box">
+                            <div class="agent-sequence-header">gemini-agent</div>
+                            <div class="mermaid">sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    U-&gt;&gt;A: Call the /api/health endpoint and ver...
+    A-&gt;&gt;M: http_get()
+    A--&gt;&gt;U: API health check passed - {...
+</div>
+                        </div>
+                        
+                        <div class="agent-sequence-box">
+                            <div class="agent-sequence-header">gpt-agent</div>
+                            <div class="mermaid">sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    U-&gt;&gt;A: Call the /api/health endpoint and ver...
+    A-&gt;&gt;M: http_get()
+    A--&gt;&gt;U: API health check passed - {...
+</div>
+                        </div>
+                        
+                        <div class="agent-sequence-box">
+                            <div class="agent-sequence-header">phoenix-agent</div>
+                            <div class="mermaid">sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    U-&gt;&gt;A: Call the /api/health endpoint and ver...
+    A-&gt;&gt;M: http_get()
+    A--&gt;&gt;U: Error - Connection refused
+</div>
+                        </div>
+                        
+                    </div>
+                </details>
+                
+                
             </div>
+            <div class="session-tests-container">
+                <div class="session-tests-label">📋 Tests in this session</div>
             
             
             
@@ -6356,9 +6946,12 @@ sequenceDiagram
     participant U as User
     participant A as Agent
     participant M as MCP Server
+    rect rgb(40, 167, 69)
+    note over U,M: ✅ PASS (0.8s · 85 tok)
     U-&gt;&gt;A: Call the /api/health endpoint and verify the re...
     A-&gt;&gt;M: http_get()
-    A--&gt;&gt;U: API health check passed - {&#39;status&#39; -... [85 tokens]
+    A--&gt;&gt;U: API health check passed - {&#39;status&#39; -...
+    end
 </div>
             </div>
             
@@ -6370,9 +6963,12 @@ sequenceDiagram
     participant U as User
     participant A as Agent
     participant M as MCP Server
+    rect rgb(40, 167, 69)
+    note over U,M: ✅ PASS (0.8s · 93 tok)
     U-&gt;&gt;A: Call the /api/health endpoint and verify the re...
     A-&gt;&gt;M: http_get()
-    A--&gt;&gt;U: API health check passed - {&#39;status&#39; -... [93 tokens]
+    A--&gt;&gt;U: API health check passed - {&#39;status&#39; -...
+    end
 </div>
             </div>
             
@@ -6384,9 +6980,12 @@ sequenceDiagram
     participant U as User
     participant A as Agent
     participant M as MCP Server
+    rect rgb(40, 167, 69)
+    note over U,M: ✅ PASS (0.8s · 101 tok)
     U-&gt;&gt;A: Call the /api/health endpoint and verify the re...
     A-&gt;&gt;M: http_get()
-    A--&gt;&gt;U: API health check passed - {&#39;status&#39; -... [101 tokens]
+    A--&gt;&gt;U: API health check passed - {&#39;status&#39; -...
+    end
 </div>
             </div>
             
@@ -6398,9 +6997,12 @@ sequenceDiagram
     participant U as User
     participant A as Agent
     participant M as MCP Server
+    rect rgb(220, 53, 69)
+    note over U,M: ❌ FAIL (0.8s · 109 tok)
     U-&gt;&gt;A: Call the /api/health endpoint and verify the re...
     A-&gt;&gt;M: http_get()
-    A--&gt;&gt;U: Error - Connection refused [109 tokens]
+    A--&gt;&gt;U: Error - Connection refused
+    end
 </div>
             </div>
             
@@ -6466,9 +7068,12 @@ sequenceDiagram
     participant U as User
     participant A as Agent
     participant M as MCP Server
+    rect rgb(40, 167, 69)
+    note over U,M: ✅ PASS (0.8s · 85 tok)
     U-&gt;&gt;A: Call the /api/health endpoint and verify the re...
     A-&gt;&gt;M: http_get()
-    A--&gt;&gt;U: API health check passed - {&#39;status&#39; -... [85 tokens]
+    A--&gt;&gt;U: API health check passed - {&#39;status&#39; -...
+    end
 
     </div>
 </div>
@@ -6587,9 +7192,12 @@ sequenceDiagram
     participant U as User
     participant A as Agent
     participant M as MCP Server
+    rect rgb(40, 167, 69)
+    note over U,M: ✅ PASS (0.8s · 93 tok)
     U-&gt;&gt;A: Call the /api/health endpoint and verify the re...
     A-&gt;&gt;M: http_get()
-    A--&gt;&gt;U: API health check passed - {&#39;status&#39; -... [93 tokens]
+    A--&gt;&gt;U: API health check passed - {&#39;status&#39; -...
+    end
 
     </div>
 </div>
@@ -6708,9 +7316,12 @@ sequenceDiagram
     participant U as User
     participant A as Agent
     participant M as MCP Server
+    rect rgb(40, 167, 69)
+    note over U,M: ✅ PASS (0.8s · 101 tok)
     U-&gt;&gt;A: Call the /api/health endpoint and verify the re...
     A-&gt;&gt;M: http_get()
-    A--&gt;&gt;U: API health check passed - {&#39;status&#39; -... [101 tokens]
+    A--&gt;&gt;U: API health check passed - {&#39;status&#39; -...
+    end
 
     </div>
 </div>
@@ -6836,9 +7447,12 @@ sequenceDiagram
     participant U as User
     participant A as Agent
     participant M as MCP Server
+    rect rgb(220, 53, 69)
+    note over U,M: ❌ FAIL (0.8s · 109 tok)
     U-&gt;&gt;A: Call the /api/health endpoint and verify the re...
     A-&gt;&gt;M: http_get()
-    A--&gt;&gt;U: Error - Connection refused [109 tokens]
+    A--&gt;&gt;U: Error - Connection refused
+    end
 
     </div>
 </div>
@@ -6912,6 +7526,10 @@ sequenceDiagram
             
             
             
+            </div>
+            </div>
+            
+            
             
             
             
@@ -6925,9 +7543,174 @@ sequenceDiagram
             
             
             
-            <div class="test-session-header">
-                <h4 class="test-session-title">🔄 Cleanup</h4>
+            <div class="session-container">
+            
+            <div class="test-session-header session-group-header">
+                <div class="session-header-main">
+                    <h4 class="test-session-title">🔄 Cleanup</h4>
+                    <span class="session-stats">
+                        
+                        <span class="success-bar"><span class="success-bar-fill success-medium" style="width: 50%"></span></span>
+                        <span class="text-muted">
+                            2/4 (50%)
+                        </span>
+                        <span class="summary-metric">⏱ 1.2s–1.2s</span>
+                        <span class="summary-metric">🔢 130–175<span class="tok-suffix">tok</span></span>
+                        <span class="summary-metric">🤖 4 agents</span>
+                        
+                    </span>
+                </div>
+                
+                
+                <div class="session-overview-section">
+                    <div class="session-overview-label">📊 Session Overview — Agent Comparison</div>
+                    <div class="session-overview-table-wrapper">
+                        <table class="session-overview-table">
+                            <thead>
+                                <tr>
+                                    <th class="metric-col">Metric</th>
+                                    
+                                    <th class="agent-col success-low">
+                                        <span class="agent-status">❌</span>
+                                        <span class="agent-name">claude-agent</span>
+                                        <span class="provider-badge provider-ANTHROPIC">ANTHROPIC</span>
+                                    </th>
+                                    
+                                    <th class="agent-col success-high">
+                                        <span class="agent-status">✅</span>
+                                        <span class="agent-name">gemini-agent</span>
+                                        <span class="provider-badge provider-GOOGLE">GOOGLE</span>
+                                    </th>
+                                    
+                                    <th class="agent-col success-high">
+                                        <span class="agent-status">✅</span>
+                                        <span class="agent-name">gpt-agent</span>
+                                        <span class="provider-badge provider-AZURE">AZURE</span>
+                                    </th>
+                                    
+                                    <th class="agent-col success-low">
+                                        <span class="agent-status">❌</span>
+                                        <span class="agent-name">phoenix-agent</span>
+                                        <span class="provider-badge provider-OPENAI">OPENAI</span>
+                                    </th>
+                                    
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="metric-row">
+                                <td class="metric-label">📊 Pass Rate</td>
+                                
+                                <td class="metric-value text-fail">
+                                    0/1 (0%)
+                                </td>
+                                
+                                <td class="metric-value text-pass">
+                                    1/1 (100%)
+                                </td>
+                                
+                                <td class="metric-value text-pass">
+                                    1/1 (100%)
+                                </td>
+                                
+                                <td class="metric-value text-fail">
+                                    0/1 (0%)
+                                </td>
+                                
+                            </tr>
+                            <tr class="metric-row">
+                                <td class="metric-label">⏱️ Duration</td>
+                                
+                                <td class="metric-value">1.2s–1.2s</td>
+                                
+                                <td class="metric-value">1.2s–1.2s</td>
+                                
+                                <td class="metric-value">1.2s–1.2s</td>
+                                
+                                <td class="metric-value">1.2s–1.2s</td>
+                                
+                            </tr>
+                            <tr class="metric-row">
+                                <td class="metric-label">🎯 Tokens</td>
+                                
+                                <td class="metric-value">130–130</td>
+                                
+                                <td class="metric-value">160–160</td>
+                                
+                                <td class="metric-value">145–145</td>
+                                
+                                <td class="metric-value">175–175</td>
+                                
+                            </tr>
+                        </tbody>
+                    </table>
+                    </div>
+                </div>
+                
+                
+                
+                <details class="session-diagram-details">
+                    <summary class="session-diagram-summary">📊 View Session Flow (4 agents)</summary>
+                    <div class="session-agent-diagrams-grid">
+                        
+                        <div class="agent-sequence-box">
+                            <div class="agent-sequence-header">claude-agent</div>
+                            <div class="mermaid">sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    U-&gt;&gt;A: Delete all temporary files created du...
+    A-&gt;&gt;M: delete_file()
+    A-&gt;&gt;M: list_files()
+    A--&gt;&gt;U: Cleanup completed but 1 fil...
+</div>
+                        </div>
+                        
+                        <div class="agent-sequence-box">
+                            <div class="agent-sequence-header">gemini-agent</div>
+                            <div class="mermaid">sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    U-&gt;&gt;A: Delete all temporary files created du...
+    A-&gt;&gt;M: delete_file()
+    A-&gt;&gt;M: list_files()
+    A--&gt;&gt;U: All temporary files deleted...
+</div>
+                        </div>
+                        
+                        <div class="agent-sequence-box">
+                            <div class="agent-sequence-header">gpt-agent</div>
+                            <div class="mermaid">sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    U-&gt;&gt;A: Delete all temporary files created du...
+    A-&gt;&gt;M: delete_file()
+    A-&gt;&gt;M: list_files()
+    A--&gt;&gt;U: All temporary files deleted...
+</div>
+                        </div>
+                        
+                        <div class="agent-sequence-box">
+                            <div class="agent-sequence-header">phoenix-agent</div>
+                            <div class="mermaid">sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant M as MCP Server
+    U-&gt;&gt;A: Delete all temporary files created du...
+    A-&gt;&gt;M: delete_file()
+    A-&gt;&gt;M: list_files()
+    A--&gt;&gt;U: Error - Path not found, cle...
+</div>
+                        </div>
+                        
+                    </div>
+                </details>
+                
+                
             </div>
+            <div class="session-tests-container">
+                <div class="session-tests-label">📋 Tests in this session</div>
             
             
             
@@ -7124,10 +7907,13 @@ sequenceDiagram
     participant U as User
     participant A as Agent
     participant M as MCP Server
+    rect rgb(220, 53, 69)
+    note over U,M: ❌ FAIL (1.2s · 130 tok)
     U-&gt;&gt;A: Delete all temporary files created during the test
     A-&gt;&gt;M: delete_file()
     A-&gt;&gt;M: list_files()
-    A--&gt;&gt;U: Cleanup completed but 1 file remains ... [130 tokens]
+    A--&gt;&gt;U: Cleanup completed but 1 file remains ...
+    end
 </div>
             </div>
             
@@ -7139,10 +7925,13 @@ sequenceDiagram
     participant U as User
     participant A as Agent
     participant M as MCP Server
+    rect rgb(40, 167, 69)
+    note over U,M: ✅ PASS (1.2s · 145 tok)
     U-&gt;&gt;A: Delete all temporary files created during the test
     A-&gt;&gt;M: delete_file()
     A-&gt;&gt;M: list_files()
-    A--&gt;&gt;U: All temporary files deleted successfu... [145 tokens]
+    A--&gt;&gt;U: All temporary files deleted successfu...
+    end
 </div>
             </div>
             
@@ -7154,10 +7943,13 @@ sequenceDiagram
     participant U as User
     participant A as Agent
     participant M as MCP Server
+    rect rgb(40, 167, 69)
+    note over U,M: ✅ PASS (1.2s · 160 tok)
     U-&gt;&gt;A: Delete all temporary files created during the test
     A-&gt;&gt;M: delete_file()
     A-&gt;&gt;M: list_files()
-    A--&gt;&gt;U: All temporary files deleted successfu... [160 tokens]
+    A--&gt;&gt;U: All temporary files deleted successfu...
+    end
 </div>
             </div>
             
@@ -7169,10 +7961,13 @@ sequenceDiagram
     participant U as User
     participant A as Agent
     participant M as MCP Server
+    rect rgb(220, 53, 69)
+    note over U,M: ❌ FAIL (1.2s · 175 tok)
     U-&gt;&gt;A: Delete all temporary files created during the test
     A-&gt;&gt;M: delete_file()
     A-&gt;&gt;M: list_files()
-    A--&gt;&gt;U: Error - Path not found, cleanup failed [175 tokens]
+    A--&gt;&gt;U: Error - Path not found, cleanup failed
+    end
 </div>
             </div>
             
@@ -7254,10 +8049,13 @@ sequenceDiagram
     participant U as User
     participant A as Agent
     participant M as MCP Server
+    rect rgb(220, 53, 69)
+    note over U,M: ❌ FAIL (1.2s · 130 tok)
     U-&gt;&gt;A: Delete all temporary files created during the test
     A-&gt;&gt;M: delete_file()
     A-&gt;&gt;M: list_files()
-    A--&gt;&gt;U: Cleanup completed but 1 file remains ... [130 tokens]
+    A--&gt;&gt;U: Cleanup completed but 1 file remains ...
+    end
 
     </div>
 </div>
@@ -7404,10 +8202,13 @@ sequenceDiagram
     participant U as User
     participant A as Agent
     participant M as MCP Server
+    rect rgb(40, 167, 69)
+    note over U,M: ✅ PASS (1.2s · 145 tok)
     U-&gt;&gt;A: Delete all temporary files created during the test
     A-&gt;&gt;M: delete_file()
     A-&gt;&gt;M: list_files()
-    A--&gt;&gt;U: All temporary files deleted successfu... [145 tokens]
+    A--&gt;&gt;U: All temporary files deleted successfu...
+    end
 
     </div>
 </div>
@@ -7554,10 +8355,13 @@ sequenceDiagram
     participant U as User
     participant A as Agent
     participant M as MCP Server
+    rect rgb(40, 167, 69)
+    note over U,M: ✅ PASS (1.2s · 160 tok)
     U-&gt;&gt;A: Delete all temporary files created during the test
     A-&gt;&gt;M: delete_file()
     A-&gt;&gt;M: list_files()
-    A--&gt;&gt;U: All temporary files deleted successfu... [160 tokens]
+    A--&gt;&gt;U: All temporary files deleted successfu...
+    end
 
     </div>
 </div>
@@ -7720,10 +8524,13 @@ sequenceDiagram
     participant U as User
     participant A as Agent
     participant M as MCP Server
+    rect rgb(220, 53, 69)
+    note over U,M: ❌ FAIL (1.2s · 175 tok)
     U-&gt;&gt;A: Delete all temporary files created during the test
     A-&gt;&gt;M: delete_file()
     A-&gt;&gt;M: list_files()
-    A--&gt;&gt;U: Error - Path not found, cleanup failed [175 tokens]
+    A--&gt;&gt;U: Error - Path not found, cleanup failed
+    end
 
     </div>
 </div>
@@ -7814,6 +8621,10 @@ sequenceDiagram
 
             </div>
             
+            
+            
+            </div>
+            </div>
             
             
             
@@ -7986,9 +8797,6 @@ sequenceDiagram
 
 </body>
 </html>
-
-
-
 
 
 

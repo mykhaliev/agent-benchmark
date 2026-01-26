@@ -98,6 +98,7 @@ body {
 .summary-card.passed { border-top: 4px solid var(--color-pass); }
 .summary-card.failed { border-top: 4px solid var(--color-fail); }
 .summary-card.agents { border-top: 4px solid var(--color-primary); }
+.summary-card.sessions { border-top: 4px solid #17a2b8; }
 .summary-card.agent-info { border-top: 4px solid var(--color-primary); }
 .summary-card.rate { border-top: 4px solid #9b59b6; }
 .summary-card.tokens { border-top: 4px solid var(--color-warning); }
@@ -113,6 +114,7 @@ body {
 .summary-card.passed .summary-value { color: var(--color-pass); }
 .summary-card.failed .summary-value { color: var(--color-fail); }
 .summary-card.agents .summary-value { color: var(--color-primary); }
+.summary-card.sessions .summary-value { color: #17a2b8; }
 .summary-card.agent-info .summary-value { 
     color: var(--color-primary);
     font-size: 18px;
@@ -121,6 +123,52 @@ body {
 .summary-card.rate .summary-value { color: #9b59b6; }
 .summary-card.tokens .summary-value { color: var(--color-warning); }
 .summary-card.duration .summary-value { color: #3498db; }
+
+/* Token Range Bar */
+.summary-card.token-range {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.summary-card.token-range .summary-value {
+    font-size: 18px;
+}
+.token-bar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 6px;
+    font-size: 10px;
+    color: var(--color-text-light);
+}
+.token-bar-fill {
+    width: 40px;
+    height: 6px;
+    background: linear-gradient(to right, var(--color-success), var(--color-warning), var(--color-danger));
+    border-radius: 3px;
+}
+.token-min, .token-max {
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.duration-bar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 6px;
+    font-size: 10px;
+    color: var(--color-text-light);
+}
+.duration-bar-fill {
+    width: 40px;
+    height: 6px;
+    background: linear-gradient(to right, #17a2b8, #6c757d, #343a40);
+    border-radius: 3px;
+}
+.duration-min, .duration-max {
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
 
 .summary-label {
     font-size: 13px;
@@ -259,13 +307,14 @@ body {
 }
 
 .matrix-session-header td {
-    background: #f8f9fa;
-    font-weight: 500;
+    background: linear-gradient(135deg, #e8f4fd 0%, #f0f7ff 100%);
+    font-weight: 600;
     text-align: left !important;
-    padding: 10px 16px 10px 32px;
-    border-bottom: 1px solid var(--color-border);
-    color: var(--color-text-light);
-    font-size: 13px;
+    padding: 12px 16px 12px 32px;
+    border-bottom: 2px solid #b8d4f0;
+    border-left: 4px solid var(--color-primary);
+    color: var(--color-primary);
+    font-size: 14px;
 }
 
 .matrix-test-indented td:first-child {
@@ -510,11 +559,83 @@ body {
     margin: 0;
 }
 
+/* Session Container - wraps header + all tests */
+.session-container {
+    margin: 24px 0;
+    border-left: 4px solid var(--color-primary);
+    border-radius: 0 var(--radius-md) var(--radius-md) 0;
+    background: linear-gradient(to right, rgba(0, 102, 204, 0.03) 0%, transparent 100%);
+}
+
+.session-container .test-session-header.session-group-header {
+    margin: 0;
+    border-left: none;
+    border-radius: 0 var(--radius-md) 0 0;
+}
+
+.session-tests-container {
+    padding: 16px 16px 8px 20px;
+    border-top: 1px solid rgba(0, 102, 204, 0.1);
+    background: rgba(255, 255, 255, 0.5);
+}
+
+.session-tests-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px dashed var(--color-border);
+}
+
+.session-tests-container .test-group-section {
+    margin-bottom: 16px;
+    padding-left: 12px;
+    border-left: 2px solid var(--color-border);
+}
+
+.session-tests-container .test-group-section:last-child {
+    margin-bottom: 8px;
+}
+
 .test-session-header {
     margin-top: 16px;
     margin-bottom: 12px;
     padding-left: 8px;
     border-left: 3px solid var(--color-border);
+}
+
+.test-session-header.session-group-header {
+    background: linear-gradient(135deg, #e8f4fd 0%, #f0f7ff 100%);
+    border: 2px solid #b8d4f0;
+    border-left: 6px solid var(--color-primary);
+    border-radius: var(--radius-md);
+    padding: 16px 20px;
+    margin: 24px 0 16px 0;
+    box-shadow: 0 2px 8px rgba(0, 102, 204, 0.08);
+}
+
+.session-header-main {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.session-stats {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    background: rgba(255, 255, 255, 0.7);
+    padding: 6px 12px;
+    border-radius: var(--radius-sm);
+}
+
+.session-stats .success-bar {
+    width: 80px;
 }
 
 .test-session-title {
@@ -524,15 +645,131 @@ body {
     margin: 0;
 }
 
+.session-group-header .test-session-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--color-primary);
+    letter-spacing: -0.3px;
+}
+
+.session-group-header .session-diagram-details {
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(0, 102, 204, 0.15);
+}
+
+/* Session Overview Section */
+.session-overview-section {
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(0, 102, 204, 0.15);
+}
+
+.session-overview-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-primary);
+    margin-bottom: 12px;
+}
+
+.session-overview-table-wrapper {
+    overflow-x: auto;
+}
+
+.session-overview-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    background: white;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+}
+
+.session-overview-table th,
+.session-overview-table td {
+    padding: 10px 14px;
+    text-align: center;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.session-overview-table th {
+    background: var(--color-background);
+    font-weight: 600;
+    border-bottom: 2px solid var(--color-border);
+}
+
+.session-overview-table th.metric-col {
+    text-align: left;
+    width: 120px;
+    color: var(--color-text-muted);
+}
+
+.session-overview-table th.agent-col {
+    min-width: 150px;
+}
+
+.session-overview-table th.agent-col.success-high {
+    border-top: 3px solid var(--color-success);
+}
+
+.session-overview-table th.agent-col.success-medium {
+    border-top: 3px solid var(--color-warning);
+}
+
+.session-overview-table th.agent-col.success-low {
+    border-top: 3px solid var(--color-danger);
+}
+
+.session-overview-table .agent-status {
+    display: block;
+    font-size: 16px;
+    margin-bottom: 4px;
+}
+
+.session-overview-table .agent-name {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.session-overview-table .provider-badge {
+    font-size: 9px;
+    padding: 2px 6px;
+    margin-top: 4px;
+}
+
+.session-overview-table td.metric-label {
+    text-align: left;
+    color: var(--color-text-muted);
+    font-weight: 500;
+}
+
+.session-overview-table td.metric-value {
+    font-weight: 500;
+    color: var(--color-text);
+}
+
+.session-overview-table tr:last-child td {
+    border-bottom: none;
+}
+
 .test-group-section { margin-bottom: 16px; }
 
 .test-group-title {
-    font-size: 18px;
+    font-size: 15px;
     font-weight: 600;
     color: var(--color-text);
-    margin: 0 0 16px 0;
-    padding-bottom: 8px;
-    border-bottom: 2px solid var(--color-primary);
+    margin: 0 0 12px 0;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.session-tests-container .test-group-title {
+    font-size: 14px;
+    color: var(--color-text-muted);
+    border-bottom-color: transparent;
+    padding-bottom: 4px;
 }
 
 /* Test Item (Collapsible) */
@@ -1972,7 +2209,7 @@ body {
             <h1>🧪 Agent Benchmark Report</h1>
             <div class="report-meta">
                 <span>📦 Version: 0.0.0-SNAPSHOT</span>
-                <span>📅 Generated: 2026-01-26T09:45:33&#43;01:00</span>
+                <span>📅 Generated: 2026-01-26T12:00:06&#43;01:00</span>
                 
                 
             </div>
@@ -2000,26 +2237,25 @@ body {
         <div class="summary-label">Failed</div>
     </div>
     
+    
     <div class="summary-card rate">
         <div class="summary-value">0%</div>
         <div class="summary-label">Pass Rate</div>
     </div>
+    
     <div class="summary-card tokens">
         <div class="summary-value">423</div>
         <div class="summary-label">Total Tokens</div>
     </div>
-    <div class="summary-card tokens">
-        <div class="summary-value">0</div>
-        <div class="summary-label">Avg Tokens ✓</div>
-    </div>
+    
+    
+    
     <div class="summary-card duration">
         <div class="summary-value">5.0s</div>
         <div class="summary-label">Total Duration</div>
     </div>
-    <div class="summary-card duration">
-        <div class="summary-value">5.0s</div>
-        <div class="summary-label">Avg Duration</div>
-    </div>
+    
+    
 </div>
 
         
@@ -2071,8 +2307,6 @@ Test environment configuration issue - /tmp directory lacked write permissions f
         
 
         
-
-        
         
 <section class="section">
     <div class="section-header">
@@ -2098,6 +2332,11 @@ Test environment configuration issue - /tmp directory lacked write permissions f
     <h3 class="test-group-title">Connect to database</h3>
     
     
+    
+    <div class="test-group-prompt">
+        <span class="prompt-label">📝 Prompt:</span>
+        <span class="prompt-text">Connect to the production database at prod-db.example.com</span>
+    </div>
     
     
     
@@ -2231,8 +2470,12 @@ sequenceDiagram
     participant U as User
     participant A as Agent
     participant M as MCP Server
+    rect rgb(220, 53, 69)
+    note over U,M: ❌ FAIL (5.0s · 423 tok)
+    U-&gt;&gt;A: Connect to the production database at prod-db.e...
     A-&gt;&gt;M: db_connect()
-    A--&gt;&gt;U: Would you like me to try a different ... [423 tokens]
+    A--&gt;&gt;U: Would you like me to try a different ...
+    end
 
     </div>
 </div>
@@ -2269,6 +2512,37 @@ sequenceDiagram
 
         
 
+<details class="messages-section">
+    <summary class="subsection-title">💬 Conversation (3 messages)</summary>
+    <div class="conversation-timeline">
+        
+        <div class="timeline-item user">
+            <div class="timeline-header">
+                <span class="timeline-role">user</span>
+                <span class="timeline-time">00:00:00.000</span>
+            </div>
+            <div class="timeline-content">Connect to the production database at prod-db.example.com</div>
+        </div>
+        
+        <div class="timeline-item assistant">
+            <div class="timeline-header">
+                <span class="timeline-role">assistant</span>
+                <span class="timeline-time">00:00:00.000</span>
+            </div>
+            <div class="timeline-content">I&#39;ll try to connect to the database...</div>
+        </div>
+        
+        <div class="timeline-item assistant">
+            <div class="timeline-header">
+                <span class="timeline-role">assistant</span>
+                <span class="timeline-time">00:00:00.000</span>
+            </div>
+            <div class="timeline-content">Would you like me to try a different connection method?</div>
+        </div>
+        
+    </div>
+</details>
+
 
         
 
@@ -2285,6 +2559,7 @@ sequenceDiagram
 
 
             </div>
+            
             
             
             
@@ -2458,9 +2733,6 @@ sequenceDiagram
 
 </body>
 </html>
-
-
-
 
 
 
