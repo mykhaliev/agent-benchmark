@@ -1405,12 +1405,30 @@ body {
 .failure-reason {
     font-size: 12px;
     color: var(--color-fail);
-    margin-bottom: 4px;
+    margin-bottom: 8px;
     line-height: 1.4;
 }
 
 .failure-reason:last-child {
     margin-bottom: 0;
+}
+
+.failure-type {
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.failure-details {
+    margin-top: 4px;
+    padding: 6px 10px;
+    background: #fff5f5;
+    border-left: 3px solid var(--color-fail);
+    border-radius: 0 4px 4px 0;
+    font-family: 'SF Mono', Monaco, monospace;
+    font-size: 11px;
+    color: #666;
+    overflow-x: auto;
+    white-space: pre-wrap;
 }
 
 .failure-details-row td {
