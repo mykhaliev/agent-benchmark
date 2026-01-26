@@ -88,11 +88,7 @@
         {{template "file-summary" .}}
         {{end}}
 
-        {{if .Adaptive.Flags.ShowSessionHeaders}}
-        {{template "session-summary" .}}
-        {{end}}
-
-        <!-- Detailed Test Results -->
+        <!-- Detailed Test Results (includes session grouping when sessions > 1) -->
         {{template "test-results" .}}
     </div>
 
@@ -128,26 +124,50 @@
         <div class="summary-label">Agents</div>
     </div>
     {{end}}
+    {{if .Adaptive.Flags.ShowSessionHeaders}}
+    <div class="summary-card sessions">
+        <div class="summary-value">{{.Adaptive.Flags.SessionCount}}</div>
+        <div class="summary-label">Sessions</div>
+    </div>
+    {{end}}
     <div class="summary-card rate">
         <div class="summary-value">{{printf "%.0f%%" .Summary.PassRate}}</div>
         <div class="summary-label">Pass Rate</div>
     </div>
+    {{if .Adaptive.Flags.SingleAgentMode}}
     <div class="summary-card tokens">
         <div class="summary-value">{{formatNumber .Summary.TotalTokens}}</div>
         <div class="summary-label">Total Tokens</div>
     </div>
-    <div class="summary-card tokens">
-        <div class="summary-value">{{formatNumber .Summary.AvgTokensPassed}}</div>
-        <div class="summary-label">Avg Tokens ✓</div>
+    {{end}}
+    {{if gt .Summary.Total 1}}
+    <div class="summary-card tokens token-range">
+        <div class="summary-value">{{formatNumber .Summary.MinTokens}}–{{formatNumber .Summary.MaxTokens}}</div>
+        <div class="summary-label">Token Range</div>
+        <div class="token-bar">
+            <span class="token-min">min</span>
+            <span class="token-bar-fill"></span>
+            <span class="token-max">max</span>
+        </div>
     </div>
+    {{end}}
+    {{if .Adaptive.Flags.SingleAgentMode}}
     <div class="summary-card duration">
         <div class="summary-value">{{printf "%.1fs" .Summary.TotalDuration}}</div>
         <div class="summary-label">Total Duration</div>
     </div>
-    <div class="summary-card duration">
-        <div class="summary-value">{{printf "%.1fs" .Summary.AvgDuration}}</div>
-        <div class="summary-label">Avg Duration</div>
+    {{end}}
+    {{if gt .Summary.Total 1}}
+    <div class="summary-card duration duration-range">
+        <div class="summary-value">{{printf "%.1fs" .Summary.MinDuration}}–{{printf "%.1fs" .Summary.MaxDuration}}</div>
+        <div class="summary-label">Duration Range</div>
+        <div class="duration-bar">
+            <span class="duration-min">min</span>
+            <span class="duration-bar-fill"></span>
+            <span class="duration-max">max</span>
+        </div>
     </div>
+    {{end}}
 </div>
 {{end}}
 
@@ -225,7 +245,7 @@
             <table class="comparison-matrix">
                 <thead>
                     <tr>
-                        <th>Test</th>
+                        <th>{{if .Matrix.ShowSessionGroups}}Session{{else}}Test{{end}}</th>
                         {{range .Matrix.AgentNames}}
                         <th>{{.}}</th>
                         {{end}}
@@ -239,7 +259,7 @@
                     <tr class="matrix-file-header">
                         <td colspan="{{add (len $.Matrix.AgentNames) 1}}">
                             <span class="matrix-group-icon">📁</span> {{$fileGroup.FileName}}
-                            <span class="group-stats">— {{$fileGroup.PassedTests}}/{{$fileGroup.TotalTests}} passed · {{printf "%.1f" (divFloat $fileGroup.TotalDuration 1000)}}s · {{formatNumber $fileGroup.TotalTokens}} tok</span>
+                            <span class="group-stats">— {{$fileGroup.PassedTests}}/{{$fileGroup.TotalTests}} passed · {{printf "%.1f" (divFloat $fileGroup.MinDuration 1000)}}s–{{printf "%.1f" (divFloat $fileGroup.MaxDuration 1000)}}s · {{formatNumber $fileGroup.MinTokens}}–{{formatNumber $fileGroup.MaxTokens}} tok</span>
                         </td>
                     </tr>
                     {{end}}
@@ -248,7 +268,7 @@
                     <tr class="matrix-session-header">
                         <td colspan="{{add (len $.Matrix.AgentNames) 1}}">
                             <span class="matrix-group-icon">🔄</span> {{$sessionGroup.SessionName}}
-                            <span class="group-stats">— {{$sessionGroup.PassedTests}}/{{$sessionGroup.TotalTests}} passed · {{printf "%.1f" (divFloat $sessionGroup.TotalDuration 1000)}}s · {{formatNumber $sessionGroup.TotalTokens}} tok</span>
+                            <span class="group-stats">— {{$sessionGroup.PassedTests}}/{{$sessionGroup.TotalTests}} passed · {{printf "%.1f" (divFloat $sessionGroup.MinDuration 1000)}}s–{{printf "%.1f" (divFloat $sessionGroup.MaxDuration 1000)}}s · {{formatNumber $sessionGroup.MinTokens}}–{{formatNumber $sessionGroup.MaxTokens}} tok</span>
                         </td>
                     </tr>
                     {{end}}
@@ -315,6 +335,9 @@
                     <th class="rank-col">Rank</th>
                     <th>Agent</th>
                     <th>Success Rate</th>
+                    {{if $.Adaptive.Flags.ShowSessionHeaders}}
+                    <th>Sessions</th>
+                    {{end}}
                     <th>Results</th>
                     <th>Total Tokens</th>
                     <th>Efficiency</th>
@@ -345,6 +368,12 @@
                             <span class="stat-value">{{printf "%.0f%%" .SuccessRate}}</span>
                         </div>
                     </td>
+                    {{if $.Adaptive.Flags.ShowSessionHeaders}}
+                    <td class="stat-value">
+                        <span class="session-coverage">{{.SessionsCovered}}/{{.TotalSessions}}</span>
+                        <span class="text-muted">({{printf "%.0f%%" .SessionCoverageRate}})</span>
+                    </td>
+                    {{end}}
                     <td class="results-cell">
                         <span class="result-pass">✓{{.PassedTests}}</span>
                         <span class="result-fail">✗{{.FailedTests}}</span>
@@ -397,59 +426,6 @@
 </section>
 {{end}}
 
-{{/* ================ Session Summary ================ */}}
-{{define "session-summary"}}
-<section class="section">
-    <div class="section-header">
-        <h2 class="section-title">🔄 Sessions Summary</h2>
-    </div>
-    <div class="section-body">
-        <div class="file-summary-list">
-            {{range .SessionGroups}}
-            <div class="file-summary-item {{if eq .SuccessRate 100.0}}file-perfect{{end}}">
-                <div class="file-summary-header">
-                    <span class="file-name">🔄 {{.SessionName}}{{if and (gt $.Adaptive.Flags.FileCount 1) .SourceFile}} <span class="session-source-file">(📄 {{.SourceFile}})</span>{{end}}</span>
-                    <span class="success-bar"><span class="success-bar-fill {{.SuccessRateClass}}" style="width: {{printf "%.0f" .SuccessRate}}%"></span></span>
-                    <span class="file-stats">
-                        {{.PassedTests}}/{{add .PassedTests .FailedTests}} tests
-                        <span class="{{if eq .SuccessRate 100.0}}text-pass{{else if lt .SuccessRate 50.0}}text-fail{{else}}text-muted{{end}}">
-                            ({{printf "%.0f" .SuccessRate}}%)
-                        </span>
-                        <span class="summary-metric">⏱ {{printf "%.1fs" .TotalDuration}}</span>
-                        <span class="summary-metric">🔢 {{formatNumber .TotalTokens}}<span class="tok-suffix">tok</span></span>
-                        {{if gt .AgentCount 1}}<span class="summary-metric">🤖 {{.AgentCount}} agents</span>{{end}}
-                    </span>
-                </div>
-                {{if .SequenceDiagram}}
-                <details class="session-diagram-details">
-                    <summary class="session-diagram-summary">📊 View Session Flow</summary>
-                    <div class="session-single-diagram">
-                        <div class="agent-sequence-box session-diagram-box">
-                            <div class="agent-sequence-header">Session Flow</div>
-                            <div class="mermaid">{{.SequenceDiagram}}</div>
-                        </div>
-                    </div>
-                </details>
-                {{else if .AgentSequenceDiagrams}}
-                <details class="session-diagram-details">
-                    <summary class="session-diagram-summary">📊 View Session Flow ({{len .AgentSequenceDiagrams}} agents)</summary>
-                    <div class="session-agent-diagrams-grid">
-                        {{range .AgentSequenceDiagrams}}
-                        <div class="agent-sequence-box">
-                            <div class="agent-sequence-header">{{.AgentName}}</div>
-                            <div class="mermaid">{{.Diagram}}</div>
-                        </div>
-                        {{end}}
-                    </div>
-                </details>
-                {{end}}
-            </div>
-            {{end}}
-        </div>
-    </div>
-</section>
-{{end}}
-
 {{/* ================ Test Results ================ */}}
 {{define "test-results"}}
 <section class="section">
@@ -470,11 +446,102 @@
             
             {{range $sessIdx, $session := $file.Sessions}}
             
-            {{/* Show session header if multiple sessions */}}
+            {{/* Wrap entire session (header + tests) in container for visual grouping */}}
             {{if $.Adaptive.Flags.ShowSessionHeaders}}
-            <div class="test-session-header">
-                <h4 class="test-session-title">🔄 {{$session.Name}}</h4>
+            <div class="session-container">
+            {{$sessData := getSessionByName $.SessionGroups $session.Name}}
+            <div class="test-session-header session-group-header">
+                <div class="session-header-main">
+                    <h4 class="test-session-title">🔄 {{$session.Name}}</h4>
+                    <span class="session-stats">
+                        {{if $sessData}}
+                        <span class="success-bar"><span class="success-bar-fill {{$sessData.SuccessRateClass}}" style="width: {{printf "%.0f" $sessData.SuccessRate}}%"></span></span>
+                        <span class="{{if eq $sessData.SuccessRate 100.0}}text-pass{{else if lt $sessData.SuccessRate 50.0}}text-fail{{else}}text-muted{{end}}">
+                            {{$sessData.PassedTests}}/{{add $sessData.PassedTests $sessData.FailedTests}} ({{printf "%.0f%%" $sessData.SuccessRate}})
+                        </span>
+                        <span class="summary-metric">⏱ {{printf "%.1fs" $sessData.MinDuration}}–{{printf "%.1fs" $sessData.MaxDuration}}</span>
+                        <span class="summary-metric">🔢 {{formatNumber $sessData.MinTokens}}–{{formatNumber $sessData.MaxTokens}}<span class="tok-suffix">tok</span></span>
+                        {{if gt $sessData.AgentCount 1}}<span class="summary-metric">🤖 {{$sessData.AgentCount}} agents</span>{{end}}
+                        {{else}}
+                        <span class="success-bar"><span class="success-bar-fill {{$session.SuccessRateClass}}" style="width: {{printf "%.0f" $session.SuccessRate}}%"></span></span>
+                        <span class="{{if eq $session.SuccessRate 100.0}}text-pass{{else if lt $session.SuccessRate 50.0}}text-fail{{else}}text-muted{{end}}">
+                            {{$session.PassedTests}}/{{$session.TotalTests}} ({{printf "%.0f%%" $session.SuccessRate}})
+                        </span>
+                        {{end}}
+                    </span>
+                </div>
+                {{/* Session Overview Table - only for multi-agent */}}
+                {{if $sessData}}{{if gt (len $sessData.AgentStats) 1}}
+                <div class="session-overview-section">
+                    <div class="session-overview-label">📊 Session Overview — Agent Comparison</div>
+                    <div class="session-overview-table-wrapper">
+                        <table class="session-overview-table">
+                            <thead>
+                                <tr>
+                                    <th class="metric-col">Metric</th>
+                                    {{range $sessData.AgentStats}}
+                                    <th class="agent-col {{.SuccessRateClass}}">
+                                        <span class="agent-status">{{if eq .SuccessRate 100.0}}✅{{else if lt .SuccessRate 50.0}}❌{{else}}⚠️{{end}}</span>
+                                        <span class="agent-name">{{.AgentName}}</span>
+                                        <span class="provider-badge provider-{{.Provider}}">{{.Provider}}</span>
+                                    </th>
+                                    {{end}}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="metric-row">
+                                <td class="metric-label">📊 Pass Rate</td>
+                                {{range $sessData.AgentStats}}
+                                <td class="metric-value {{if eq .SuccessRate 100.0}}text-pass{{else if lt .SuccessRate 50.0}}text-fail{{else}}text-muted{{end}}">
+                                    {{.PassedTests}}/{{.TotalTests}} ({{printf "%.0f%%" .SuccessRate}})
+                                </td>
+                                {{end}}
+                            </tr>
+                            <tr class="metric-row">
+                                <td class="metric-label">⏱️ Duration</td>
+                                {{range $sessData.AgentStats}}
+                                <td class="metric-value">{{printf "%.1fs" .MinDuration}}–{{printf "%.1fs" .MaxDuration}}</td>
+                                {{end}}
+                            </tr>
+                            <tr class="metric-row">
+                                <td class="metric-label">🎯 Tokens</td>
+                                {{range $sessData.AgentStats}}
+                                <td class="metric-value">{{formatNumber .MinTokens}}–{{formatNumber .MaxTokens}}</td>
+                                {{end}}
+                            </tr>
+                        </tbody>
+                    </table>
+                    </div>
+                </div>
+                {{end}}{{end}}
+                {{if $sessData}}
+                {{if $sessData.SequenceDiagram}}
+                <details class="session-diagram-details">
+                    <summary class="session-diagram-summary">📊 View Session Flow</summary>
+                    <div class="session-single-diagram">
+                        <div class="agent-sequence-box session-diagram-box">
+                            <div class="agent-sequence-header">Session Flow</div>
+                            <div class="mermaid">{{$sessData.SequenceDiagram}}</div>
+                        </div>
+                    </div>
+                </details>
+                {{else if $sessData.AgentSequenceDiagrams}}
+                <details class="session-diagram-details">
+                    <summary class="session-diagram-summary">📊 View Session Flow ({{len $sessData.AgentSequenceDiagrams}} agents)</summary>
+                    <div class="session-agent-diagrams-grid">
+                        {{range $sessData.AgentSequenceDiagrams}}
+                        <div class="agent-sequence-box">
+                            <div class="agent-sequence-header">{{.AgentName}}</div>
+                            <div class="mermaid">{{.Diagram}}</div>
+                        </div>
+                        {{end}}
+                    </div>
+                </details>
+                {{end}}
+                {{end}}
             </div>
+            <div class="session-tests-container">
+                <div class="session-tests-label">📋 Tests in this session</div>
             {{end}}
             
             {{range $testIdx, $test := $session.Tests}}
@@ -483,6 +550,10 @@
             </div>
             {{end}}
             
+            {{if $.Adaptive.Flags.ShowSessionHeaders}}
+            </div>{{/* close session-tests-container */}}
+            </div>{{/* close session-container */}}
+            {{end}}
             {{end}}
             {{end}}
         </div>

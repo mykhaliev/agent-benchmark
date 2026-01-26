@@ -52,17 +52,17 @@ graph TD
 
 The `generated_reports/` directory contains sample reports covering all valid configuration permutations:
 
-| Report | Agents | Tests | Sessions | Files | Description |
-|--------|--------|-------|----------|-------|-------------|
-| `01_single_agent_single_test` | 1 | 1 | 1 | 1 | Minimal case - detailed execution view |
+| Report | Agents | Tests/Session | Sessions | Files | Description |
+|--------|--------|---------------|----------|-------|-------------|
+| `01_single_agent_single_test` | 1 | 1 | 1 | 1 | Minimal case - direct detailed view (SingleTestMode) |
 | `02_single_agent_multi_test` | 1 | N | 1 | 1 | Test overview table |
-| `03_single_agent_multi_session` | 1 | N | N | 1 | Session grouping with flow diagrams |
-| `04_single_agent_multi_file` | 1 | N | N | N | File grouping with flow diagrams |
-| `05_multi_agent_single_test` | N | 1 | 1 | 1 | Agent leaderboard focus |
-| `06_multi_agent_multi_test` | N | N | 1 | 1 | Full comparison matrix |
-| `07_multi_agent_multi_session` | N | N | N | 1 | Session grouping + side-by-side sequences |
-| `08_multi_agent_multi_file` | N | N | N | N | Complete suite with file + session grouping |
-| `09_failed_with_errors` | 1 | 1 | 1 | 1 | Failed test with rate limits & clarifications |
+| `03_single_agent_multi_session` | 1 | 2 | 2 | 1 | Session grouping with flow diagrams |
+| `04_single_agent_multi_file` | 1 | 2 | 2 | 2 | File + session grouping with flow diagrams |
+| `05_multi_agent_single_test` | 3 | 1 | 1 | 1 | Agent leaderboard focus (SingleTestMode) |
+| `06_multi_agent_multi_test` | 3 | N | 1 | 1 | Full comparison matrix |
+| `07_multi_agent_multi_session` | 3 | 2-3 | 3 | 1 | Session overview tables + side-by-side sequences |
+| `08_multi_agent_multi_file` | 3 | 2 | 2 | 2 | Complete suite with file + session grouping |
+| `09_failed_with_errors` | 1 | 1 | 1 | 1 | Failed test showing rate limits & clarifications |
 
 Generate these samples with:
 ```bash
@@ -92,8 +92,12 @@ Quick overview of test execution:
 - **Pass Rate** - Overall success percentage
 - **Agent Info** - Agent name and provider badge (single-agent runs)
 - **Agents** - Number of agents tested (multi-agent runs)
-- **Avg Tokens** - Average tokens used by passing tests
-- **Avg Duration** - Average test execution time
+- **Sessions** - Number of sessions (shown when > 1)
+- **Total Tokens/Duration** - Aggregate metrics (single-agent runs only)
+- **Token Range** - Min–max tokens across tests with sparkline (shown when multiple tests)
+- **Duration Range** - Min–max duration across tests with sparkline (shown when multiple tests)
+
+> **Note:** For multi-agent runs, totals are omitted since summing across agents isn't meaningful for comparison. Instead, ranges show the variance between fastest/slowest or cheapest/most expensive runs.
 
 ### 2. AI Summary
 
@@ -187,47 +191,80 @@ This is useful when:
 
 📖 **[Full AI Summary Documentation](../docs/ai-summary.md)**
 
-### 3. File & Session Summary
+### 3. File & Session Grouping
 
-When running suites or multi-session tests, summary sections show:
-- **File Summary** - Per-file pass rate, duration, and token usage
-- **Session Summary** - Per-session stats with source file reference
-- **Session Flow Diagram** - Mermaid sequence diagram showing execution flow
-  - **Single-agent**: One aggregate diagram for the session
-  - **Multi-agent**: Per-agent diagrams in a side-by-side grid (click any diagram to view fullscreen)
+When running suites or multi-session tests, hierarchical grouping is applied:
+
+**File Summary Section** (files > 1):
+- Per-file pass rate, duration, and token usage
+- Expandable to show contained sessions
+
+**Detailed Results Hierarchy**:
+Sessions are rendered as visual containers that clearly group related tests:
+
+```
+┌─────────────────────────────────────────────────────────┐
+│ 🔄 Setup    5/6 (83%)  ⏱ 1.5s–2.0s  🔢 180–280tok      │
+│                                                         │
+│  📊 Session Overview — Agent Comparison                 │
+│  ┌─────────────────────────────────────────────────┐   │
+│  │ Metric    │ claude  │ gemini  │ gpt-agent       │   │
+│  │ Pass Rate │ 2/2     │ 2/2     │ 1/2 (50%)       │   │
+│  │ Duration  │ 1.5–2.0s│ 1.5–2.0s│ 1.5–2.0s        │   │
+│  │ Tokens    │ 180–220 │ 200–250 │ 220–280         │   │
+│  └─────────────────────────────────────────────────┘   │
+│                                                         │
+│  ▶ 📊 View Session Flow (3 agents)                     │
+│                                                         │
+│  ────────────────────────────────────────────────────  │
+│  📋 Tests in this session                              │
+│  │                                                      │
+│  │  Create workspace                                    │
+│  │  ├── Agent comparison table...                       │
+│  │                                                      │
+│  │  Initialize config                                   │
+│  │  ├── Agent comparison table...                       │
+└──┴──────────────────────────────────────────────────────┘
+```
+
+**Session Header** contains:
+- Title with aggregate stats (pass rate, duration range, token range)
+- **Session Overview Table** (multi-agent only) — Per-agent comparison at session level
+- **Session Flow Diagrams** — Collapsible Mermaid sequence diagrams
+
+**Tests Section** contains:
+- Clear "📋 Tests in this session" label
+- Indented test items with left border showing hierarchy
+- Per-test comparison tables (same format as session overview)
+
+> **Note:** Session overview shows ranges (min–max) rather than totals, since totals across agents aren't meaningful for comparison.
 
 ### 4. Comparison Matrix (Multi-Agent)
 
 When testing multiple agents, a matrix shows results at a glance. The matrix **adapts automatically** based on your test structure:
 
 **Simple (single file, single session):**
+
 | Test | gpt5-agent | gpt4o-agent |
 |------|------------|-------------|
-| Setup workspace | ✅ 8.5s | ✅ 12.0s |
-| Run automation | ✅ 5.2s | ❌ — |
+| Setup workspace | ✅ 8.5s 456 | ✅ 12.0s 589 |
+| Run automation | ✅ 5.2s 234 | ❌ — |
 
 **Grouped (multiple sessions):**
-| Test | gpt5-agent | gpt4o-agent |
-|------|------------|-------------|
-| 🔄 Session A — 4/4 passed · 15.6s · 890 tok | | |
-| &nbsp;&nbsp;&nbsp;&nbsp;Setup | ✅ 8.5s | ✅ 12.0s |
-| &nbsp;&nbsp;&nbsp;&nbsp;Cleanup | ✅ 2.0s | ✅ 3.1s |
-| 🔄 Session B — 1/2 passed · 4.2s · 456 tok | | |
-| &nbsp;&nbsp;&nbsp;&nbsp;Setup | ✅ 4.2s | ❌ — |
 
-**Fully Grouped (suite with multiple files and sessions):**
-| Test | gpt5-agent | gpt4o-agent |
-|------|------------|-------------|
-| 📁 test-file-1.yaml — 4/4 passed · 15.6s · 890 tok | | |
-| &nbsp;&nbsp;🔄 Session A — 4/4 passed · 15.6s · 890 tok | | |
-| &nbsp;&nbsp;&nbsp;&nbsp;Setup | ✅ 8.5s | ✅ 12.0s |
-| 📁 test-file-2.yaml — 2/2 passed · 11.4s · 650 tok | | |
-| &nbsp;&nbsp;🔄 Session B — 2/2 passed · 11.4s · 650 tok | | |
-| &nbsp;&nbsp;&nbsp;&nbsp;Deploy | ✅ 5.1s | ✅ 6.3s |
+| Session | gpt5-agent | gpt4o-agent |
+|---------|------------|-------------|
+| 🔄 Setup — 4/4 passed · 1.5s–2.0s · 180–280 tok | | |
+| &nbsp;&nbsp;&nbsp;&nbsp;Create workspace | ✅ 1.5s 180 | ✅ 2.0s 220 |
+| &nbsp;&nbsp;&nbsp;&nbsp;Initialize config | ✅ 1.8s 200 | ✅ 1.9s 250 |
+| 🔄 Cleanup — 1/2 passed · 1.2s–1.5s · 140–180 tok | | |
+| &nbsp;&nbsp;&nbsp;&nbsp;Delete files | ✅ 1.2s 140 | ❌ — |
 
 Each cell shows: **status**, **duration**, and **token count**.
 
-Group headers show: **pass count**, **total duration**, and **total tokens** (aggregated across all agents).
+Session headers show: **pass count** and **ranges** (duration min–max, token min–max).
+
+> **Note:** Headers display ranges instead of totals because totals aggregate across agents, which isn't useful for comparison. Ranges show variance: "fastest agent took 1.5s, slowest took 2.0s".
 
 ### 5. Agent Leaderboard (Multi-Agent)
 
@@ -270,21 +307,23 @@ Each report section is shown or hidden based on specific conditions:
 | **Agent Leaderboard** | agents > 1 | Ranked list of agents by performance |
 | **Test Overview** | tests > 1 AND agents = 1 | Summary table of all tests for single agent |
 | **File Headers** | files > 1 | Group tests by source file |
-| **Session Headers** | sessions > 1 | Group tests by session within files |
+| **Session Headers** | sessions > 1 | Group tests by session within files (in Detailed Results) |
+| **Sessions Meta** | sessions > 1 | Show "🔄 Sessions: N" in header metadata |
 | **Inline Agent Names** | agents > 1 | Show agent name in each test detail row |
+| **SingleTestMode** | tests = 1 | Skip Test Overview table, show details directly |
 | **Sequence Diagrams** | always | Single-agent: inline; Multi-agent: side-by-side comparison |
 
 ### Display Scenarios
 
 | Scenario | What's Shown |
 |----------|--------------|
-| Single agent, single test | Agent info card + detailed execution trace |
+| Single agent, single test | Agent info card + detailed execution trace (SingleTestMode: no overview table) |
 | Single agent, multiple tests | Agent info + test overview table |
-| Single agent, multiple sessions | Session summary with flow diagrams |
-| Multiple agents, single test | Comparison matrix + leaderboard |
+| Single agent, multiple sessions | Session grouping with stats in Detailed Results headers |
+| Multiple agents, single test | Comparison matrix + leaderboard (SingleTestMode: no overview table) |
 | Multiple agents, multiple tests | Full comparison matrix + leaderboard |
-| Multiple agents, multiple sessions | Session grouping + side-by-side sequence comparison |
-| Suite run (multiple files) | File + session grouping with per-file/session stats |
+| Multiple agents, multiple sessions | Session grouping in matrix and Detailed Results with stats in headers |
+| Suite run (multiple files) | File → Session hierarchy with aggregated stats in group headers |
 
 ### Grouping Rules
 
@@ -309,19 +348,42 @@ Tests are grouped hierarchically when multiple files or sessions exist:
 
 ### Group Header Statistics
 
-File and session group headers display aggregated statistics:
+File and session group headers in the Comparison Matrix display:
 
 | Statistic | Description | Example |
 |-----------|-------------|--------|
 | **Pass Count** | Tests passed / total in group | `3/4 passed` |
-| **Duration** | Sum of all test durations in group | `12.5s` |
-| **Tokens** | Sum of all tokens used in group | `1,234 tok` |
+| **Duration Range** | Min–max duration across all runs in group | `1.5s–2.5s` |
+| **Token Range** | Min–max tokens across all runs in group | `180–520 tok` |
 
-For multi-agent runs, statistics are aggregated across all agents within the group.
+Ranges show variance between agents, helping identify which sessions have consistent or variable performance across agents.
 
 ### Sequence Diagram Display
 
-Sequence diagrams visualize the User → Agent → MCP Server interaction flow:
+Sequence diagrams visualize the User → Agent → MCP Server interaction flow with test results:
+
+**Diagram Features:**
+- **Colored backgrounds** — Green for passed tests, red for failed tests
+- **Test headers with metrics** — Each test shows: name, status (✅/❌), duration, and token count
+- **Tool call timings** — Individual tool execution times in milliseconds
+
+Example diagram structure:
+```
+┌─────────────────────────────────────────────────────────┐
+│  rect rgb(40, 167, 69)  [green for passed]              │
+│  note: Test 1 - Create workspace ✅ (1.5s · 180 tok)    │
+│      User ->> Agent: Create a workspace...              │
+│      Agent ->> MCP Server: write_file() [45ms]          │
+│      MCP Server -->> Agent: result                      │
+│      Agent -->> User: Workspace created                 │
+│  end                                                    │
+│                                                         │
+│  rect rgb(220, 53, 69)  [red for failed]                │
+│  note: Test 2 - Initialize config ❌ (2.0s · 280 tok)   │
+│      ...                                                │
+│  end                                                    │
+└─────────────────────────────────────────────────────────┘
+```
 
 | Location | Single Agent | Multi-Agent |
 |----------|--------------|-------------|
@@ -333,7 +395,7 @@ Sequence diagrams visualize the User → Agent → MCP Server interaction flow:
 - Hover shows "🔍 Click to enlarge" hint
 - Press **Escape** or click outside to close fullscreen view
 
-The side-by-side view enables quick visual comparison of how different agents approached the same task.
+The side-by-side view enables quick visual comparison of how different agents approached the same task, with color-coded pass/fail status making issues immediately visible.
 
 ### Execution Order
 

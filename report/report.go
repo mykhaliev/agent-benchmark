@@ -91,13 +91,19 @@ type AdaptiveFileView struct {
 
 // AdaptiveSessionView represents a session-level grouping
 type AdaptiveSessionView struct {
-	Name             string
-	Tests            []AdaptiveTestView
-	TotalTests       int
-	PassedTests      int
-	FailedTests      int
-	SuccessRate      float64
-	SuccessRateClass string
+	Name                  string
+	Tests                 []AdaptiveTestView
+	TotalTests            int
+	PassedTests           int
+	FailedTests           int
+	SuccessRate           float64
+	SuccessRateClass      string
+	TotalDuration         float64 // Total duration in seconds
+	TotalTokens           int
+	AgentCount            int    // Number of distinct agents in this session
+	SourceFile            string // Parent file (for multi-file runs)
+	SequenceDiagram       string // Mermaid diagram (single-agent)
+	AgentSequenceDiagrams []AgentSequenceDiagramView
 }
 
 // AdaptiveTestView represents a single test with all its agent runs
@@ -124,8 +130,12 @@ type SummaryData struct {
 	PassRate        float64 // Percentage 0-100
 	TotalTokens     int     // Total tokens used across all tests
 	AvgTokensPassed int     // Average tokens used by passing tests
+	MinTokens       int     // Minimum tokens used in a single test
+	MaxTokens       int     // Maximum tokens used in a single test
 	TotalDuration   float64 // Total duration in seconds
 	AvgDuration     float64
+	MinDuration     float64 // Minimum duration of a single test
+	MaxDuration     float64 // Maximum duration of a single test
 }
 
 // TestOverviewView represents the grouped test overview table
@@ -189,6 +199,10 @@ type MatrixFileGroup struct {
 	PassedTests   int
 	TotalDuration float64 // in milliseconds
 	TotalTokens   int
+	MinDuration   float64 // min duration across all runs
+	MaxDuration   float64 // max duration across all runs
+	MinTokens     int     // min tokens across all runs
+	MaxTokens     int     // max tokens across all runs
 }
 
 // MatrixSessionGroup represents a session-level grouping in the matrix
@@ -200,6 +214,10 @@ type MatrixSessionGroup struct {
 	PassedTests   int
 	TotalDuration float64 // in milliseconds
 	TotalTokens   int
+	MinDuration   float64 // min duration across all runs
+	MaxDuration   float64 // max duration across all runs
+	MinTokens     int     // min tokens across all runs
+	MaxTokens     int     // max tokens across all runs
 }
 
 // MatrixTestRow represents a single test row in the grouped matrix
@@ -238,6 +256,10 @@ type AgentStatsView struct {
 	EfficiencyStr    string // Display string ("125 tok/✓" or "—")
 	IsDisqualified   bool   // 0% success rate
 	RowClass         string // CSS class for row styling
+	// Session coverage (only populated when sessions > 1)
+	TotalSessions       int     // Total number of unique sessions
+	SessionsCovered     int     // Sessions where agent passed at least one test
+	SessionCoverageRate float64 // Percentage 0-100
 }
 
 // TestGroupView groups test runs by test name
@@ -278,10 +300,32 @@ type SessionGroupView struct {
 	SuccessRateClass      string
 	TotalDuration         float64 // Total duration in seconds
 	TotalTokens           int
+	MinDuration           float64 // Min duration in seconds
+	MaxDuration           float64 // Max duration in seconds
+	MinTokens             int
+	MaxTokens             int
 	AgentCount            int // Number of distinct agents in this session
 	TestGroups            []TestGroupView
 	SequenceDiagram       string                     // Mermaid diagram showing all tests in session (only for single-agent)
 	AgentSequenceDiagrams []AgentSequenceDiagramView // Per-agent diagrams for multi-agent sessions
+	AgentStats            []SessionAgentStatsView    // Per-agent stats for session overview table
+}
+
+// SessionAgentStatsView holds per-agent statistics within a session
+type SessionAgentStatsView struct {
+	AgentName        string
+	Provider         string
+	TotalTests       int
+	PassedTests      int
+	FailedTests      int
+	SuccessRate      float64
+	SuccessRateClass string
+	TotalDuration    float64 // in seconds
+	MinDuration      float64
+	MaxDuration      float64
+	TotalTokens      int
+	MinTokens        int
+	MaxTokens        int
 }
 
 // TestRunView is a view model for individual test runs
@@ -367,6 +411,14 @@ func NewGenerator() (*Generator, error) {
 				return name
 			}
 			return testKey // Fallback to key if no display name found
+		},
+		"getSessionByName": func(groups []SessionGroupView, name string) *SessionGroupView {
+			for i := range groups {
+				if groups[i].SessionName == name {
+					return &groups[i]
+				}
+			}
+			return nil
 		},
 		"truncate": func(s string, max int) string {
 			if len(s) <= max {
@@ -642,15 +694,37 @@ func buildReportData(results []model.TestRun) ReportData {
 	isSuiteRun := len(sourceFiles) > 0
 	showSuiteInfo := suiteName != ""
 
-	for _, r := range results {
+	minTokens := 0
+	maxTokens := 0
+	minDuration := 0.0
+	maxDuration := 0.0
+	for i, r := range results {
 		totalTokens += r.Execution.TokensUsed
+		duration := r.Execution.EndTime.Sub(r.Execution.StartTime).Seconds()
+
+		// Track min/max tokens
+		if i == 0 || r.Execution.TokensUsed < minTokens {
+			minTokens = r.Execution.TokensUsed
+		}
+		if r.Execution.TokensUsed > maxTokens {
+			maxTokens = r.Execution.TokensUsed
+		}
+
+		// Track min/max duration
+		if i == 0 || duration < minDuration {
+			minDuration = duration
+		}
+		if duration > maxDuration {
+			maxDuration = duration
+		}
+
 		if r.Passed {
 			passed++
 			totalTokensPassed += r.Execution.TokensUsed
 		} else {
 			failed++
 		}
-		totalDuration += r.Execution.EndTime.Sub(r.Execution.StartTime).Seconds()
+		totalDuration += duration
 	}
 
 	avgTokensPassed := 0
@@ -692,8 +766,12 @@ func buildReportData(results []model.TestRun) ReportData {
 			PassRate:        passRate,
 			TotalTokens:     totalTokens,
 			AvgTokensPassed: avgTokensPassed,
+			MinTokens:       minTokens,
+			MaxTokens:       maxTokens,
 			TotalDuration:   totalDuration,
 			AvgDuration:     avgDuration,
+			MinDuration:     minDuration,
+			MaxDuration:     maxDuration,
 		},
 		AgentStats:    buildAgentStats(results),
 		Matrix:        matrix,
@@ -1187,15 +1265,26 @@ func buildTestRunView(run model.TestRun) TestRunView {
 
 func buildAgentStats(results []model.TestRun) []AgentStatsView {
 	statsMap := make(map[string]*AgentStatsView)
+	// Track sessions where agent passed at least one test: agent -> set of session names
+	agentSessionsPassed := make(map[string]map[string]bool)
+	// Track all unique sessions
+	allSessions := make(map[string]bool)
 
 	for _, result := range results {
 		agentName := result.Execution.AgentName
+		sessionName := result.Execution.SessionName
+
+		// Track all sessions
+		if sessionName != "" {
+			allSessions[sessionName] = true
+		}
 
 		if _, exists := statsMap[agentName]; !exists {
 			statsMap[agentName] = &AgentStatsView{
 				AgentName: agentName,
 				Provider:  string(result.Execution.ProviderType),
 			}
+			agentSessionsPassed[agentName] = make(map[string]bool)
 		}
 
 		stats := statsMap[agentName]
@@ -1203,6 +1292,10 @@ func buildAgentStats(results []model.TestRun) []AgentStatsView {
 
 		if result.Passed {
 			stats.PassedTests++
+			// Track session coverage
+			if sessionName != "" {
+				agentSessionsPassed[agentName][sessionName] = true
+			}
 		} else {
 			stats.FailedTests++
 			// Count errors separately
@@ -1216,9 +1309,11 @@ func buildAgentStats(results []model.TestRun) []AgentStatsView {
 		stats.TotalDuration += duration
 	}
 
+	totalSessions := len(allSessions)
+
 	// Calculate averages and convert to slice
 	statsList := make([]AgentStatsView, 0, len(statsMap))
-	for _, stats := range statsMap {
+	for agentName, stats := range statsMap {
 		if stats.TotalTests > 0 {
 			stats.AvgTokens = stats.TotalTokens / stats.TotalTests
 			stats.AvgDuration = stats.TotalDuration / float64(stats.TotalTests)
@@ -1232,6 +1327,13 @@ func buildAgentStats(results []model.TestRun) []AgentStatsView {
 			} else {
 				stats.Efficiency = 0
 				stats.EfficiencyStr = "—"
+			}
+
+			// Calculate session coverage (only meaningful when multiple sessions)
+			stats.TotalSessions = totalSessions
+			stats.SessionsCovered = len(agentSessionsPassed[agentName])
+			if totalSessions > 0 {
+				stats.SessionCoverageRate = float64(stats.SessionsCovered) / float64(totalSessions) * 100
 			}
 
 			// Mark disqualified agents (0% success rate)
@@ -1496,6 +1598,8 @@ func buildSessionGroups(results []model.TestRun) []SessionGroupView {
 
 		// Build test run view
 		duration := run.Execution.EndTime.Sub(run.Execution.StartTime)
+		durationSecs := duration.Seconds()
+		tokens := run.Execution.TokensUsed
 
 		// Update session-level stats
 		sessionGroup.TotalTests++
@@ -1504,8 +1608,29 @@ func buildSessionGroups(results []model.TestRun) []SessionGroupView {
 		} else {
 			sessionGroup.FailedTests++
 		}
-		sessionGroup.TotalDuration += duration.Seconds()
-		sessionGroup.TotalTokens += run.Execution.TokensUsed
+		sessionGroup.TotalDuration += durationSecs
+		sessionGroup.TotalTokens += tokens
+
+		// Track min/max (initialize on first entry)
+		if sessionGroup.TotalTests == 1 {
+			sessionGroup.MinDuration = durationSecs
+			sessionGroup.MaxDuration = durationSecs
+			sessionGroup.MinTokens = tokens
+			sessionGroup.MaxTokens = tokens
+		} else {
+			if durationSecs < sessionGroup.MinDuration {
+				sessionGroup.MinDuration = durationSecs
+			}
+			if durationSecs > sessionGroup.MaxDuration {
+				sessionGroup.MaxDuration = durationSecs
+			}
+			if tokens < sessionGroup.MinTokens {
+				sessionGroup.MinTokens = tokens
+			}
+			if tokens > sessionGroup.MaxTokens {
+				sessionGroup.MaxTokens = tokens
+			}
+		}
 
 		assertions := make([]AssertionView, len(run.Assertions))
 		for i, a := range run.Assertions {
@@ -1592,6 +1717,57 @@ func buildSessionGroups(results []model.TestRun) []SessionGroupView {
 						AgentName: agentName,
 						Diagram:   diagram,
 					})
+				}
+
+				// Build per-agent stats for session overview table
+				for _, agentName := range agentNames {
+					agentRuns := agentRunsMap[agentName]
+					stats := SessionAgentStatsView{
+						AgentName: agentName,
+					}
+					first := true
+					for _, run := range agentRuns {
+						if stats.Provider == "" {
+							stats.Provider = string(run.Execution.ProviderType)
+						}
+						duration := run.Execution.EndTime.Sub(run.Execution.StartTime).Seconds()
+						tokens := run.Execution.TokensUsed
+
+						stats.TotalTests++
+						if run.Passed {
+							stats.PassedTests++
+						} else {
+							stats.FailedTests++
+						}
+						stats.TotalDuration += duration
+						stats.TotalTokens += tokens
+
+						if first {
+							stats.MinDuration = duration
+							stats.MaxDuration = duration
+							stats.MinTokens = tokens
+							stats.MaxTokens = tokens
+							first = false
+						} else {
+							if duration < stats.MinDuration {
+								stats.MinDuration = duration
+							}
+							if duration > stats.MaxDuration {
+								stats.MaxDuration = duration
+							}
+							if tokens < stats.MinTokens {
+								stats.MinTokens = tokens
+							}
+							if tokens > stats.MaxTokens {
+								stats.MaxTokens = tokens
+							}
+						}
+					}
+					if stats.TotalTests > 0 {
+						stats.SuccessRate = float64(stats.PassedTests) / float64(stats.TotalTests) * 100
+						stats.SuccessRateClass = getSuccessRateClass(stats.SuccessRate)
+					}
+					sessionGroup.AgentStats = append(sessionGroup.AgentStats, stats)
 				}
 			}
 		}
@@ -1836,10 +2012,16 @@ func buildMatrix(results []model.TestRun) MatrixView {
 	for i := range fileGroups {
 		var fileTotalTests, filePassedTests, fileTotalTokens int
 		var fileTotalDuration float64
+		var fileMinDuration, fileMaxDuration float64
+		var fileMinTokens, fileMaxTokens int
+		fileFirst := true
 
 		for j := range fileGroups[i].SessionGroups {
 			var sessionTotalTests, sessionPassedTests, sessionTotalTokens int
 			var sessionTotalDuration float64
+			var sessionMinDuration, sessionMaxDuration float64
+			var sessionMinTokens, sessionMaxTokens int
+			sessionFirst := true
 
 			for _, testRow := range fileGroups[i].SessionGroups[j].TestRows {
 				// Count stats across all agents for this test
@@ -1852,6 +2034,28 @@ func buildMatrix(results []model.TestRun) MatrixView {
 							}
 							sessionTotalDuration += float64(cell.DurationMs)
 							sessionTotalTokens += cell.Tokens
+
+							// Track min/max
+							if sessionFirst {
+								sessionMinDuration = float64(cell.DurationMs)
+								sessionMaxDuration = float64(cell.DurationMs)
+								sessionMinTokens = cell.Tokens
+								sessionMaxTokens = cell.Tokens
+								sessionFirst = false
+							} else {
+								if float64(cell.DurationMs) < sessionMinDuration {
+									sessionMinDuration = float64(cell.DurationMs)
+								}
+								if float64(cell.DurationMs) > sessionMaxDuration {
+									sessionMaxDuration = float64(cell.DurationMs)
+								}
+								if cell.Tokens < sessionMinTokens {
+									sessionMinTokens = cell.Tokens
+								}
+								if cell.Tokens > sessionMaxTokens {
+									sessionMaxTokens = cell.Tokens
+								}
+							}
 						}
 					}
 				}
@@ -1861,17 +2065,47 @@ func buildMatrix(results []model.TestRun) MatrixView {
 			fileGroups[i].SessionGroups[j].PassedTests = sessionPassedTests
 			fileGroups[i].SessionGroups[j].TotalDuration = sessionTotalDuration
 			fileGroups[i].SessionGroups[j].TotalTokens = sessionTotalTokens
+			fileGroups[i].SessionGroups[j].MinDuration = sessionMinDuration
+			fileGroups[i].SessionGroups[j].MaxDuration = sessionMaxDuration
+			fileGroups[i].SessionGroups[j].MinTokens = sessionMinTokens
+			fileGroups[i].SessionGroups[j].MaxTokens = sessionMaxTokens
 
 			fileTotalTests += sessionTotalTests
 			filePassedTests += sessionPassedTests
 			fileTotalDuration += sessionTotalDuration
 			fileTotalTokens += sessionTotalTokens
+
+			// Track file-level min/max
+			if fileFirst {
+				fileMinDuration = sessionMinDuration
+				fileMaxDuration = sessionMaxDuration
+				fileMinTokens = sessionMinTokens
+				fileMaxTokens = sessionMaxTokens
+				fileFirst = false
+			} else {
+				if sessionMinDuration < fileMinDuration {
+					fileMinDuration = sessionMinDuration
+				}
+				if sessionMaxDuration > fileMaxDuration {
+					fileMaxDuration = sessionMaxDuration
+				}
+				if sessionMinTokens < fileMinTokens {
+					fileMinTokens = sessionMinTokens
+				}
+				if sessionMaxTokens > fileMaxTokens {
+					fileMaxTokens = sessionMaxTokens
+				}
+			}
 		}
 
 		fileGroups[i].TotalTests = fileTotalTests
 		fileGroups[i].PassedTests = filePassedTests
 		fileGroups[i].TotalDuration = fileTotalDuration
 		fileGroups[i].TotalTokens = fileTotalTokens
+		fileGroups[i].MinDuration = fileMinDuration
+		fileGroups[i].MaxDuration = fileMaxDuration
+		fileGroups[i].MinTokens = fileMinTokens
+		fileGroups[i].MaxTokens = fileMaxTokens
 	}
 
 	// Determine if grouping should be shown (adaptive)
@@ -1898,6 +2132,21 @@ func buildSequenceDiagram(run model.TestRun) string {
 	sb.WriteString("    participant U as User\n")
 	sb.WriteString("    participant A as Agent\n")
 	sb.WriteString("    participant M as MCP Server\n")
+
+	// Calculate metrics for header
+	duration := run.Execution.EndTime.Sub(run.Execution.StartTime)
+	durationStr := fmt.Sprintf("%.1fs", duration.Seconds())
+	tokens := run.Execution.TokensUsed
+	status := "✅ PASS"
+	rectColor := "rgb(40, 167, 69)" // green
+	if !run.Passed {
+		status = "❌ FAIL"
+		rectColor = "rgb(220, 53, 69)" // red
+	}
+
+	// Add colored rect with test summary
+	sb.WriteString(fmt.Sprintf("    rect %s\n", rectColor))
+	sb.WriteString(fmt.Sprintf("    note over U,M: %s (%s · %d tok)\n", status, durationStr, tokens))
 
 	// Find the LAST user message (which is the prompt for this specific test)
 	lastUserMsg := ""
@@ -1931,19 +2180,16 @@ func buildSequenceDiagram(run model.TestRun) string {
 		}
 	}
 
-	// Final response with total tokens
+	// Final response
 	if run.Execution.FinalOutput != "" {
 		output := escapeMermaid(run.Execution.FinalOutput)
 		if len(output) > 40 {
 			output = output[:37] + "..."
 		}
-		if run.Execution.TokensUsed > 0 {
-			sb.WriteString(fmt.Sprintf("    A-->>U: %s [%d tokens]\n", output, run.Execution.TokensUsed))
-		} else {
-			sb.WriteString(fmt.Sprintf("    A-->>U: %s\n", output))
-		}
+		sb.WriteString(fmt.Sprintf("    A-->>U: %s\n", output))
 	}
 
+	sb.WriteString("    end\n")
 	return sb.String()
 }
 
@@ -1975,13 +2221,27 @@ func buildSessionSequenceDiagram(runs []model.TestRun) string {
 
 	for i, run := range runs {
 		testName := escapeMermaid(run.Execution.TestName)
-		if len(testName) > 30 {
-			testName = testName[:27] + "..."
+		if len(testName) > 25 {
+			testName = testName[:22] + "..."
 		}
 
-		// Add test boundary note
+		// Calculate metrics
+		duration := run.Execution.EndTime.Sub(run.Execution.StartTime)
+		durationStr := fmt.Sprintf("%.1fs", duration.Seconds())
+		tokens := run.Execution.TokensUsed
+
+		// Status indicator
+		status := "✅"
+		rectColor := "rgb(40, 167, 69)" // green
+		if !run.Passed {
+			status = "❌"
+			rectColor = "rgb(220, 53, 69)" // red
+		}
+
+		// Add test boundary with colored rect and metrics
 		if len(runs) > 1 {
-			sb.WriteString(fmt.Sprintf("    note over U,M: Test %d - %s\n", i+1, testName))
+			sb.WriteString(fmt.Sprintf("    rect %s\n", rectColor))
+			sb.WriteString(fmt.Sprintf("    note over U,M: Test %d - %s %s (%s · %d tok)\n", i+1, testName, status, durationStr, tokens))
 		}
 
 		// User prompt - find the LAST user message (which is the prompt for this specific test)
@@ -2015,11 +2275,12 @@ func buildSessionSequenceDiagram(runs []model.TestRun) string {
 			if len(output) > 30 {
 				output = output[:27] + "..."
 			}
-			status := "✓"
-			if !run.Passed {
-				status = "✗"
-			}
-			sb.WriteString(fmt.Sprintf("    A-->>U: %s %s\n", status, output))
+			sb.WriteString(fmt.Sprintf("    A-->>U: %s\n", output))
+		}
+
+		// Close rect for multi-test sessions
+		if len(runs) > 1 {
+			sb.WriteString("    end\n")
 		}
 	}
 
