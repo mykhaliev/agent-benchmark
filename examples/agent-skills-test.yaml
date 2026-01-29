@@ -1,0 +1,72 @@
+# Agent Skills Test
+# Demonstrates loading and using Agent Skills with agent-benchmark
+#
+# This test verifies that:
+# 1. Skills are loaded from SKILL.md files
+# 2. Skill content is injected into system prompt
+# 3. Agents can use skill instructions
+#
+# Prerequisites:
+# - Azure OpenAI resource with Entra ID authentication
+# - Environment variable: AZURE_OPENAI_ENDPOINT
+#
+# Run command:
+#   agent-benchmark -f examples/agent-skills-test.yaml -reportType html,json
+
+criteria:
+  success_rate: 1 # 100%
+
+providers:
+  - name: azure-openai
+    type: AZURE
+    auth_type: entra_id
+    model: gpt-4o
+    baseUrl: "{{AZURE_OPENAI_ENDPOINT}}"
+    version: 2025-01-01-preview
+
+# No servers needed - this tests skill injection into system prompt
+servers: []
+
+agents:
+  - name: skilled-agent
+    provider: azure-openai
+    skill:
+      path: "{{TEST_DIR}}/skills/demo-skill"  # Path to skill folder
+      file_access: false                       # Don't need file access for this test
+    system_prompt: |
+      You are {{AGENT_NAME}}, a helpful assistant.
+      Session: {{SESSION_NAME}}
+      
+      IMPORTANT: Execute all tasks directly without asking for clarification.
+
+settings:
+  verbose: true
+  max_iterations: 5
+
+sessions:
+  - name: "Skill Verification"
+    tests:
+      - name: "Verify skill is loaded"
+        prompt: |
+          What skill do you have activated? 
+          Start your response with the greeting specified in your skill instructions.
+        assertions:
+          # The skill instructs to greet with "Demo Skill activated!"
+          - type: output_regex
+            pattern: "(?i)demo.*(skill|activated)"
+
+      - name: "Verify skill metadata knowledge"
+        prompt: |
+          What is the purpose of your activated skill according to its description?
+        assertions:
+          # Should reference the skill's purpose (demonstration, testing, template)
+          - type: output_regex
+            pattern: "(?i)(demonstrat|template|test|example)"
+
+      - name: "Verify instructions are followed"
+        prompt: |
+          Following your skill's guidelines, what references are available to you?
+        assertions:
+          # Should mention guide.md from the skill
+          - type: output_regex
+            pattern: "(?i)(guide|reference)"
