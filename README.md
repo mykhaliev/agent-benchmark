@@ -46,6 +46,7 @@ Test agents across different LLM providers in parallel:
 Connect to MCP servers via:
 - **stdio**: Run MCP servers as local processes
 - **SSE**: Connect to remote MCP servers via Server-Sent Events
+- **CLI**: Wrap command-line tools as MCP-like servers for testing CLI-based tools
 
 ### 3. Session-Based Testing
 Organize tests into sessions with shared context and message history, simulating real conversational flows.
@@ -518,6 +519,71 @@ servers:
 **Server Types:**
 - `stdio` - Standard Input/Output communication
 - `sse` - Server-Sent Events over HTTP
+- `cli` - CLI tool wrapper (see [CLI Server](#cli-server) below)
+
+#### CLI Server
+
+Wrap command-line tools as MCP-like servers. Useful for testing CLI-based tools like `excel-cli`:
+
+```yaml
+servers:
+  - name: excel-cli
+    type: cli
+    command: excel-cli
+    shell: powershell      # Shell: powershell, pwsh, cmd, bash, sh, zsh
+    working_dir: "{{TEST_DIR}}"  # Working directory for CLI commands
+    tool_prefix: excel     # Tool name becomes excel_execute
+```
+
+**CLI Server Configuration:**
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `command` | CLI executable to wrap (required) | - |
+| `shell` | Shell to run commands in | `powershell` (Windows), `bash` (Unix) |
+| `working_dir` | Working directory for commands | Current directory |
+| `tool_prefix` | Prefix for generated tool name | `cli` (tool name: `cli_execute`) |
+
+**Tool Invocation:**
+
+The CLI server exposes a single tool (`{prefix}_execute`) that accepts `args`:
+
+```yaml
+assertions:
+  - type: tool_called
+    tool: excel_execute
+  - type: tool_param_equals
+    tool: excel_execute
+    params:
+      args: "sheet list --file workbook.xlsx"
+```
+
+**CLI Assertions:**
+
+Special assertions for validating CLI output:
+
+```yaml
+assertions:
+  # Check exit code
+  - type: cli_exit_code_equals
+    tool: excel_execute
+    value: "0"  # Expected exit code
+    
+  # Check stdout contains text
+  - type: cli_stdout_contains
+    tool: excel_execute
+    value: "Sheet1"
+    
+  # Check stdout matches regex
+  - type: cli_stdout_regex
+    tool: excel_execute
+    pattern: "Created.*successfully"
+    
+  # Check stderr contains text
+  - type: cli_stderr_contains
+    tool: excel_execute
+    value: "Warning:"
+```
 
 #### Server Timing Configuration
 

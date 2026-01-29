@@ -112,6 +112,11 @@ type Server struct {
 	Headers      []string   `yaml:"headers"`
 	ServerDelay  string     `yaml:"server_delay,omitempty"`
 	ProcessDelay string     `yaml:"process_delay,omitempty"`
+	// CLI server type specific fields
+	Shell        string `yaml:"shell,omitempty"`        // Shell to use (powershell, cmd, bash). Default: powershell on Windows, bash on Unix
+	WorkingDir   string `yaml:"working_dir,omitempty"`  // Working directory for CLI commands. Default: current directory
+	ToolPrefix   string `yaml:"tool_prefix,omitempty"`  // Prefix for generated tool names (e.g., "excel" → "excel_sheet_create")
+	ToolsFromCLI bool   `yaml:"tools_from_cli,omitempty"` // If true, discover tools by running CLI with --help or similar
 }
 
 type ServerType string
@@ -120,6 +125,7 @@ const (
 	Stdio ServerType = "stdio"
 	SSE   ServerType = "sse"
 	Http  ServerType = "http"
+	CLI   ServerType = "cli"
 )
 
 // ============================================================================
@@ -519,6 +525,14 @@ func (e *AssertionEvaluator) evaluateWithDepth(assertions []Assertion, depth int
 			result = e.evalNoClarificationQuestions(assertion)
 		case "no_rate_limit_errors":
 			result = e.evalNoRateLimitErrors(assertion)
+		case "cli_exit_code_equals":
+			result = e.evalCLIExitCodeEquals(assertion)
+		case "cli_stdout_contains":
+			result = e.evalCLIStdoutContains(assertion)
+		case "cli_stdout_regex":
+			result = e.evalCLIStdoutRegex(assertion)
+		case "cli_stderr_contains":
+			result = e.evalCLIStderrContains(assertion)
 		default:
 			result = AssertionResult{
 				Type:    assertion.Type,
@@ -995,6 +1009,204 @@ func (e *AssertionEvaluator) evalNoRateLimitErrors(a Assertion) AssertionResult 
 		Passed:  true,
 		Message: "No rate limit errors (HTTP 429)",
 	}
+}
+
+// ============================================================================
+// CLI ASSERTION FUNCTIONS
+// ============================================================================
+
+// CLIResult represents the parsed JSON result from a CLI tool call
+type CLIResult struct {
+	ExitCode int    `json:"exit_code"`
+	Stdout   string `json:"stdout"`
+	Stderr   string `json:"stderr"`
+}
+
+// parseCLIResult extracts CLI result from a tool call
+func parseCLIResult(tc ToolCall) (*CLIResult, error) {
+	if len(tc.Result.Content) == 0 {
+		return nil, fmt.Errorf("no content in tool result")
+	}
+
+	var result CLIResult
+	if err := json.Unmarshal([]byte(tc.Result.Content[0].Text), &result); err != nil {
+		return nil, fmt.Errorf("failed to parse CLI result JSON: %w", err)
+	}
+
+	return &result, nil
+}
+
+// findCLIToolCall finds a CLI tool call by tool name pattern
+// Looks for tools ending with "_execute" or exact match
+func (e *AssertionEvaluator) findCLIToolCall(toolName string) (*ToolCall, *CLIResult, error) {
+	for i := range e.result.ToolCalls {
+		tc := &e.result.ToolCalls[i]
+		// Match exact name or CLI execute pattern
+		if tc.Name == toolName || strings.HasSuffix(tc.Name, "_execute") {
+			result, err := parseCLIResult(*tc)
+			if err == nil {
+				return tc, result, nil
+			}
+		}
+	}
+	return nil, nil, fmt.Errorf("no CLI tool call found matching '%s'", toolName)
+}
+
+// evalCLIExitCodeEquals checks if CLI command returned expected exit code
+func (e *AssertionEvaluator) evalCLIExitCodeEquals(a Assertion) AssertionResult {
+	expectedCode, err := strconv.Atoi(a.Value)
+	if err != nil {
+		return AssertionResult{
+			Type:    a.Type,
+			Passed:  false,
+			Message: fmt.Sprintf("Invalid expected exit code: %s", a.Value),
+		}
+	}
+
+	// Find CLI tool call
+	toolName := a.Tool
+	if toolName == "" {
+		toolName = "cli_execute" // Default CLI tool name
+	}
+
+	tc, cliResult, err := e.findCLIToolCall(toolName)
+	if err != nil {
+		return AssertionResult{
+			Type:    a.Type,
+			Passed:  false,
+			Message: err.Error(),
+		}
+	}
+
+	passed := cliResult.ExitCode == expectedCode
+	message := fmt.Sprintf("CLI exit code: %d (expected: %d)", cliResult.ExitCode, expectedCode)
+	if !passed {
+		message = fmt.Sprintf("CLI exit code mismatch: got %d, expected %d", cliResult.ExitCode, expectedCode)
+	}
+
+	return AssertionResult{
+		Type:    a.Type,
+		Passed:  passed,
+		Message: message,
+		Details: map[string]interface{}{
+			"tool":          tc.Name,
+			"actual_code":   cliResult.ExitCode,
+			"expected_code": expectedCode,
+		},
+	}
+}
+
+// evalCLIStdoutContains checks if CLI stdout contains expected value
+func (e *AssertionEvaluator) evalCLIStdoutContains(a Assertion) AssertionResult {
+	toolName := a.Tool
+	if toolName == "" {
+		toolName = "cli_execute"
+	}
+
+	tc, cliResult, err := e.findCLIToolCall(toolName)
+	if err != nil {
+		return AssertionResult{
+			Type:    a.Type,
+			Passed:  false,
+			Message: err.Error(),
+		}
+	}
+
+	contains := strings.Contains(cliResult.Stdout, a.Value)
+	message := fmt.Sprintf("CLI stdout contains '%s': %v", a.Value, contains)
+
+	return AssertionResult{
+		Type:    a.Type,
+		Passed:  contains,
+		Message: message,
+		Details: map[string]interface{}{
+			"tool":        tc.Name,
+			"expected":    a.Value,
+			"stdout_len":  len(cliResult.Stdout),
+			"stdout_preview": truncateString(cliResult.Stdout, 200),
+		},
+	}
+}
+
+// evalCLIStdoutRegex checks if CLI stdout matches regex pattern
+func (e *AssertionEvaluator) evalCLIStdoutRegex(a Assertion) AssertionResult {
+	toolName := a.Tool
+	if toolName == "" {
+		toolName = "cli_execute"
+	}
+
+	tc, cliResult, err := e.findCLIToolCall(toolName)
+	if err != nil {
+		return AssertionResult{
+			Type:    a.Type,
+			Passed:  false,
+			Message: err.Error(),
+		}
+	}
+
+	re, err := regexp.Compile(a.Pattern)
+	if err != nil {
+		return AssertionResult{
+			Type:    a.Type,
+			Passed:  false,
+			Message: fmt.Sprintf("Invalid regex pattern: %s", err),
+		}
+	}
+
+	matches := re.MatchString(cliResult.Stdout)
+	message := fmt.Sprintf("CLI stdout matches regex '%s': %v", a.Pattern, matches)
+
+	return AssertionResult{
+		Type:    a.Type,
+		Passed:  matches,
+		Message: message,
+		Details: map[string]interface{}{
+			"tool":          tc.Name,
+			"pattern":       a.Pattern,
+			"stdout_len":    len(cliResult.Stdout),
+			"stdout_preview": truncateString(cliResult.Stdout, 200),
+		},
+	}
+}
+
+// evalCLIStderrContains checks if CLI stderr contains expected value
+func (e *AssertionEvaluator) evalCLIStderrContains(a Assertion) AssertionResult {
+	toolName := a.Tool
+	if toolName == "" {
+		toolName = "cli_execute"
+	}
+
+	tc, cliResult, err := e.findCLIToolCall(toolName)
+	if err != nil {
+		return AssertionResult{
+			Type:    a.Type,
+			Passed:  false,
+			Message: err.Error(),
+		}
+	}
+
+	contains := strings.Contains(cliResult.Stderr, a.Value)
+	message := fmt.Sprintf("CLI stderr contains '%s': %v", a.Value, contains)
+
+	return AssertionResult{
+		Type:    a.Type,
+		Passed:  contains,
+		Message: message,
+		Details: map[string]interface{}{
+			"tool":          tc.Name,
+			"expected":      a.Value,
+			"stderr_len":    len(cliResult.Stderr),
+			"stderr_preview": truncateString(cliResult.Stderr, 200),
+		},
+	}
+}
+
+// truncateString truncates a string to maxLen characters with ellipsis
+func truncateString(s string, maxLen int) string {
+	if len(s) <= maxLen {
+		return s
+	}
+	return s[:maxLen-3] + "..."
 }
 
 // ============================================================================
