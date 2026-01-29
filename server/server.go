@@ -44,6 +44,11 @@ func NewMCPServer(ctx context.Context, serverConfig model.Server) (*MCPServer, e
 		return nil, fmt.Errorf("context cannot be nil")
 	}
 
+	// Handle CLI server type separately
+	if serverConfig.Type == model.CLI {
+		return NewMCPServerFromCLI(ctx, serverConfig)
+	}
+
 	s := &MCPServer{
 		Name:         serverConfig.Name,
 		Type:         serverConfig.Type,
@@ -174,7 +179,7 @@ func (s *MCPServer) validate() error {
 		}
 
 	default:
-		return fmt.Errorf("unsupported server type: %s (expected: stdio, local, or sse)", s.Type)
+		return fmt.Errorf("unsupported server type: %s (expected: stdio, local, sse, http, or cli)", s.Type)
 	}
 
 	return nil
@@ -469,7 +474,43 @@ func (s *MCPServer) GetInfo() map[string]interface{} {
 	case model.SSE:
 		info["url"] = s.URL
 		info["headers_count"] = len(s.Headers)
+	case model.CLI:
+		info["command"] = s.Command
+		info["cli"] = true
 	}
 
 	return info
+}
+
+// NewMCPServerFromCLI creates an MCPServer that wraps a CLI tool.
+// This allows CLI-based tools to be tested using the same framework as MCP servers.
+func NewMCPServerFromCLI(ctx context.Context, serverConfig model.Server) (*MCPServer, error) {
+	logger.Logger.Info("Creating CLI server wrapper",
+		"server_name", serverConfig.Name,
+		"command", serverConfig.Command,
+	)
+
+	// Create the CLI server
+	cliServer, err := NewCLIServer(ctx, serverConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create CLI server: %w", err)
+	}
+
+	// Create an MCPServer wrapper with CLI client
+	s := &MCPServer{
+		Name:         serverConfig.Name,
+		Type:         serverConfig.Type,
+		Command:      serverConfig.Command,
+		Client:       cliServer.GetClient(),
+		ServerDelay:  serverConfig.ServerDelay,
+		ProcessDelay: serverConfig.ProcessDelay,
+	}
+
+	logger.Logger.Info("CLI server wrapper created successfully",
+		"server_name", serverConfig.Name,
+		"shell", cliServer.Shell,
+		"working_dir", cliServer.WorkingDir,
+	)
+
+	return s, nil
 }
