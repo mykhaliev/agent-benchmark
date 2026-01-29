@@ -77,6 +77,12 @@ Generate reports in multiple formats:
 - JSON export
 - Markdown documentation
 
+### 9. Agent Skills Support
+Load domain-specific knowledge following the [agentskills.io specification](https://agentskills.io/specification):
+- Parse `SKILL.md` files with YAML frontmatter
+- Progressive disclosure of reference files
+- Template variable `{{SKILL_DIR}}` for skill paths
+
 ---
 
 ## Installation
@@ -579,6 +585,7 @@ agents:
 **Agent Configuration:**
 - `name` - Unique agent identifier
 - `provider` - Reference to provider name
+- `skill` - Optional Agent Skill to load (see [Agent Skills](#agent-skills) section)
 - `system_prompt` - Optional system prompt prepended to all conversations (supports templates)
 - `servers` - List of MCP servers
 - `allowedTools` - Optional tool whitelist per server
@@ -630,6 +637,70 @@ sessions:
 - Tests within a session share message history
 - Variables persist across tests in a session
 - Simulates multi-turn conversations
+
+---
+
+### Agent Skills
+
+Agent Skills provide domain-specific knowledge to agents following the [agentskills.io specification](https://agentskills.io/specification). Skills are loaded from a directory containing a `SKILL.md` file and optional `references/` directory.
+
+#### Configuration
+
+```yaml
+agents:
+  - name: skilled-agent
+    provider: azure-openai
+    skill:
+      path: "./skills/excel-cli"  # Path to skill directory (required)
+      file_access: false          # Enable reading references/*.md (optional, default: false)
+    system_prompt: |
+      Additional instructions here...
+```
+
+#### Skill Directory Structure
+
+```
+my-skill/
+├── SKILL.md              # Required: Skill definition with frontmatter + body
+└── references/           # Optional: Additional reference files
+    ├── guide.md
+    └── api.md
+```
+
+#### SKILL.md Format
+
+Skills must have YAML frontmatter with required fields:
+
+```markdown
+---
+name: my-skill                    # Required: lowercase, hyphens allowed
+description: What this skill does # Required: max 1024 chars
+license: MIT                      # Optional
+version: 1.0.0                    # Optional
+tags:
+  - example
+---
+
+# Skill Content
+
+Instructions for the agent go here...
+```
+
+#### Progressive Disclosure
+
+Following the Agent Skills specification, content is loaded progressively:
+1. **Metadata** - `name` and `description` available for skill matching
+2. **SKILL.md body** - Full content injected when skill activates
+3. **References** - Files in `references/` loaded on-demand (when `file_access: true`)
+
+#### Template Variables
+
+When a skill is loaded, these template variables are available:
+- `{{SKILL_DIR}}` - Absolute path to the skill directory
+
+#### Example
+
+See `examples/agent-skills-test.yaml` for a complete example using skills.
 
 ---
 

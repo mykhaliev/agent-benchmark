@@ -21,6 +21,7 @@ import (
 	"github.com/mykhaliev/agent-benchmark/model"
 	"github.com/mykhaliev/agent-benchmark/report"
 	"github.com/mykhaliev/agent-benchmark/server"
+	"github.com/mykhaliev/agent-benchmark/skill"
 	"github.com/tmc/langchaingo/llms"
 	"github.com/tmc/langchaingo/llms/anthropic"
 	"github.com/tmc/langchaingo/llms/bedrock"
@@ -1006,16 +1007,46 @@ func runTests(
 			// Initialize fresh message history for this session
 			msgs := make([]llms.MessageContent, 0)
 
-			// Add system prompt if configured for this agent
+			// Build system prompt from skill + custom system_prompt
+			var systemPromptParts []string
+
+			// Load and inject skill content if configured
+			if originalAgentConfig != nil && originalAgentConfig.Skill != nil && originalAgentConfig.Skill.Path != "" {
+				skillPath := model.RenderTemplate(originalAgentConfig.Skill.Path, templateCtx)
+				loadedSkill, err := skill.LoadSkill(skillPath)
+				if err != nil {
+					logger.Logger.Error("Failed to load skill",
+						"path", skillPath,
+						"error", err)
+				} else {
+					// Add SKILL_DIR to template context
+					templateCtx["SKILL_DIR"] = loadedSkill.Path
+
+					// Add skill content to system prompt
+					systemPromptParts = append(systemPromptParts, loadedSkill.GetContentForInjection())
+					logger.Logger.Info("Skill loaded and injected",
+						"name", loadedSkill.Metadata.Name,
+						"path", loadedSkill.Path,
+						"content_length", len(loadedSkill.Content))
+				}
+			}
+
+			// Add custom system prompt if configured
 			if originalAgentConfig != nil && originalAgentConfig.SystemPrompt != "" {
-				systemPrompt := model.RenderTemplate(originalAgentConfig.SystemPrompt, templateCtx)
+				customPrompt := model.RenderTemplate(originalAgentConfig.SystemPrompt, templateCtx)
+				systemPromptParts = append(systemPromptParts, customPrompt)
+			}
+
+			// Combine and add system message if any parts exist
+			if len(systemPromptParts) > 0 {
+				combinedPrompt := strings.Join(systemPromptParts, "\n\n")
 				msgs = append(msgs, llms.MessageContent{
 					Role: llms.ChatMessageTypeSystem,
 					Parts: []llms.ContentPart{
-						llms.TextContent{Text: systemPrompt},
+						llms.TextContent{Text: combinedPrompt},
 					},
 				})
-				logger.Logger.Debug("System prompt added", "length", len(systemPrompt))
+				logger.Logger.Debug("System prompt added", "length", len(combinedPrompt), "parts", len(systemPromptParts))
 			}
 
 			sessionTools := allAgentTools // Don't mutate original
