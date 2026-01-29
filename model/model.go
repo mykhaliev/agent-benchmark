@@ -223,6 +223,7 @@ type Assertion struct {
 	Type     string            `yaml:"type"`
 	Tool     string            `yaml:"tool,omitempty"`
 	Value    string            `yaml:"value,omitempty"`
+	Expected int               `yaml:"expected,omitempty"` // For cli_exit_code_equals
 	Params   map[string]string `yaml:"params,omitempty"`
 	Sequence []string          `yaml:"sequence,omitempty"`
 	Pattern  string            `yaml:"pattern,omitempty"`
@@ -1053,14 +1054,20 @@ func (e *AssertionEvaluator) findCLIToolCall(toolName string) (*ToolCall, *CLIRe
 }
 
 // evalCLIExitCodeEquals checks if CLI command returned expected exit code
+// Supports both 'expected: 0' (int) and 'value: "0"' (string) formats
 func (e *AssertionEvaluator) evalCLIExitCodeEquals(a Assertion) AssertionResult {
-	expectedCode, err := strconv.Atoi(a.Value)
-	if err != nil {
-		return AssertionResult{
-			Type:    a.Type,
-			Passed:  false,
-			Message: fmt.Sprintf("Invalid expected exit code: %s", a.Value),
+	// Use Expected field if set, otherwise parse Value for backwards compatibility
+	expectedCode := a.Expected
+	if a.Value != "" {
+		parsed, err := strconv.Atoi(a.Value)
+		if err != nil {
+			return AssertionResult{
+				Type:    a.Type,
+				Passed:  false,
+				Message: fmt.Sprintf("Invalid expected exit code value: %s", a.Value),
+			}
 		}
+		expectedCode = parsed
 	}
 
 	// Find CLI tool call
