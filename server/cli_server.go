@@ -347,11 +347,29 @@ func (c *CLIClient) ListToolsByPage(ctx context.Context, request mcp.ListToolsRe
 // CallTool executes a CLI command
 func (c *CLIClient) CallTool(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	// Extract args from the request
+	// Arguments can be either map[string]interface{} or json.RawMessage depending on caller
 	args := ""
 	if request.Params.Arguments != nil {
-		if argsMap, ok := request.Params.Arguments.(map[string]interface{}); ok {
-			if argsVal, exists := argsMap["args"]; exists {
+		switch v := request.Params.Arguments.(type) {
+		case map[string]interface{}:
+			if argsVal, exists := v["args"]; exists {
 				args = fmt.Sprintf("%v", argsVal)
+			}
+		case json.RawMessage:
+			// Unmarshal the raw JSON to extract args
+			var argsMap map[string]interface{}
+			if err := json.Unmarshal(v, &argsMap); err == nil {
+				if argsVal, exists := argsMap["args"]; exists {
+					args = fmt.Sprintf("%v", argsVal)
+				}
+			}
+		case []byte:
+			// Also handle []byte (which json.RawMessage is an alias for)
+			var argsMap map[string]interface{}
+			if err := json.Unmarshal(v, &argsMap); err == nil {
+				if argsVal, exists := argsMap["args"]; exists {
+					args = fmt.Sprintf("%v", argsVal)
+				}
 			}
 		}
 	}
