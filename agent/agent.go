@@ -938,10 +938,20 @@ func GetTokenCount(response *llms.ContentResponse) int {
 		if v := extractInt(genInfo["TotalTokens"]); v > 0 {
 			return v
 		}
-
-		// Try Google format
 		if v := extractInt(genInfo["total_tokens"]); v > 0 {
 			return v
+		}
+
+		// Try prompt + completion tokens
+		promptTokens := extractInt(genInfo["PromptTokens"])
+		completionTokens := extractInt(genInfo["CompletionTokens"])
+		if promptTokens > 0 || completionTokens > 0 {
+			return promptTokens + completionTokens
+		}
+		promptTokens = extractInt(genInfo["prompt_tokens"])
+		completionTokens = extractInt(genInfo["completion_tokens"])
+		if promptTokens > 0 || completionTokens > 0 {
+			return promptTokens + completionTokens
 		}
 
 		// Try Anthropic format (sum of input + output)

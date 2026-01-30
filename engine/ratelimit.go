@@ -2,6 +2,7 @@ package engine
 
 import (
 	"context"
+	"math"
 	"regexp"
 	"strconv"
 	"strings"
@@ -40,19 +41,19 @@ type RateLimitStats struct {
 // IMPORTANT: Rate limiting is BEST-EFFORT, not guaranteed.
 //
 // Why best-effort?
-// 1. Inaccurate estimates: Token estimation (even with tiktoken) is not 100% accurate.
-//    Azure may count tokens differently than our estimation. We use a 50% safety margin
-//    but this may still be insufficient in edge cases.
+//  1. Inaccurate estimates: Token estimation (even with tiktoken) is not 100% accurate.
+//     Azure may count tokens differently than our estimation. We use a 50% safety margin
+//     but this may still be insufficient in edge cases.
 //
-// 2. Async API consumption: The actual API doesn't immediately return usage info.
-//    We estimate tokens before the request, but the actual consumption is only known
-//    after the response completes. This means rate limiting decisions are made on estimates.
+//  2. Async API consumption: The actual API doesn't immediately return usage info.
+//     We estimate tokens before the request, but the actual consumption is only known
+//     after the response completes. This means rate limiting decisions are made on estimates.
 //
-// 3. Multiple factors: Rate limits depend on both RPM (requests per minute) and TPM
-//    (tokens per minute). We track both, but prioritize TPM since it's usually more restrictive.
+//  3. Multiple factors: Rate limits depend on both RPM (requests per minute) and TPM
+//     (tokens per minute). We track both, but prioritize TPM since it's usually more restrictive.
 //
-// 4. Request overhead: We don't account for Azure infrastructure overhead, retransmissions,
-//    or other hidden token consumption. Our estimates may be conservative but not perfect.
+//  4. Request overhead: We don't account for Azure infrastructure overhead, retransmissions,
+//     or other hidden token consumption. Our estimates may be conservative but not perfect.
 //
 // Best Practice:
 // - Use rate limiting + 429 retries together (defense in depth)
@@ -66,7 +67,11 @@ type RateLimitedLLM struct {
 	rpmLimiter *rate.Limiter // Requests per minute limiter (proactive)
 	tpmLimit   int
 	rpmLimit   int
-	modelName  string        // Model name for accurate tokenization
+	modelName  string // Model name for accurate tokenization
+	// Calibration (in-memory per run)
+	calibrationMu          sync.Mutex
+	calibrationRatio       float64
+	calibrationInitialized bool
 	// 429 retry handling (reactive) - separate from rate limiting
 	retryOn429         bool               // Whether to retry on 429 errors (default: false)
 	maxRetries         int                // Max number of 429 retries (only used if retryOn429 is true)
@@ -143,19 +148,21 @@ func (rl *RateLimitedLLM) GenerateContent(ctx context.Context, messages []llms.M
 		}
 	}
 
-	// For TPM, we estimate tokens before the call using a rough heuristic
-	// A more accurate approach would be to use a tokenizer, but for simplicity
-	// we estimate based on message content length (roughly 4 chars per token)
-	estimatedInputTokens := rl.estimateInputTokens(messages)
+	// Estimate tokens before the call
+	baseEstimatedTokens := rl.estimateInputTokens(messages)
+	calibratedTokens := rl.applyCalibration(baseEstimatedTokens)
 
-	if rl.tpmLimiter != nil && estimatedInputTokens > 0 {
+	if rl.tpmLimiter != nil && calibratedTokens > 0 {
 		// Proactive rate limiting: Wait if we would exceed the TPM limit.
 		// NOTE: This is BEST-EFFORT based on token estimates, not guaranteed.
 		// Actual API token consumption may differ, so 429 errors can still occur.
 		// See RateLimitedLLM type comment for details on why this is best-effort.
-		logger.Logger.Debug("Waiting for TPM rate limit", "estimated_tokens", estimatedInputTokens)
+		logger.Logger.Debug("Waiting for TPM rate limit",
+			"base_estimated_tokens", baseEstimatedTokens,
+			"calibrated_tokens", calibratedTokens,
+			"calibration_ratio", rl.getCalibrationRatio())
 		throttleStart := time.Now()
-		if err := rl.tpmLimiter.WaitN(ctx, estimatedInputTokens); err != nil {
+		if err := rl.tpmLimiter.WaitN(ctx, calibratedTokens); err != nil {
 			return nil, err
 		}
 		throttleTime := time.Since(throttleStart)
@@ -173,20 +180,24 @@ func (rl *RateLimitedLLM) GenerateContent(ctx context.Context, messages []llms.M
 		// Success - adjust token limiter and return
 		if response != nil && rl.tpmLimiter != nil {
 			actualTokens := rl.getActualTokens(response)
-			if actualTokens > estimatedInputTokens {
-				additional := actualTokens - estimatedInputTokens
+			rl.updateCalibration(baseEstimatedTokens, actualTokens)
+			if actualTokens > calibratedTokens {
+				additional := actualTokens - calibratedTokens
 				reservation := rl.tpmLimiter.ReserveN(time.Now(), additional)
 				if reservation.OK() {
 					logger.Logger.Debug("Reserved additional tokens",
-						"estimated", estimatedInputTokens,
+						"base_estimated", baseEstimatedTokens,
+						"calibrated", calibratedTokens,
 						"actual", actualTokens,
 						"additional", additional,
 						"delay", reservation.Delay())
 				}
 			}
 			logger.Logger.Debug("Request completed",
-				"estimated_tokens", estimatedInputTokens,
-				"actual_tokens", rl.getActualTokens(response),
+				"base_estimated_tokens", baseEstimatedTokens,
+				"calibrated_tokens", calibratedTokens,
+				"actual_tokens", actualTokens,
+				"calibration_ratio", rl.getCalibrationRatio(),
 				"duration", elapsed)
 		}
 		return response, nil
@@ -393,6 +404,68 @@ func (rl *RateLimitedLLM) estimateInputTokens(messages []llms.MessageContent) in
 	return rl.estimateInputTokensSimple(messages)
 }
 
+func (rl *RateLimitedLLM) applyCalibration(estimated int) int {
+	if estimated <= 0 {
+		return estimated
+	}
+
+	ratio := rl.getCalibrationRatio()
+	if ratio <= 1.0 {
+		return estimated
+	}
+
+	adjusted := int(math.Ceil(float64(estimated) * ratio))
+	if adjusted < estimated {
+		return estimated
+	}
+
+	return adjusted
+}
+
+func (rl *RateLimitedLLM) getCalibrationRatio() float64 {
+	rl.calibrationMu.Lock()
+	defer rl.calibrationMu.Unlock()
+
+	if !rl.calibrationInitialized {
+		return 1.0
+	}
+
+	return rl.calibrationRatio
+}
+
+func (rl *RateLimitedLLM) updateCalibration(estimated, actual int) {
+	if estimated <= 0 || actual <= 0 {
+		return
+	}
+
+	ratio := float64(actual) / float64(estimated)
+	// Keep calibration conservative and bounded
+	if ratio < 1.0 {
+		ratio = 1.0
+	}
+	if ratio > 5.0 {
+		ratio = 5.0
+	}
+
+	rl.calibrationMu.Lock()
+	if !rl.calibrationInitialized {
+		rl.calibrationRatio = ratio
+		rl.calibrationInitialized = true
+	} else {
+		// Exponential moving average to smooth spikes
+		alpha := 0.2
+		rl.calibrationRatio = (1.0-alpha)*rl.calibrationRatio + alpha*ratio
+	}
+	currentRatio := rl.calibrationRatio
+	rl.calibrationMu.Unlock()
+
+	logger.Logger.Debug("Updated token calibration",
+		"estimated_tokens", estimated,
+		"actual_tokens", actual,
+		"observed_ratio", ratio,
+		"calibrated_ratio", currentRatio)
+}
+
 // estimateInputTokensSimple provides a rough estimate using the heuristic of ~4 characters per token
 func (rl *RateLimitedLLM) estimateInputTokensSimple(messages []llms.MessageContent) int {
 	totalChars := 0
@@ -447,7 +520,7 @@ func (rl *RateLimitedLLM) estimateInputTokensAccurate(messages []llms.MessageCon
 	// - Tool use tokens and additional processing
 	// A 50% margin is aggressive but necessary to prevent 429 errors in practice
 	totalEstimate := inputTokens + estimatedCompletion
-	safetyMargin := totalEstimate / 2  // 50%
+	safetyMargin := totalEstimate / 2 // 50%
 	finalEstimate := totalEstimate + safetyMargin
 
 	logger.Logger.Debug("Accurate token estimation",
@@ -472,28 +545,61 @@ func (rl *RateLimitedLLM) getActualTokens(response *llms.ContentResponse) int {
 		return 0
 	}
 
-	totalTokens := 0
-
 	// Try to get total tokens
-	if total, ok := choice.GenerationInfo["TotalTokens"]; ok {
-		if t, ok := total.(int); ok {
-			return t
-		}
+	if v := extractInt(choice.GenerationInfo["TotalTokens"]); v > 0 {
+		return v
+	}
+	if v := extractInt(choice.GenerationInfo["total_tokens"]); v > 0 {
+		return v
 	}
 
-	// Fall back to prompt + completion tokens
-	if prompt, ok := choice.GenerationInfo["PromptTokens"]; ok {
-		if p, ok := prompt.(int); ok {
-			totalTokens += p
-		}
-	}
-	if completion, ok := choice.GenerationInfo["CompletionTokens"]; ok {
-		if c, ok := completion.(int); ok {
-			totalTokens += c
-		}
+	// Try prompt + completion tokens
+	promptTokens := extractInt(choice.GenerationInfo["PromptTokens"])
+	completionTokens := extractInt(choice.GenerationInfo["CompletionTokens"])
+	if promptTokens > 0 || completionTokens > 0 {
+		return promptTokens + completionTokens
 	}
 
-	return totalTokens
+	// Try provider variants
+	promptTokens = extractInt(choice.GenerationInfo["prompt_tokens"])
+	completionTokens = extractInt(choice.GenerationInfo["completion_tokens"])
+	if promptTokens > 0 || completionTokens > 0 {
+		return promptTokens + completionTokens
+	}
+
+	inputTokens := extractInt(choice.GenerationInfo["input_tokens"])
+	outputTokens := extractInt(choice.GenerationInfo["output_tokens"])
+	if inputTokens > 0 || outputTokens > 0 {
+		return inputTokens + outputTokens
+	}
+
+	return 0
+}
+
+func extractInt(v any) int {
+	if v == nil {
+		return 0
+	}
+
+	switch val := v.(type) {
+	case int:
+		return val
+	case int32:
+		return int(val)
+	case int64:
+		return int(val)
+	case float64:
+		return int(val)
+	case float32:
+		return int(val)
+	case string:
+		if i, err := strconv.Atoi(val); err == nil {
+			return i
+		}
+		return 0
+	default:
+		return 0
+	}
 }
 
 // Call implements the llms.Model interface for simple text generation
