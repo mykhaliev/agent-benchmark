@@ -35,7 +35,31 @@ type RateLimitStats struct {
 	RetrySuccessCount int           `json:"retrySuccessCount"` // Number of successful retries
 }
 
-// RateLimitedLLM wraps an llms.Model with rate limiting and optional 429 retry capabilities
+// RateLimitedLLM wraps an llms.Model with rate limiting and optional 429 retry capabilities.
+//
+// IMPORTANT: Rate limiting is BEST-EFFORT, not guaranteed.
+//
+// Why best-effort?
+// 1. Inaccurate estimates: Token estimation (even with tiktoken) is not 100% accurate.
+//    Azure may count tokens differently than our estimation. We use a 50% safety margin
+//    but this may still be insufficient in edge cases.
+//
+// 2. Async API consumption: The actual API doesn't immediately return usage info.
+//    We estimate tokens before the request, but the actual consumption is only known
+//    after the response completes. This means rate limiting decisions are made on estimates.
+//
+// 3. Multiple factors: Rate limits depend on both RPM (requests per minute) and TPM
+//    (tokens per minute). We track both, but prioritize TPM since it's usually more restrictive.
+//
+// 4. Request overhead: We don't account for Azure infrastructure overhead, retransmissions,
+//    or other hidden token consumption. Our estimates may be conservative but not perfect.
+//
+// Best Practice:
+// - Use rate limiting + 429 retries together (defense in depth)
+// - Enable both TPM and RPM limits for your quota
+// - Monitor throttle_count and rate_limit_hits in stats
+// - If 429 errors still occur, our retry mechanism handles them gracefully
+// - For mission-critical workloads, add additional backoff or request queuing above this layer
 type RateLimitedLLM struct {
 	wrapped    llms.Model
 	tpmLimiter *rate.Limiter // Tokens per minute limiter (proactive)
@@ -125,6 +149,10 @@ func (rl *RateLimitedLLM) GenerateContent(ctx context.Context, messages []llms.M
 	estimatedInputTokens := rl.estimateInputTokens(messages)
 
 	if rl.tpmLimiter != nil && estimatedInputTokens > 0 {
+		// Proactive rate limiting: Wait if we would exceed the TPM limit.
+		// NOTE: This is BEST-EFFORT based on token estimates, not guaranteed.
+		// Actual API token consumption may differ, so 429 errors can still occur.
+		// See RateLimitedLLM type comment for details on why this is best-effort.
 		logger.Logger.Debug("Waiting for TPM rate limit", "estimated_tokens", estimatedInputTokens)
 		throttleStart := time.Now()
 		if err := rl.tpmLimiter.WaitN(ctx, estimatedInputTokens); err != nil {
@@ -412,17 +440,22 @@ func (rl *RateLimitedLLM) estimateInputTokensAccurate(messages []llms.MessageCon
 	// This is better than ignoring completion entirely
 	estimatedCompletion := inputTokens / 2
 
-	// Add a safety margin (20%) to account for tokenization overhead,
-	// message formatting, function schemas, system prompts
+	// Add a conservative safety margin (50%) to account for:
+	// - Tokenization overhead and message formatting
+	// - Function schemas and system prompts
+	// - Azure's token counting differences vs. tiktoken
+	// - Tool use tokens and additional processing
+	// A 50% margin is aggressive but necessary to prevent 429 errors in practice
 	totalEstimate := inputTokens + estimatedCompletion
-	safetyMargin := totalEstimate / 5  // 20%
+	safetyMargin := totalEstimate / 2  // 50%
 	finalEstimate := totalEstimate + safetyMargin
 
 	logger.Logger.Debug("Accurate token estimation",
 		"model", rl.modelName,
 		"input_tokens", inputTokens,
 		"estimated_completion", estimatedCompletion,
-		"safety_margin", safetyMargin,
+		"safety_margin_percent", 50,
+		"safety_margin_tokens", safetyMargin,
 		"total_estimate", finalEstimate)
 
 	return finalEstimate

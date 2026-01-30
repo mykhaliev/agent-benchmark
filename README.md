@@ -451,6 +451,28 @@ providers:
 - This prevents hitting provider rate limits by throttling requests before they're sent
 - Rate limiting is applied per-provider, allowing different limits for different API endpoints
 
+**IMPORTANT: Rate Limiting is Best-Effort, Not Guaranteed**
+
+Rate limiting is a **proactive defense mechanism**, not a hard guarantee against exceeding quota limits. Here's why:
+
+1. **Token estimation is imperfect**: Even with accurate tokenization (using tiktoken), the actual tokens consumed by the API may differ from our estimate due to:
+   - Different tokenization algorithms between libraries and the actual API
+   - System prompts, function schemas, and formatting overhead not fully captured in estimates
+   - Azure infrastructure processing that consumes additional tokens
+   - We use a conservative 50% safety margin, but edge cases may exceed this
+
+2. **Asynchronous token accounting**: The actual token cost is only known after the API completes the request. Throttling decisions are made on estimates before the request.
+
+3. **Rate limits depend on multiple factors**: Both TPM (tokens per minute) and RPM (requests per minute) apply simultaneously. We track both, but TPM is typically the bottleneck for LLMs.
+
+4. **Session state management**: With multiple sessions or concurrent requests, rate bucket replenishment may occur between requests in ways we don't fully predict.
+
+**Best Practice: Combine Proactive + Reactive:**
+- Use rate limiting (proactive) to prevent most quota breaches
+- Enable 429 retry handling (reactive) as a safety net for when estimates fall short
+- Monitor statistics (`throttle_count` and `rate_limit_hits`) to tune your rate limits
+- For mission-critical applications, add additional request queuing or backoff above this layer
+
 #### 429 Retry Handling
 
 By default, 429 (Too Many Requests) errors are treated as regular errors and cause the test to fail immediately. If you want to retry on 429 errors, you can configure this separately:
