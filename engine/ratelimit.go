@@ -10,6 +10,7 @@ import (
 
 	"github.com/mykhaliev/agent-benchmark/logger"
 	"github.com/mykhaliev/agent-benchmark/model"
+	"github.com/pkoukk/tiktoken-go"
 	"github.com/tmc/langchaingo/llms"
 	"golang.org/x/time/rate"
 )
@@ -41,6 +42,7 @@ type RateLimitedLLM struct {
 	rpmLimiter *rate.Limiter // Requests per minute limiter (proactive)
 	tpmLimit   int
 	rpmLimit   int
+	modelName  string        // Model name for accurate tokenization
 	// 429 retry handling (reactive) - separate from rate limiting
 	retryOn429         bool               // Whether to retry on 429 errors (default: false)
 	maxRetries         int                // Max number of 429 retries (only used if retryOn429 is true)
@@ -52,7 +54,8 @@ type RateLimitedLLM struct {
 // NewRateLimitedLLM creates a new rate-limited wrapper around an LLM
 // rateLimitConfig: proactive rate limiting (TPM/RPM throttling)
 // retryConfig: reactive error handling (429 retry behavior)
-func NewRateLimitedLLM(wrapped llms.Model, rateLimitConfig model.RateLimitConfig, retryConfig model.RetryConfig) *RateLimitedLLM {
+// modelName: model identifier for accurate tokenization (e.g., "gpt-4", "gpt-3.5-turbo")
+func NewRateLimitedLLM(wrapped llms.Model, rateLimitConfig model.RateLimitConfig, retryConfig model.RetryConfig, modelName string) *RateLimitedLLM {
 	// Default max retries to 3 if retry is enabled but max not specified
 	maxRetries := retryConfig.MaxRetries
 	if retryConfig.RetryOn429 && maxRetries <= 0 {
@@ -65,6 +68,7 @@ func NewRateLimitedLLM(wrapped llms.Model, rateLimitConfig model.RateLimitConfig
 		rpmLimit:   rateLimitConfig.RPM,
 		retryOn429: retryConfig.RetryOn429,
 		maxRetries: maxRetries,
+		modelName:  modelName,
 	}
 
 	// Create TPM limiter if configured (proactive rate limiting)
@@ -348,9 +352,21 @@ func (rl *RateLimitedLLM) extractRetryAfter(err error) time.Duration {
 	return 0
 }
 
-// estimateInputTokens provides a rough estimate of input tokens
-// using the heuristic of ~4 characters per token
+// estimateInputTokens provides accurate token estimation using tiktoken
+// Falls back to simple heuristic if tokenizer is unavailable
 func (rl *RateLimitedLLM) estimateInputTokens(messages []llms.MessageContent) int {
+	// Try accurate tokenization first if model name is available
+	if rl.modelName != "" {
+		if tokens := rl.estimateInputTokensAccurate(messages); tokens > 0 {
+			return tokens
+		}
+	}
+	// Fallback to simple heuristic
+	return rl.estimateInputTokensSimple(messages)
+}
+
+// estimateInputTokensSimple provides a rough estimate using the heuristic of ~4 characters per token
+func (rl *RateLimitedLLM) estimateInputTokensSimple(messages []llms.MessageContent) int {
 	totalChars := 0
 	for _, msg := range messages {
 		for _, part := range msg.Parts {
@@ -366,6 +382,50 @@ func (rl *RateLimitedLLM) estimateInputTokens(messages []llms.MessageContent) in
 		tokens = 1
 	}
 	return tokens
+}
+
+// estimateInputTokensAccurate provides accurate token estimation using tiktoken
+// Returns 0 if tokenization fails (caller should fall back to simple estimation)
+func (rl *RateLimitedLLM) estimateInputTokensAccurate(messages []llms.MessageContent) int {
+	// Get the tokenizer for this model
+	tkm, err := tiktoken.EncodingForModel(rl.modelName)
+	if err != nil {
+		logger.Logger.Debug("Tiktoken encoding not available for model, falling back to simple estimation",
+			"model", rl.modelName,
+			"error", err.Error())
+		return 0
+	}
+
+	// Count input tokens
+	inputTokens := 0
+	for _, msg := range messages {
+		for _, part := range msg.Parts {
+			if textPart, ok := part.(llms.TextContent); ok {
+				tokens := tkm.Encode(textPart.Text, nil, nil)
+				inputTokens += len(tokens)
+			}
+		}
+	}
+
+	// Estimate completion tokens based on input
+	// Conservative estimate: assume completion is 50% of input length
+	// This is better than ignoring completion entirely
+	estimatedCompletion := inputTokens / 2
+
+	// Add a safety margin (20%) to account for tokenization overhead,
+	// message formatting, function schemas, system prompts
+	totalEstimate := inputTokens + estimatedCompletion
+	safetyMargin := totalEstimate / 5  // 20%
+	finalEstimate := totalEstimate + safetyMargin
+
+	logger.Logger.Debug("Accurate token estimation",
+		"model", rl.modelName,
+		"input_tokens", inputTokens,
+		"estimated_completion", estimatedCompletion,
+		"safety_margin", safetyMargin,
+		"total_estimate", finalEstimate)
+
+	return finalEstimate
 }
 
 // getActualTokens extracts actual token counts from the response

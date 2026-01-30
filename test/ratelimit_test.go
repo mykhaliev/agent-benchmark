@@ -79,7 +79,7 @@ func TestRateLimitedLLM_GenerateContent_NoLimits(t *testing.T) {
 	// No rate limits configured
 	rateLimitConfig := model.RateLimitConfig{}
 	retryConfig := model.RetryConfig{}
-	rateLimitedLLM := engine.NewRateLimitedLLM(mockLLM, rateLimitConfig, retryConfig)
+	rateLimitedLLM := engine.NewRateLimitedLLM(mockLLM, rateLimitConfig, retryConfig, "")
 
 	messages := []llms.MessageContent{
 		{
@@ -111,7 +111,7 @@ func TestRateLimitedLLM_GenerateContent_WithRPMLimit(t *testing.T) {
 	// Configure RPM limit: 60 requests per minute = 1 per second
 	rateLimitConfig := model.RateLimitConfig{RPM: 60}
 	retryConfig := model.RetryConfig{}
-	rateLimitedLLM := engine.NewRateLimitedLLM(mockLLM, rateLimitConfig, retryConfig)
+	rateLimitedLLM := engine.NewRateLimitedLLM(mockLLM, rateLimitConfig, retryConfig, "")
 
 	messages := []llms.MessageContent{
 		{
@@ -151,7 +151,7 @@ func TestRateLimitedLLM_GenerateContent_RPMBlocking(t *testing.T) {
 	// But with burst=6, we can make 6 requests immediately, then we wait
 	rateLimitConfig := model.RateLimitConfig{RPM: 6}
 	retryConfig := model.RetryConfig{}
-	rateLimitedLLM := engine.NewRateLimitedLLM(mockLLM, rateLimitConfig, retryConfig)
+	rateLimitedLLM := engine.NewRateLimitedLLM(mockLLM, rateLimitConfig, retryConfig, "")
 
 	messages := []llms.MessageContent{
 		{
@@ -201,7 +201,7 @@ func TestRateLimitedLLM_GenerateContent_WithTPMLimit(t *testing.T) {
 	// Configure TPM limit: 600 tokens per minute = 10 per second
 	rateLimitConfig := model.RateLimitConfig{TPM: 600}
 	retryConfig := model.RetryConfig{}
-	rateLimitedLLM := engine.NewRateLimitedLLM(mockLLM, rateLimitConfig, retryConfig)
+	rateLimitedLLM := engine.NewRateLimitedLLM(mockLLM, rateLimitConfig, retryConfig, "")
 
 	messages := []llms.MessageContent{
 		{
@@ -231,7 +231,7 @@ func TestRateLimitedLLM_Call(t *testing.T) {
 
 	rateLimitConfig := model.RateLimitConfig{RPM: 60}
 	retryConfig := model.RetryConfig{}
-	rateLimitedLLM := engine.NewRateLimitedLLM(mockLLM, rateLimitConfig, retryConfig)
+	rateLimitedLLM := engine.NewRateLimitedLLM(mockLLM, rateLimitConfig, retryConfig, "")
 
 	ctx := context.Background()
 	result, err := rateLimitedLLM.Call(ctx, "Hello")
@@ -255,7 +255,7 @@ func TestRateLimitedLLM_ContextCancellation(t *testing.T) {
 	// Very low RPM to force waiting
 	rateLimitConfig := model.RateLimitConfig{RPM: 1}
 	retryConfig := model.RetryConfig{}
-	rateLimitedLLM := engine.NewRateLimitedLLM(mockLLM, rateLimitConfig, retryConfig)
+	rateLimitedLLM := engine.NewRateLimitedLLM(mockLLM, rateLimitConfig, retryConfig, "")
 
 	messages := []llms.MessageContent{
 		{
@@ -297,7 +297,7 @@ func TestRateLimitedLLM_ConcurrentAccess(t *testing.T) {
 	// High limits to allow all concurrent requests
 	rateLimitConfig := model.RateLimitConfig{RPM: 1000, TPM: 100000}
 	retryConfig := model.RetryConfig{}
-	rateLimitedLLM := engine.NewRateLimitedLLM(mockLLM, rateLimitConfig, retryConfig)
+	rateLimitedLLM := engine.NewRateLimitedLLM(mockLLM, rateLimitConfig, retryConfig, "")
 
 	messages := []llms.MessageContent{
 		{
@@ -396,7 +396,7 @@ func TestRetryConfig_RetryOn429(t *testing.T) {
 				}).
 				Return((*llms.ContentResponse)(nil), rateLimitErr)
 
-			rateLimitedLLM := engine.NewRateLimitedLLM(mockLLM, tt.rateLimitConfig, tt.retryConfig)
+			rateLimitedLLM := engine.NewRateLimitedLLM(mockLLM, tt.rateLimitConfig, tt.retryConfig, "")
 
 			messages := []llms.MessageContent{
 				{
