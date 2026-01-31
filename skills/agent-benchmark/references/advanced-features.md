@@ -61,6 +61,12 @@ my-skill/
 
 The `{{SKILL_DIR}}` template variable provides the absolute skill path.
 
+**When `file_access: true`**, two synthetic tools are added to the agent:
+- `list_skill_references` - Lists available reference files
+- `read_skill_reference` - Reads a specific reference file
+
+This enables progressive disclosure - agents can request additional documentation on-demand.
+
 ## Combining System Prompt with Skills
 
 When both `skill` and `system_prompt` are specified, they are combined:

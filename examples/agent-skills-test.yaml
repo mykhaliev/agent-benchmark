@@ -5,6 +5,7 @@
 # 1. Skills are loaded from SKILL.md files
 # 2. Skill content is injected into system prompt
 # 3. Agents can use skill instructions
+# 4. file_access enables reading reference files via tools
 #
 # Prerequisites:
 # - Azure OpenAI resource with Entra ID authentication
@@ -39,6 +40,17 @@ agents:
       
       IMPORTANT: Execute all tasks directly without asking for clarification.
 
+  - name: skilled-agent-with-refs
+    provider: azure-openai
+    skill:
+      path: "{{TEST_DIR}}/skills/demo-skill"
+      file_access: true                        # Enable reading reference files
+    system_prompt: |
+      You are {{AGENT_NAME}}, a helpful assistant with access to reference docs.
+      
+      IMPORTANT: When asked about references, use the available tools to list 
+      and read them. Execute all tasks directly without asking for clarification.
+
 settings:
   verbose: true
   max_iterations: 5
@@ -70,3 +82,32 @@ sessions:
           # Should mention guide.md from the skill
           - type: output_regex
             pattern: "(?i)(guide|reference)"
+
+  - name: "File Access Verification"
+    agents:
+      - skilled-agent-with-refs
+    tests:
+      - name: "List skill references"
+        prompt: |
+          List all the reference files available in your skill directory.
+          Use the list_skill_references tool.
+        assertions:
+          - type: tool_called
+            tool: list_skill_references
+          - type: output_contains
+            value: "guide.md"
+
+      - name: "Read skill reference"
+        prompt: |
+          Read the guide.md reference file and tell me the three numbered 
+          "Additional Instructions" from that file.
+        assertions:
+          - type: tool_called
+            tool: read_skill_reference
+          - anyOf:
+              - type: output_regex
+                pattern: "(?i)polite|helpful"
+              - type: output_regex
+                pattern: "(?i)confirm.*understanding"
+              - type: output_regex
+                pattern: "(?i)report.*results"

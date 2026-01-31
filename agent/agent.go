@@ -26,15 +26,20 @@ const (
 )
 
 type MCPAgent struct {
-	Name           string                `json:"name"`
-	MCPServerNames []model.AgentServer   `json:"mcp_servers"`
-	MCPServerTools map[string][]mcp.Tool `json:"-"`
-	ToolToServer   map[string]string     `json:"-"`
-	McpServers     []*server.MCPServer   `json:"-"`
-	Provider       string                `json:"provider"`
-	LLMModel       llms.Model            `json:"-"`
-	AvailableTools []string              `json:"-"`
+	Name                  string                              `json:"name"`
+	MCPServerNames        []model.AgentServer                 `json:"mcp_servers"`
+	MCPServerTools        map[string][]mcp.Tool               `json:"-"`
+	ToolToServer          map[string]string                   `json:"-"`
+	McpServers            []*server.MCPServer                 `json:"-"`
+	Provider              string                              `json:"provider"`
+	LLMModel              llms.Model                          `json:"-"`
+	AvailableTools        []string                            `json:"-"`
+	SyntheticToolHandlers map[string]SyntheticToolHandler     `json:"-"` // Handlers for synthetic tools (e.g., skill references)
 }
+
+// SyntheticToolHandler is a function that handles a synthetic tool call
+// It takes the tool arguments as a map and returns the result as a string
+type SyntheticToolHandler func(ctx context.Context, arguments map[string]interface{}) (string, error)
 
 // ClarificationLevel defines the severity level for clarification detection logging
 type ClarificationLevel string
@@ -64,13 +69,14 @@ func NewMCPAgent(
 	llmModel llms.Model,
 ) *MCPAgent {
 	ag := &MCPAgent{
-		Name:           name,
-		MCPServerNames: mcpServersForAgent,
-		MCPServerTools: make(map[string][]mcp.Tool),
-		ToolToServer:   make(map[string]string), // Initialize the new map
-		McpServers:     make([]*server.MCPServer, 0),
-		Provider:       provider,
-		LLMModel:       llmModel,
+		Name:                  name,
+		MCPServerNames:        mcpServersForAgent,
+		MCPServerTools:        make(map[string][]mcp.Tool),
+		ToolToServer:          make(map[string]string), // Initialize the new map
+		McpServers:            make([]*server.MCPServer, 0),
+		Provider:              provider,
+		LLMModel:              llmModel,
+		SyntheticToolHandlers: make(map[string]SyntheticToolHandler),
 	}
 
 	logger.Logger.Info("Creating agent",
@@ -173,6 +179,32 @@ func (m *MCPAgent) ExecuteTool(ctx context.Context, toolName, argumentsInJSON st
 		return "", fmt.Errorf("LLM model is not initialized")
 	}
 
+	// Check if this is a synthetic tool with a custom handler
+	if handler, exists := m.SyntheticToolHandlers[toolName]; exists {
+		arguments, err := ValidateAndParseArguments(argumentsInJSON)
+		if err != nil {
+			return "", fmt.Errorf("failed to parse arguments for synthetic tool '%s': %w", toolName, err)
+		}
+		argsMap, ok := arguments.(map[string]interface{})
+		if !ok {
+			argsMap = make(map[string]interface{})
+		}
+		result, err := handler(ctx, argsMap)
+		if err != nil {
+			return "", fmt.Errorf("synthetic tool '%s' failed: %w", toolName, err)
+		}
+		// Wrap result in MCP-compatible format
+		mcpResult := mcp.CallToolResult{
+			Content: []mcp.Content{
+				mcp.TextContent{
+					Type: "text",
+					Text: result,
+				},
+			},
+		}
+		return sonic.MarshalString(mcpResult)
+	}
+
 	// Look up the server for this tool
 	serverName, exists := m.ToolToServer[toolName]
 	if !exists {
@@ -219,6 +251,30 @@ func (m *MCPAgent) ExecuteTool(ctx context.Context, toolName, argumentsInJSON st
 	}
 
 	return marshaledResult, nil
+}
+
+// RegisterSyntheticTool registers a synthetic tool with a custom handler.
+// Synthetic tools are handled directly by the agent without going through MCP servers.
+func (m *MCPAgent) RegisterSyntheticTool(name, description string, parameters map[string]interface{}, handler SyntheticToolHandler) {
+	m.SyntheticToolHandlers[name] = handler
+	m.AvailableTools = append(m.AvailableTools, name)
+
+	// Create an MCP tool definition so it appears in the tools list
+	if m.MCPServerTools["_synthetic"] == nil {
+		m.MCPServerTools["_synthetic"] = make([]mcp.Tool, 0)
+	}
+	m.MCPServerTools["_synthetic"] = append(m.MCPServerTools["_synthetic"], mcp.Tool{
+		Name:        name,
+		Description: description,
+		InputSchema: mcp.ToolInputSchema{
+			Type:       "object",
+			Properties: parameters,
+		},
+	})
+
+	logger.Logger.Debug("Registered synthetic tool",
+		"name", name,
+		"description", description)
 }
 
 func (m *MCPAgent) GenerateContentWithConfig(

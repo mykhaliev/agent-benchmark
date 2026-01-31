@@ -717,6 +717,12 @@ Following the Agent Skills specification, content is loaded progressively:
 2. **SKILL.md body** - Full content injected when skill activates
 3. **References** - Files in `references/` loaded on-demand (when `file_access: true`)
 
+When `file_access: true`, two synthetic tools are added to the agent:
+- `list_skill_references` - Lists available reference files in the skill's `references/` directory
+- `read_skill_reference` - Reads a specific reference file by filename
+
+This allows agents to discover and load additional documentation as needed, rather than injecting all content upfront.
+
 #### Template Variables
 
 When a skill is loaded, these template variables are available:
@@ -724,7 +730,7 @@ When a skill is loaded, these template variables are available:
 
 #### Example
 
-See `examples/agent-skills-test.yaml` for a complete example using skills.
+See `examples/agent-skills-test.yaml` for a complete example using skills, including `file_access` demonstration.
 
 ---
 

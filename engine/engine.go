@@ -1028,6 +1028,15 @@ func runTests(
 						"name", loadedSkill.Metadata.Name,
 						"path", loadedSkill.Path,
 						"content_length", len(loadedSkill.Content))
+
+					// Register skill reference tools when file_access is enabled
+					if originalAgentConfig.Skill.FileAccess {
+						registerSkillReferenceTools(ag, loadedSkill)
+						// Re-extract tools to include the new synthetic tools
+						allAgentTools = ag.ExtractToolsFromAgent()
+						logger.Logger.Info("Skill reference tools enabled",
+							"skill", loadedSkill.Metadata.Name)
+					}
 				}
 			}
 
@@ -1543,4 +1552,48 @@ func getAISummaryConfig(testPath, suitePath string) *model.AISummary {
 	}
 
 	return nil
+}
+
+// registerSkillReferenceTools adds synthetic tools for reading skill references
+// when file_access is enabled on the agent's skill configuration.
+func registerSkillReferenceTools(ag *agent.MCPAgent, loadedSkill *skill.Skill) {
+	// Register list_skill_references tool
+	ag.RegisterSyntheticTool(
+		"list_skill_references",
+		"Lists all available reference files in the agent's skill directory. Returns a list of filenames that can be read with read_skill_reference.",
+		map[string]interface{}{},
+		func(ctx context.Context, args map[string]interface{}) (string, error) {
+			refs, err := loadedSkill.ListReferences()
+			if err != nil {
+				return "", err
+			}
+			if len(refs) == 0 {
+				return "No reference files available.", nil
+			}
+			return fmt.Sprintf("Available reference files:\n- %s", strings.Join(refs, "\n- ")), nil
+		},
+	)
+
+	// Register read_skill_reference tool
+	ag.RegisterSyntheticTool(
+		"read_skill_reference",
+		"Reads the content of a reference file from the agent's skill directory. Use list_skill_references first to see available files.",
+		map[string]interface{}{
+			"filename": map[string]interface{}{
+				"type":        "string",
+				"description": "The name of the reference file to read (e.g., 'guide.md')",
+			},
+		},
+		func(ctx context.Context, args map[string]interface{}) (string, error) {
+			filename, ok := args["filename"].(string)
+			if !ok || filename == "" {
+				return "", fmt.Errorf("filename is required")
+			}
+			content, err := loadedSkill.ReadReference(filename)
+			if err != nil {
+				return "", err
+			}
+			return content, nil
+		},
+	)
 }
