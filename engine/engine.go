@@ -499,7 +499,15 @@ func ValidateTestConfig(config *model.TestConfiguration, runningFromSuite bool) 
 			return fmt.Errorf("no providers configured")
 		}
 
-		if len(config.Servers) == 0 {
+		// Check if at least one agent needs servers
+		needsServers := false
+		for _, a := range config.Agents {
+			if len(a.Servers) > 0 {
+				needsServers = true
+				break
+			}
+		}
+		if needsServers && len(config.Servers) == 0 {
 			return fmt.Errorf("no servers configured")
 		}
 
@@ -523,7 +531,15 @@ func ValidateSuiteConfig(config *model.TestSuiteConfiguration) error {
 		return fmt.Errorf("no providers configured")
 	}
 
-	if len(config.Servers) == 0 {
+	// Check if at least one agent references servers
+	needsServers := false
+	for _, a := range config.Agents {
+		if len(a.Servers) > 0 {
+			needsServers = true
+			break
+		}
+	}
+	if needsServers && len(config.Servers) == 0 {
 		return fmt.Errorf("no servers configured")
 	}
 
@@ -874,8 +890,9 @@ func initAgents(
 			return nil, fmt.Errorf("provider '%s' is nil for agent '%s'", a.Provider, a.Name)
 		}
 
+		// Allow agents without servers - they can work for simple tests or skill-only tests
 		if len(a.Servers) == 0 {
-			return nil, fmt.Errorf("agent '%s' has no servers configured", a.Name)
+			logger.Logger.Warn("Agent has no servers configured", "agent", a.Name)
 		}
 
 		// Build agent server list
@@ -945,9 +962,18 @@ func runTests(
 	results := make([]model.TestRun, 0)
 
 	// Calculate total tests across all sessions and agents
+	// Account for test-level agent filtering
 	totalTests := 0
 	for _, session := range testConfig.Sessions {
-		totalTests += len(agents) * len(session.Tests)
+		for _, test := range session.Tests {
+			if test.Agent != "" {
+				// Test specifies a specific agent, count once
+				totalTests++
+			} else {
+				// Test runs on all agents
+				totalTests += len(agents)
+			}
+		}
 	}
 	testCount := 0
 
@@ -1029,10 +1055,10 @@ func runTests(
 						"path", loadedSkill.Path,
 						"content_length", len(loadedSkill.Content))
 
-					// Register skill reference tools when file_access is enabled
-					if originalAgentConfig.Skill.FileAccess {
+					// Register skill reference tools if the skill has references
+					if loadedSkill.HasReferences() {
 						registerSkillReferenceTools(ag, loadedSkill)
-						// Re-extract tools to include the new synthetic tools
+						// Re-extract tools to include the new built-in tools
 						allAgentTools = ag.ExtractToolsFromAgent()
 						logger.Logger.Info("Skill reference tools enabled",
 							"skill", loadedSkill.Metadata.Name)
@@ -1072,6 +1098,15 @@ func runTests(
 
 			// Run tests within this session
 			for testIdx, test := range session.Tests {
+				// Skip test if it specifies a different agent
+				if test.Agent != "" && test.Agent != agentConfig.Name {
+					logger.Logger.Debug("Skipping test for different agent",
+						"test", test.Name,
+						"test_agent", test.Agent,
+						"current_agent", agentConfig.Name)
+					continue
+				}
+
 				testCount++
 
 				if test.Name == "" {
@@ -1554,11 +1589,16 @@ func getAISummaryConfig(testPath, suitePath string) *model.AISummary {
 	return nil
 }
 
-// registerSkillReferenceTools adds synthetic tools for reading skill references
-// when file_access is enabled on the agent's skill configuration.
+// registerSkillReferenceTools adds built-in tools for reading skill references
+// when the skill has a references/ directory.
 func registerSkillReferenceTools(ag *agent.MCPAgent, loadedSkill *skill.Skill) {
+	// Check if already registered (avoid duplicates across sessions)
+	if _, exists := ag.BuiltInToolHandlers["list_skill_references"]; exists {
+		return
+	}
+
 	// Register list_skill_references tool
-	ag.RegisterSyntheticTool(
+	ag.RegisterBuiltInTool(
 		"list_skill_references",
 		"Lists all available reference files in the agent's skill directory. Returns a list of filenames that can be read with read_skill_reference.",
 		map[string]interface{}{},
@@ -1575,7 +1615,7 @@ func registerSkillReferenceTools(ag *agent.MCPAgent, loadedSkill *skill.Skill) {
 	)
 
 	// Register read_skill_reference tool
-	ag.RegisterSyntheticTool(
+	ag.RegisterBuiltInTool(
 		"read_skill_reference",
 		"Reads the content of a reference file from the agent's skill directory. Use list_skill_references first to see available files.",
 		map[string]interface{}{

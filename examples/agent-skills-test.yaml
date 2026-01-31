@@ -5,11 +5,12 @@
 # 1. Skills are loaded from SKILL.md files
 # 2. Skill content is injected into system prompt
 # 3. Agents can use skill instructions
-# 4. file_access enables reading reference files via tools
+# 4. Built-in tools auto-enable when skill has @references/ folder
 #
 # Prerequisites:
 # - Azure OpenAI resource with Entra ID authentication
 # - Environment variable: AZURE_OPENAI_ENDPOINT
+# - Node.js installed (for MCP filesystem server)
 #
 # Run command:
 #   agent-benchmark -f examples/agent-skills-test.yaml -reportType html,json
@@ -21,39 +22,32 @@ providers:
   - name: azure-openai
     type: AZURE
     auth_type: entra_id
-    model: gpt-4o
+    model: gpt-4.1
     baseUrl: "{{AZURE_OPENAI_ENDPOINT}}"
     version: 2025-01-01-preview
 
-# No servers needed - this tests skill injection into system prompt
-servers: []
+servers:
+  - name: filesystem
+    type: stdio
+    command: npx -y @modelcontextprotocol/server-filesystem {{TEST_DIR}}
 
 agents:
   - name: skilled-agent
     provider: azure-openai
     skill:
       path: "{{TEST_DIR}}/skills/demo-skill"  # Path to skill folder
-      file_access: false                       # Don't need file access for this test
-    system_prompt: |
-      You are {{AGENT_NAME}}, a helpful assistant.
-      Session: {{SESSION_NAME}}
-      
-      IMPORTANT: Execute all tasks directly without asking for clarification.
-
-  - name: skilled-agent-with-refs
-    provider: azure-openai
-    skill:
-      path: "{{TEST_DIR}}/skills/demo-skill"
-      file_access: true                        # Enable reading reference files
     system_prompt: |
       You are {{AGENT_NAME}}, a helpful assistant with access to reference docs.
       
       IMPORTANT: When asked about references, use the available tools to list 
       and read them. Execute all tasks directly without asking for clarification.
+    servers:
+      - name: filesystem
 
 settings:
   verbose: true
-  max_iterations: 5
+  max_iterations: 10
+  test_delay: 2s
 
 sessions:
   - name: "Skill Verification"
@@ -75,17 +69,7 @@ sessions:
           - type: output_regex
             pattern: "(?i)(demonstrat|template|test|example)"
 
-      - name: "Verify instructions are followed"
-        prompt: |
-          Following your skill's guidelines, what references are available to you?
-        assertions:
-          # Should mention guide.md from the skill
-          - type: output_regex
-            pattern: "(?i)(guide|reference)"
-
-  - name: "File Access Verification"
-    agents:
-      - skilled-agent-with-refs
+  - name: "Reference Access"
     tests:
       - name: "List skill references"
         prompt: |

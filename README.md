@@ -666,71 +666,21 @@ sessions:
 
 ### Agent Skills
 
-Agent Skills provide domain-specific knowledge to agents following the [agentskills.io specification](https://agentskills.io/specification). Skills are loaded from a directory containing a `SKILL.md` file and optional `references/` directory.
-
-#### Configuration
+Agent Skills provide domain-specific knowledge to agents following the [agentskills.io specification](https://agentskills.io/specification). Skills are loaded from a directory containing a `SKILL.md` file, and their content is injected into the agent's system prompt.
 
 ```yaml
 agents:
   - name: skilled-agent
     provider: azure-openai
     skill:
-      path: "./skills/excel-cli"  # Path to skill directory (required)
-      file_access: false          # Enable reading references/*.md (optional, default: false)
+      path: "./skills/my-skill"  # Path to skill directory
     system_prompt: |
       Additional instructions here...
 ```
 
-#### Skill Directory Structure
+If the skill has a `references/` directory, built-in tools (`list_skill_references`, `read_skill_reference`) are automatically added for on-demand access.
 
-```
-my-skill/
-├── SKILL.md              # Required: Skill definition with frontmatter + body
-└── references/           # Optional: Additional reference files
-    ├── guide.md
-    └── api.md
-```
-
-#### SKILL.md Format
-
-Skills must have YAML frontmatter with required fields:
-
-```markdown
----
-name: my-skill                    # Required: lowercase, hyphens allowed
-description: What this skill does # Required: max 1024 chars
-license: MIT                      # Optional
-version: 1.0.0                    # Optional
-tags:
-  - example
----
-
-# Skill Content
-
-Instructions for the agent go here...
-```
-
-#### Progressive Disclosure
-
-Following the Agent Skills specification, content is loaded progressively:
-1. **Metadata** - `name` and `description` available for skill matching
-2. **SKILL.md body** - Full content injected when skill activates
-3. **References** - Files in `references/` loaded on-demand (when `file_access: true`)
-
-When `file_access: true`, two synthetic tools are added to the agent:
-- `list_skill_references` - Lists available reference files in the skill's `references/` directory
-- `read_skill_reference` - Reads a specific reference file by filename
-
-This allows agents to discover and load additional documentation as needed, rather than injecting all content upfront.
-
-#### Template Variables
-
-When a skill is loaded, these template variables are available:
-- `{{SKILL_DIR}}` - Absolute path to the skill directory
-
-#### Example
-
-See `examples/agent-skills-test.yaml` for a complete example using skills, including `file_access` demonstration.
+For full documentation, see [docs/agent-skills.md](docs/agent-skills.md).
 
 ---
 

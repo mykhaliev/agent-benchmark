@@ -146,9 +146,9 @@ type AISummary struct {
 // SkillConfig configures an Agent Skill to be loaded for this agent.
 // Agent Skills provide domain-specific knowledge following the agentskills.io specification.
 // The skill's SKILL.md content is prepended to the system prompt when the agent is activated.
+// If the skill has a references/ directory, built-in tools are automatically added.
 type SkillConfig struct {
-	Path       string `yaml:"path"`                  // Path to skill directory containing SKILL.md (required)
-	FileAccess bool   `yaml:"file_access,omitempty"` // Enable reading references/*.md on demand (default: false)
+	Path string `yaml:"path"` // Path to skill directory containing SKILL.md (required)
 }
 
 type Agent struct {

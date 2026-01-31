@@ -12,11 +12,11 @@ import (
 )
 
 const (
-	SkillFileName    = "SKILL.md"
-	ReferencesDir    = "references"
-	MaxNameLength    = 64
-	MaxDescLength    = 1024
-	MaxCompatLength  = 500
+	SkillFileName   = "SKILL.md"
+	ReferencesDir   = "references"
+	MaxNameLength   = 64
+	MaxDescLength   = 1024
+	MaxCompatLength = 500
 )
 
 // SkillMetadata represents the frontmatter of a SKILL.md file
@@ -232,6 +232,15 @@ func (s *Skill) ListReferences() ([]string, error) {
 	}
 
 	return files, nil
+}
+
+// HasReferences returns true if the skill has a references/ directory with files.
+func (s *Skill) HasReferences() bool {
+	refs, err := s.ListReferences()
+	if err != nil {
+		return false
+	}
+	return len(refs) > 0
 }
 
 // GetContentForInjection returns the skill content formatted for injection into the system prompt.

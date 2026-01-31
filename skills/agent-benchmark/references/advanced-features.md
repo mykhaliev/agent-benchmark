@@ -46,7 +46,6 @@ agents:
     provider: azure-openai
     skill:
       path: "./skills/my-skill"  # Path to skill directory
-      file_access: false          # Allow reading references/*.md (default: false)
     servers:
       - name: mcp-server
 ```
@@ -61,7 +60,7 @@ my-skill/
 
 The `{{SKILL_DIR}}` template variable provides the absolute skill path.
 
-**When `file_access: true`**, two synthetic tools are added to the agent:
+**When a skill has a `references/` directory**, two built-in tools are automatically added:
 - `list_skill_references` - Lists available reference files
 - `read_skill_reference` - Reads a specific reference file
 
@@ -77,7 +76,6 @@ agents:
     provider: azure-gpt
     skill:
       path: "./skills/excel-automation"
-      file_access: true
     system_prompt: |
       Additional context for this specific test run:
       - Focus on performance optimization

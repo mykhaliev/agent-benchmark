@@ -118,15 +118,14 @@ func TestValidateTestConfig(t *testing.T) {
 			errContains:      "providers",
 		},
 		{
-			name: "Missing servers (standalone)",
+			name: "Missing servers is ok when agents don't require them",
 			config: &model.TestConfiguration{
 				Providers: []model.Provider{{Name: "test"}},
 				Agents:    []model.Agent{{Name: "test"}},
 				Sessions:  []model.Session{{Name: "test"}},
 			},
 			runningFromSuite: false,
-			wantErr:          true,
-			errContains:      "servers",
+			wantErr:          false, // No servers needed when agents don't reference any
 		},
 		{
 			name: "Missing agents (standalone)",
@@ -200,13 +199,12 @@ func TestValidateSuiteConfig(t *testing.T) {
 			errContains: "providers",
 		},
 		{
-			name: "Missing servers",
+			name: "Missing servers is ok when agents don't require them",
 			config: &model.TestSuiteConfiguration{
 				Providers: []model.Provider{{Name: "test"}},
 				Agents:    []model.Agent{{Name: "test"}},
 			},
-			wantErr:     true,
-			errContains: "servers",
+			wantErr: false, // No servers needed when agents don't reference any
 		},
 		{
 			name: "Missing agents",
