@@ -74,4 +74,5 @@ For detailed configuration options, see:
 - @references/providers.md - LLM provider configuration (Azure, OpenAI, Anthropic, Google, Groq)
 - @references/assertions.md - All 20+ assertion types with examples
 - @references/templates.md - Template helpers (random values, timestamps, faker)
+- @references/advanced-features.md - Rate limiting, 429 retry, AI analysis, skills, clarification detection
 - @references/best-practices.md - Tips for reliable test configurations
