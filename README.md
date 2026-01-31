@@ -186,6 +186,30 @@ After installation, verify it works:
 agent-benchmark -v
 ```
 
+### AI Assistant Skills (Optional)
+
+Get AI-powered assistance when writing test configurations in VS Code, Cursor, or other editors with [Agent Skills](https://agentskills.io) support.
+
+Download `agent-benchmark-skills_*.zip` from [releases](https://github.com/mykhaliev/agent-benchmark/releases) and extract:
+
+**Linux/macOS:**
+```bash
+unzip agent-benchmark-skills_*.zip -d ~/.copilot/skills/
+```
+
+**Windows (PowerShell):**
+```powershell
+Expand-Archive agent-benchmark-skills_*.zip -DestinationPath $env:USERPROFILE\.copilot\skills\
+```
+
+Once installed, your AI assistant will have domain knowledge about:
+- Provider configuration (Azure, OpenAI, Anthropic, Google, Vertex AI, Groq)
+- All 20+ assertion types with examples
+- Template helpers (faker, randomValue, now, etc.)
+- Best practices for writing reliable test configs
+
+See [skills/README.md](skills/README.md) for more details.
+
 ### Quick Start
 
 Run your first benchmark:

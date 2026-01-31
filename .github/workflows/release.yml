@@ -150,8 +150,34 @@ jobs:
             *.zip
           if-no-files-found: error
 
+  package-skills:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        id: vars
+        run: echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Create skills package
+        run: |
+          VERSION=${{ steps.vars.outputs.version }}
+          cd skills
+          zip -r "../agent-benchmark-skills_${VERSION}.zip" .
+          cd ..
+          echo "Created skills package:"
+          ls -lh "agent-benchmark-skills_${VERSION}.zip"
+
+      - name: Upload skills artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: skills-package
+          path: agent-benchmark-skills_*.zip
+          if-no-files-found: error
+
   release:
-    needs: build
+    needs: [build, package-skills]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -169,6 +195,12 @@ jobs:
           path: artifacts
           pattern: binary-*
           merge-multiple: true
+
+      - name: Download skills package
+        uses: actions/download-artifact@v4
+        with:
+          name: skills-package
+          path: artifacts
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
@@ -201,5 +233,18 @@ jobs:
             - **Windows (AMD64)**: `agent-benchmark_${{ steps.vars.outputs.version }}_windows_amd64_upx.zip`
             - **Linux (AMD64)**: `agent-benchmark_${{ steps.vars.outputs.version }}_linux_amd64_upx.tar.gz`
             - **Linux (ARM64)**: `agent-benchmark_${{ steps.vars.outputs.version }}_linux_arm64_upx.tar.gz`
+            
+            ### Agent Skills (Optional)
+            
+            Download `agent-benchmark-skills_${{ steps.vars.outputs.version }}.zip` to get AI assistant skills for writing test configurations.
+            
+            **Install to personal skills folder:**
+            ```bash
+            # Linux/macOS
+            unzip agent-benchmark-skills_${{ steps.vars.outputs.version }}.zip -d ~/.copilot/skills/
+            
+            # Windows (PowerShell)
+            Expand-Archive agent-benchmark-skills_${{ steps.vars.outputs.version }}.zip -DestinationPath $env:USERPROFILE\.copilot\skills\
+            ```
             
             Extract with: `tar -xzf agent-benchmark_*.tar.gz`
