@@ -437,78 +437,31 @@ providers:
     rate_limits:
       tpm: 30000               # Tokens per minute limit (proactive throttling)
       rpm: 60                  # Requests per minute limit (proactive throttling)
-```
-
-**Rate Limit Configuration Options:**
-
-| Option | Description | Default |
-|--------|-------------|---------|
-| `tpm` | Maximum tokens per minute | No limit |
-| `rpm` | Maximum requests per minute | No limit |
-
-**Behavior:**
-- When rate limits are configured, the framework uses a token bucket algorithm to proactively limit request rates
-- This prevents hitting provider rate limits by throttling requests before they're sent
-- Rate limiting is applied per-provider, allowing different limits for different API endpoints
-
-**IMPORTANT: Rate Limiting is Best-Effort, Not Guaranteed**
-
-Rate limiting is a **proactive defense mechanism**, not a hard guarantee against exceeding quota limits. Here's why:
-
-1. **Token estimation is imperfect**: Even with accurate tokenization (using tiktoken), the actual tokens consumed by the API may differ from our estimate due to:
-   - Different tokenization algorithms between libraries and the actual API
-   - System prompts, function schemas, and formatting overhead not fully captured in estimates
-   - Azure infrastructure processing that consumes additional tokens
-   - We use a conservative 50% safety margin, but edge cases may exceed this
-
-2. **Asynchronous token accounting**: The actual token cost is only known after the API completes the request. Throttling decisions are made on estimates before the request.
-
-3. **Rate limits depend on multiple factors**: Both TPM (tokens per minute) and RPM (requests per minute) apply simultaneously. We track both, but TPM is typically the bottleneck for LLMs.
-
-4. **Session state management**: With multiple sessions or concurrent requests, rate bucket replenishment may occur between requests in ways we don't fully predict.
-
-**Best Practice: Combine Proactive + Reactive:**
-- Use rate limiting (proactive) to prevent most quota breaches
-- Enable 429 retry handling (reactive) as a safety net for when estimates fall short
-- Monitor statistics (`throttle_count` and `rate_limit_hits`) to tune your rate limits
-- For mission-critical applications, add additional request queuing or backoff above this layer
-
-#### 429 Retry Handling
-
-By default, 429 (Too Many Requests) errors are treated as regular errors and cause the test to fail immediately. If you want to retry on 429 errors, you can configure this separately:
-
-```yaml
-providers:
-  - name: azure-gpt
-    type: AZURE
-    token: {{AZURE_API_KEY}}
-    model: gpt-4
-    baseUrl: https://your-resource.openai.azure.com
-    version: 2024-02-15-preview
-    rate_limits:
-      tpm: 30000               # Proactive rate limiting
-      rpm: 60
     retry:
       retry_on_429: true       # Enable retry on 429 errors (default: false)
       max_retries: 3           # Max retry attempts (default: 3 when enabled)
 ```
 
-**Retry Configuration Options:**
+**Configuration Options:**
 
 | Option | Description | Default |
 |--------|-------------|---------|
-| `retry_on_429` | Enable automatic retry when receiving 429 errors | `false` |
-| `max_retries` | Number of retry attempts for 429 errors | 3 (when enabled) |
+| `rate_limits.tpm` | Maximum tokens per minute | No limit |
+| `rate_limits.rpm` | Maximum requests per minute | No limit |
+| `retry.retry_on_429` | Enable automatic retry on 429 errors | `false` |
+| `retry.max_retries` | Number of retry attempts | 3 (when enabled) |
 
-**Behavior:**
-- By default, 429 errors fail immediately (no retry)
-- When `retry_on_429: true` is set, the framework will retry with exponential backoff
-- The framework extracts the wait duration from:
-  1. **HTTP `Retry-After` header** (preferred) - parsed as seconds or HTTP-date
-  2. **Error message text** (fallback) - e.g., "retry after 30 seconds"
-- A 1-second buffer is added to ensure we're past the rate limit window
+**How it works:**
+- Uses token bucket algorithm to proactively throttle requests before sending
+- Estimates tokens using [tiktoken](https://github.com/openai/tiktoken) for OpenAI models
+- Falls back to `cl100k_base` encoding for non-OpenAI models (Claude, Gemini, Llama, etc.)
+- Runtime calibration adjusts estimates based on actual API responses
+- 429 retry handling provides a safety net when estimates fall short
 
-> **Note:** Rate limiting (proactive throttling) and 429 retry handling (reactive recovery) are separate concepts. You can use either or both depending on your needs
+**Best Practice:** Enable both `rate_limits` (proactive) and `retry_on_429` (reactive) for defense in depth.
+
+> **Important:** Rate limiting is best-effort, not guaranteed. Token estimation varies by provider.
+> For detailed technical information, see [docs/rate-limiting.md](docs/rate-limiting.md).
 
 ---
 

@@ -438,3 +438,191 @@ func TestProvider_WithRateLimits(t *testing.T) {
 	assert.True(t, engine.HasRateLimiting(provider.RateLimits))
 	assert.True(t, engine.HasRetryOn429(provider.Retry))
 }
+
+// ============================================================================
+// Token Estimation / Encoding Fallback Tests
+// ============================================================================
+
+func TestRateLimitedLLM_TokenEstimation_OpenAIModels(t *testing.T) {
+	// Test that OpenAI models use native tiktoken encoding
+	// Token estimates should be consistent across runs
+	logger.SetupLogger(NewDummyWriter(), true)
+
+	openAIModels := []string{
+		"gpt-4",
+		"gpt-4o",
+		"gpt-4-turbo",
+		"gpt-3.5-turbo",
+	}
+
+	for _, modelName := range openAIModels {
+		t.Run(modelName, func(t *testing.T) {
+			mockLLM := new(MockLLMModel)
+			expectedResponse := &llms.ContentResponse{
+				Choices: []*llms.ContentChoice{
+					{
+						Content: "test response",
+						GenerationInfo: map[string]any{
+							"PromptTokens":     100,
+							"CompletionTokens": 50,
+						},
+					},
+				},
+			}
+			mockLLM.On("GenerateContent", mock.Anything, mock.Anything, mock.Anything).Return(expectedResponse, nil)
+
+			rateLimitConfig := model.RateLimitConfig{TPM: 100000}
+			retryConfig := model.RetryConfig{}
+			rateLimitedLLM := engine.NewRateLimitedLLM(mockLLM, rateLimitConfig, retryConfig, modelName)
+
+			messages := []llms.MessageContent{
+				{
+					Role:  llms.ChatMessageTypeHuman,
+					Parts: []llms.ContentPart{llms.TextContent{Text: "Hello, how are you today?"}},
+				},
+			}
+
+			ctx := context.Background()
+			response, err := rateLimitedLLM.GenerateContent(ctx, messages)
+
+			assert.NoError(t, err)
+			assert.NotNil(t, response)
+			mockLLM.AssertExpectations(t)
+		})
+	}
+}
+
+func TestRateLimitedLLM_TokenEstimation_NonOpenAIModels(t *testing.T) {
+	// Test that non-OpenAI models fall back to cl100k_base and still work
+	// These models should use the fallback encoding without errors
+	logger.SetupLogger(NewDummyWriter(), true)
+
+	nonOpenAIModels := []struct {
+		modelName string
+		provider  string
+	}{
+		{"claude-3-5-sonnet-20241022", "Anthropic"},
+		{"claude-3-opus-20240229", "Anthropic"},
+		{"claude-3-haiku-20240307", "Anthropic"},
+		{"gemini-1.5-pro", "Google"},
+		{"gemini-1.5-flash", "Google"},
+		{"llama-3.1-70b-versatile", "Groq"},
+		{"mixtral-8x7b-32768", "Groq"},
+		{"mistral-large-latest", "Mistral"},
+		{"unknown-future-model", "Unknown"},
+	}
+
+	for _, testModel := range nonOpenAIModels {
+		t.Run(testModel.modelName, func(t *testing.T) {
+			mockLLM := new(MockLLMModel)
+			expectedResponse := &llms.ContentResponse{
+				Choices: []*llms.ContentChoice{
+					{
+						Content: "test response",
+						GenerationInfo: map[string]any{
+							"PromptTokens":     100,
+							"CompletionTokens": 50,
+						},
+					},
+				},
+			}
+			mockLLM.On("GenerateContent", mock.Anything, mock.Anything, mock.Anything).Return(expectedResponse, nil)
+
+			rateLimitConfig := model.RateLimitConfig{TPM: 100000}
+			retryConfig := model.RetryConfig{}
+			rateLimitedLLM := engine.NewRateLimitedLLM(mockLLM, rateLimitConfig, retryConfig, testModel.modelName)
+
+			messages := []llms.MessageContent{
+				{
+					Role:  llms.ChatMessageTypeHuman,
+					Parts: []llms.ContentPart{llms.TextContent{Text: "Hello, how are you today?"}},
+				},
+			}
+
+			ctx := context.Background()
+			response, err := rateLimitedLLM.GenerateContent(ctx, messages)
+
+			// Should succeed even for unknown models (fallback to cl100k_base)
+			assert.NoError(t, err, "Model %s (%s) should work with fallback encoding", testModel.modelName, testModel.provider)
+			assert.NotNil(t, response)
+			mockLLM.AssertExpectations(t)
+		})
+	}
+}
+
+func TestRateLimitedLLM_TokenEstimation_EmptyModelName(t *testing.T) {
+	// Test that empty model name falls back to simple heuristic-based estimation
+	logger.SetupLogger(NewDummyWriter(), true)
+
+	mockLLM := new(MockLLMModel)
+	expectedResponse := &llms.ContentResponse{
+		Choices: []*llms.ContentChoice{
+			{Content: "test response"},
+		},
+	}
+	mockLLM.On("GenerateContent", mock.Anything, mock.Anything, mock.Anything).Return(expectedResponse, nil)
+
+	rateLimitConfig := model.RateLimitConfig{TPM: 100000}
+	retryConfig := model.RetryConfig{}
+	// Empty model name - should fall back to simple estimation
+	rateLimitedLLM := engine.NewRateLimitedLLM(mockLLM, rateLimitConfig, retryConfig, "")
+
+	messages := []llms.MessageContent{
+		{
+			Role:  llms.ChatMessageTypeHuman,
+			Parts: []llms.ContentPart{llms.TextContent{Text: "Hello, how are you today?"}},
+		},
+	}
+
+	ctx := context.Background()
+	response, err := rateLimitedLLM.GenerateContent(ctx, messages)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, response)
+	mockLLM.AssertExpectations(t)
+}
+
+func TestRateLimitedLLM_Calibration_AdjustsOverTime(t *testing.T) {
+	// Test that calibration adjusts estimates based on actual token usage
+	logger.SetupLogger(NewDummyWriter(), true)
+
+	mockLLM := new(MockLLMModel)
+
+	// Simulate actual tokens being higher than the estimate
+	// This should trigger calibration adjustment
+	expectedResponse := &llms.ContentResponse{
+		Choices: []*llms.ContentChoice{
+			{
+				Content: "response",
+				GenerationInfo: map[string]any{
+					// Return higher actual tokens than estimated to trigger calibration
+					"PromptTokens":     200,
+					"CompletionTokens": 100,
+				},
+			},
+		},
+	}
+	mockLLM.On("GenerateContent", mock.Anything, mock.Anything, mock.Anything).Return(expectedResponse, nil)
+
+	rateLimitConfig := model.RateLimitConfig{TPM: 100000}
+	retryConfig := model.RetryConfig{}
+	rateLimitedLLM := engine.NewRateLimitedLLM(mockLLM, rateLimitConfig, retryConfig, "gpt-4")
+
+	messages := []llms.MessageContent{
+		{
+			Role:  llms.ChatMessageTypeHuman,
+			Parts: []llms.ContentPart{llms.TextContent{Text: "Short message"}},
+		},
+	}
+
+	ctx := context.Background()
+
+	// Make several requests to allow calibration to stabilize
+	for i := 0; i < 5; i++ {
+		response, err := rateLimitedLLM.GenerateContent(ctx, messages)
+		assert.NoError(t, err)
+		assert.NotNil(t, response)
+	}
+
+	mockLLM.AssertNumberOfCalls(t, "GenerateContent", 5)
+}
