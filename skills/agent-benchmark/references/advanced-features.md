@@ -2,6 +2,109 @@
 
 Optional features for production-ready test configurations.
 
+## System Prompts
+
+Customize agent behavior with system prompts:
+
+```yaml
+agents:
+  - name: autonomous-agent
+    provider: azure-gpt
+    system_prompt: |
+      You are an autonomous testing agent.
+      Execute tasks directly without asking for clarification.
+      Never ask "would you like me to..." - just do it.
+    servers:
+      - name: mcp-server
+```
+
+**Template variables in system prompts:**
+
+```yaml
+agents:
+  - name: test-agent
+    provider: azure-gpt
+    system_prompt: |
+      You are {{AGENT_NAME}} running on {{PROVIDER_NAME}}.
+      Current session: {{SESSION_NAME}}.
+      Execute all tasks autonomously.
+```
+
+| Variable | Description |
+|----------|-------------|
+| `{{AGENT_NAME}}` | Current agent name |
+| `{{SESSION_NAME}}` | Current session name |
+| `{{PROVIDER_NAME}}` | Provider being used |
+
+## Agent Skills
+
+Load domain-specific knowledge into agents:
+
+```yaml
+agents:
+  - name: skilled-agent
+    provider: azure-openai
+    skill:
+      path: "./skills/my-skill"  # Path to skill directory
+      file_access: false          # Allow reading references/*.md (default: false)
+    servers:
+      - name: mcp-server
+```
+
+Skill directory structure:
+```
+my-skill/
+├── SKILL.md              # Required: YAML frontmatter + instructions
+└── references/           # Optional: additional docs
+    └── api.md
+```
+
+The `{{SKILL_DIR}}` template variable provides the absolute skill path.
+
+## Combining System Prompt with Skills
+
+When both `skill` and `system_prompt` are specified, they are combined:
+
+```yaml
+agents:
+  - name: expert-agent
+    provider: azure-gpt
+    skill:
+      path: "./skills/excel-automation"
+      file_access: true
+    system_prompt: |
+      Additional context for this specific test run:
+      - Focus on performance optimization
+      - Prefer batch operations over individual calls
+    servers:
+      - name: excel-mcp
+```
+
+**Order of injection:**
+1. Skill content (from SKILL.md body) is injected first
+2. Custom `system_prompt` is appended after
+
+This allows skills to provide domain knowledge while system_prompt adds test-specific instructions.
+
+**Example skill + system_prompt combination:**
+
+```yaml
+# The agent receives:
+# 1. Full content of skills/excel-automation/SKILL.md body
+# 2. Then your custom system_prompt text
+# 3. Then the user's test prompt
+
+agents:
+  - name: excel-agent
+    provider: azure-gpt
+    skill:
+      path: "{{TEST_DIR}}/skills/excel-automation"
+    system_prompt: |
+      You are {{AGENT_NAME}}. 
+      Execute Excel operations without confirmation.
+      Current working directory: {{TEST_DIR}}/test-data
+```
+
 ## Rate Limiting (RPM/TPM)
 
 Proactively throttle requests to avoid hitting API quotas:
@@ -62,31 +165,6 @@ The AI analysis appears in HTML reports with:
 - Notable observations
 - Failure pattern analysis
 - Actionable recommendations
-
-## Agent Skills
-
-Load domain-specific knowledge into agents:
-
-```yaml
-agents:
-  - name: skilled-agent
-    provider: azure-openai
-    skill:
-      path: "./skills/my-skill"  # Path to skill directory
-      file_access: false          # Allow reading references/*.md (default: false)
-    system_prompt: |
-      Additional instructions...
-```
-
-Skill directory structure:
-```
-my-skill/
-├── SKILL.md              # Required: YAML frontmatter + instructions
-└── references/           # Optional: additional docs
-    └── api.md
-```
-
-The `{{SKILL_DIR}}` template variable provides the absolute skill path.
 
 ## Clarification Detection
 
