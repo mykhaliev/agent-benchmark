@@ -143,11 +143,20 @@ type AISummary struct {
 	JudgeProvider string `yaml:"judge_provider,omitempty"` // Provider name for the judge LLM. Use "$self" to reuse a test agent's provider, or specify a provider name (required when enabled)
 }
 
+// SkillConfig configures an Agent Skill to be loaded for this agent.
+// Agent Skills provide domain-specific knowledge following the agentskills.io specification.
+// The skill's SKILL.md content is prepended to the system prompt when the agent is activated.
+// If the skill has a references/ directory, built-in tools are automatically added.
+type SkillConfig struct {
+	Path string `yaml:"path"` // Path to skill directory containing SKILL.md (required)
+}
+
 type Agent struct {
 	Name                   string                 `yaml:"name"`
 	Settings               Settings               `yaml:"settings"`
 	Servers                []AgentServer          `yaml:"servers"`
 	Provider               string                 `yaml:"provider"`
+	Skill                  *SkillConfig           `yaml:"skill,omitempty"`
 	SystemPrompt           string                 `yaml:"system_prompt,omitempty"`
 	ClarificationDetection ClarificationDetection `yaml:"clarification_detection,omitempty"`
 }

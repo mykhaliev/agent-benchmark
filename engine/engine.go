@@ -21,6 +21,7 @@ import (
 	"github.com/mykhaliev/agent-benchmark/model"
 	"github.com/mykhaliev/agent-benchmark/report"
 	"github.com/mykhaliev/agent-benchmark/server"
+	"github.com/mykhaliev/agent-benchmark/skill"
 	"github.com/tmc/langchaingo/llms"
 	"github.com/tmc/langchaingo/llms/anthropic"
 	"github.com/tmc/langchaingo/llms/bedrock"
@@ -498,7 +499,15 @@ func ValidateTestConfig(config *model.TestConfiguration, runningFromSuite bool) 
 			return fmt.Errorf("no providers configured")
 		}
 
-		if len(config.Servers) == 0 {
+		// Check if at least one agent needs servers
+		needsServers := false
+		for _, a := range config.Agents {
+			if len(a.Servers) > 0 {
+				needsServers = true
+				break
+			}
+		}
+		if needsServers && len(config.Servers) == 0 {
 			return fmt.Errorf("no servers configured")
 		}
 
@@ -522,7 +531,15 @@ func ValidateSuiteConfig(config *model.TestSuiteConfiguration) error {
 		return fmt.Errorf("no providers configured")
 	}
 
-	if len(config.Servers) == 0 {
+	// Check if at least one agent references servers
+	needsServers := false
+	for _, a := range config.Agents {
+		if len(a.Servers) > 0 {
+			needsServers = true
+			break
+		}
+	}
+	if needsServers && len(config.Servers) == 0 {
 		return fmt.Errorf("no servers configured")
 	}
 
@@ -873,8 +890,9 @@ func initAgents(
 			return nil, fmt.Errorf("provider '%s' is nil for agent '%s'", a.Provider, a.Name)
 		}
 
+		// Allow agents without servers - they can work for simple tests or skill-only tests
 		if len(a.Servers) == 0 {
-			return nil, fmt.Errorf("agent '%s' has no servers configured", a.Name)
+			logger.Logger.Warn("Agent has no servers configured", "agent", a.Name)
 		}
 
 		// Build agent server list
@@ -944,9 +962,18 @@ func runTests(
 	results := make([]model.TestRun, 0)
 
 	// Calculate total tests across all sessions and agents
+	// Account for test-level agent filtering
 	totalTests := 0
 	for _, session := range testConfig.Sessions {
-		totalTests += len(agents) * len(session.Tests)
+		for _, test := range session.Tests {
+			if test.Agent != "" {
+				// Test specifies a specific agent, count once
+				totalTests++
+			} else {
+				// Test runs on all agents
+				totalTests += len(agents)
+			}
+		}
 	}
 	testCount := 0
 
@@ -1006,16 +1033,55 @@ func runTests(
 			// Initialize fresh message history for this session
 			msgs := make([]llms.MessageContent, 0)
 
-			// Add system prompt if configured for this agent
+			// Build system prompt from skill + custom system_prompt
+			var systemPromptParts []string
+
+			// Load and inject skill content if configured
+			if originalAgentConfig != nil && originalAgentConfig.Skill != nil && originalAgentConfig.Skill.Path != "" {
+				skillPath := model.RenderTemplate(originalAgentConfig.Skill.Path, templateCtx)
+				loadedSkill, err := skill.LoadSkill(skillPath)
+				if err != nil {
+					logger.Logger.Error("Failed to load skill",
+						"path", skillPath,
+						"error", err)
+				} else {
+					// Add SKILL_DIR to template context
+					templateCtx["SKILL_DIR"] = loadedSkill.Path
+
+					// Add skill content to system prompt
+					systemPromptParts = append(systemPromptParts, loadedSkill.GetContentForInjection())
+					logger.Logger.Info("Skill loaded and injected",
+						"name", loadedSkill.Metadata.Name,
+						"path", loadedSkill.Path,
+						"content_length", len(loadedSkill.Content))
+
+					// Register skill reference tools if the skill has references
+					if loadedSkill.HasReferences() {
+						registerSkillReferenceTools(ag, loadedSkill)
+						// Re-extract tools to include the new built-in tools
+						allAgentTools = ag.ExtractToolsFromAgent()
+						logger.Logger.Info("Skill reference tools enabled",
+							"skill", loadedSkill.Metadata.Name)
+					}
+				}
+			}
+
+			// Add custom system prompt if configured
 			if originalAgentConfig != nil && originalAgentConfig.SystemPrompt != "" {
-				systemPrompt := model.RenderTemplate(originalAgentConfig.SystemPrompt, templateCtx)
+				customPrompt := model.RenderTemplate(originalAgentConfig.SystemPrompt, templateCtx)
+				systemPromptParts = append(systemPromptParts, customPrompt)
+			}
+
+			// Combine and add system message if any parts exist
+			if len(systemPromptParts) > 0 {
+				combinedPrompt := strings.Join(systemPromptParts, "\n\n")
 				msgs = append(msgs, llms.MessageContent{
 					Role: llms.ChatMessageTypeSystem,
 					Parts: []llms.ContentPart{
-						llms.TextContent{Text: systemPrompt},
+						llms.TextContent{Text: combinedPrompt},
 					},
 				})
-				logger.Logger.Debug("System prompt added", "length", len(systemPrompt))
+				logger.Logger.Debug("System prompt added", "length", len(combinedPrompt), "parts", len(systemPromptParts))
 			}
 
 			sessionTools := allAgentTools // Don't mutate original
@@ -1032,6 +1098,15 @@ func runTests(
 
 			// Run tests within this session
 			for testIdx, test := range session.Tests {
+				// Skip test if it specifies a different agent
+				if test.Agent != "" && test.Agent != agentConfig.Name {
+					logger.Logger.Debug("Skipping test for different agent",
+						"test", test.Name,
+						"test_agent", test.Agent,
+						"current_agent", agentConfig.Name)
+					continue
+				}
+
 				testCount++
 
 				if test.Name == "" {
@@ -1512,4 +1587,53 @@ func getAISummaryConfig(testPath, suitePath string) *model.AISummary {
 	}
 
 	return nil
+}
+
+// registerSkillReferenceTools adds built-in tools for reading skill references
+// when the skill has a references/ directory.
+func registerSkillReferenceTools(ag *agent.MCPAgent, loadedSkill *skill.Skill) {
+	// Check if already registered (avoid duplicates across sessions)
+	if _, exists := ag.BuiltInToolHandlers["list_skill_references"]; exists {
+		return
+	}
+
+	// Register list_skill_references tool
+	ag.RegisterBuiltInTool(
+		"list_skill_references",
+		"Lists all available reference files in the agent's skill directory. Returns a list of filenames that can be read with read_skill_reference.",
+		map[string]interface{}{},
+		func(ctx context.Context, args map[string]interface{}) (string, error) {
+			refs, err := loadedSkill.ListReferences()
+			if err != nil {
+				return "", err
+			}
+			if len(refs) == 0 {
+				return "No reference files available.", nil
+			}
+			return fmt.Sprintf("Available reference files:\n- %s", strings.Join(refs, "\n- ")), nil
+		},
+	)
+
+	// Register read_skill_reference tool
+	ag.RegisterBuiltInTool(
+		"read_skill_reference",
+		"Reads the content of a reference file from the agent's skill directory. Use list_skill_references first to see available files.",
+		map[string]interface{}{
+			"filename": map[string]interface{}{
+				"type":        "string",
+				"description": "The name of the reference file to read (e.g., 'guide.md')",
+			},
+		},
+		func(ctx context.Context, args map[string]interface{}) (string, error) {
+			filename, ok := args["filename"].(string)
+			if !ok || filename == "" {
+				return "", fmt.Errorf("filename is required")
+			}
+			content, err := loadedSkill.ReadReference(filename)
+			if err != nil {
+				return "", err
+			}
+			return content, nil
+		},
+	)
 }

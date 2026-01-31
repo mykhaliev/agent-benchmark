@@ -26,15 +26,21 @@ const (
 )
 
 type MCPAgent struct {
-	Name           string                `json:"name"`
-	MCPServerNames []model.AgentServer   `json:"mcp_servers"`
-	MCPServerTools map[string][]mcp.Tool `json:"-"`
-	ToolToServer   map[string]string     `json:"-"`
-	McpServers     []*server.MCPServer   `json:"-"`
-	Provider       string                `json:"provider"`
-	LLMModel       llms.Model            `json:"-"`
-	AvailableTools []string              `json:"-"`
+	Name                string                        `json:"name"`
+	MCPServerNames      []model.AgentServer           `json:"mcp_servers"`
+	MCPServerTools      map[string][]mcp.Tool         `json:"-"`
+	ToolToServer        map[string]string             `json:"-"`
+	McpServers          []*server.MCPServer           `json:"-"`
+	Provider            string                        `json:"provider"`
+	LLMModel            llms.Model                    `json:"-"`
+	AvailableTools      []string                      `json:"-"`
+	BuiltInToolHandlers map[string]BuiltInToolHandler `json:"-"` // Handlers for built-in tools (e.g., skill references)
 }
+
+// BuiltInToolHandler is a function that handles a built-in tool call.
+// Built-in tools are handled directly by the agent without going through MCP servers.
+// It takes the tool arguments as a map and returns the result as a string.
+type BuiltInToolHandler func(ctx context.Context, arguments map[string]interface{}) (string, error)
 
 // ClarificationLevel defines the severity level for clarification detection logging
 type ClarificationLevel string
@@ -64,13 +70,14 @@ func NewMCPAgent(
 	llmModel llms.Model,
 ) *MCPAgent {
 	ag := &MCPAgent{
-		Name:           name,
-		MCPServerNames: mcpServersForAgent,
-		MCPServerTools: make(map[string][]mcp.Tool),
-		ToolToServer:   make(map[string]string), // Initialize the new map
-		McpServers:     make([]*server.MCPServer, 0),
-		Provider:       provider,
-		LLMModel:       llmModel,
+		Name:                name,
+		MCPServerNames:      mcpServersForAgent,
+		MCPServerTools:      make(map[string][]mcp.Tool),
+		ToolToServer:        make(map[string]string), // Initialize the new map
+		McpServers:          make([]*server.MCPServer, 0),
+		Provider:            provider,
+		LLMModel:            llmModel,
+		BuiltInToolHandlers: make(map[string]BuiltInToolHandler),
 	}
 
 	logger.Logger.Info("Creating agent",
@@ -173,6 +180,34 @@ func (m *MCPAgent) ExecuteTool(ctx context.Context, toolName, argumentsInJSON st
 		return "", fmt.Errorf("LLM model is not initialized")
 	}
 
+	// Check if this is a built-in tool with a custom handler
+	if handler, exists := m.BuiltInToolHandlers[toolName]; exists {
+		// Parse arguments directly to map for built-in tools
+		var argsMap map[string]interface{}
+		if argumentsInJSON != "" && argumentsInJSON != "{}" {
+			if err := json.Unmarshal([]byte(argumentsInJSON), &argsMap); err != nil {
+				return "", fmt.Errorf("failed to parse arguments for built-in tool '%s': %w", toolName, err)
+			}
+		}
+		if argsMap == nil {
+			argsMap = make(map[string]interface{})
+		}
+		result, err := handler(ctx, argsMap)
+		if err != nil {
+			return "", fmt.Errorf("built-in tool '%s' failed: %w", toolName, err)
+		}
+		// Wrap result in MCP-compatible format
+		mcpResult := mcp.CallToolResult{
+			Content: []mcp.Content{
+				mcp.TextContent{
+					Type: "text",
+					Text: result,
+				},
+			},
+		}
+		return sonic.MarshalString(mcpResult)
+	}
+
 	// Look up the server for this tool
 	serverName, exists := m.ToolToServer[toolName]
 	if !exists {
@@ -219,6 +254,30 @@ func (m *MCPAgent) ExecuteTool(ctx context.Context, toolName, argumentsInJSON st
 	}
 
 	return marshaledResult, nil
+}
+
+// RegisterBuiltInTool registers a built-in tool with a custom handler.
+// Built-in tools are handled directly by the agent without going through MCP servers.
+func (m *MCPAgent) RegisterBuiltInTool(name, description string, parameters map[string]interface{}, handler BuiltInToolHandler) {
+	m.BuiltInToolHandlers[name] = handler
+	m.AvailableTools = append(m.AvailableTools, name)
+
+	// Create an MCP tool definition so it appears in the tools list
+	if m.MCPServerTools["_builtin"] == nil {
+		m.MCPServerTools["_builtin"] = make([]mcp.Tool, 0)
+	}
+	m.MCPServerTools["_builtin"] = append(m.MCPServerTools["_builtin"], mcp.Tool{
+		Name:        name,
+		Description: description,
+		InputSchema: mcp.ToolInputSchema{
+			Type:       "object",
+			Properties: parameters,
+		},
+	})
+
+	logger.Logger.Debug("Registered built-in tool",
+		"name", name,
+		"description", description)
 }
 
 func (m *MCPAgent) GenerateContentWithConfig(

@@ -77,6 +77,12 @@ Generate reports in multiple formats:
 - JSON export
 - Markdown documentation
 
+### 9. Agent Skills Support
+Load domain-specific knowledge following the [agentskills.io specification](https://agentskills.io/specification):
+- Parse `SKILL.md` files with YAML frontmatter
+- Progressive disclosure of reference files
+- Template variable `{{SKILL_DIR}}` for skill paths
+
 ---
 
 ## Installation
@@ -179,6 +185,30 @@ After installation, verify it works:
 ```bash
 agent-benchmark -v
 ```
+
+### AI Assistant Skills (Optional)
+
+Get AI-powered assistance when writing test configurations in VS Code, Cursor, or other editors with [Agent Skills](https://agentskills.io) support.
+
+Download `agent-benchmark-skills_*.zip` from [releases](https://github.com/mykhaliev/agent-benchmark/releases) and extract:
+
+**Linux/macOS:**
+```bash
+unzip agent-benchmark-skills_*.zip -d ~/.copilot/skills/
+```
+
+**Windows (PowerShell):**
+```powershell
+Expand-Archive agent-benchmark-skills_*.zip -DestinationPath $env:USERPROFILE\.copilot\skills\
+```
+
+Once installed, your AI assistant will have domain knowledge about:
+- Provider configuration (Azure, OpenAI, Anthropic, Google, Vertex AI, Groq)
+- All 20+ assertion types with examples
+- Template helpers (faker, randomValue, now, etc.)
+- Best practices for writing reliable test configs
+
+See [skills/README.md](skills/README.md) for more details.
 
 ### Quick Start
 
@@ -579,6 +609,7 @@ agents:
 **Agent Configuration:**
 - `name` - Unique agent identifier
 - `provider` - Reference to provider name
+- `skill` - Optional Agent Skill to load (see [Agent Skills](#agent-skills) section)
 - `system_prompt` - Optional system prompt prepended to all conversations (supports templates)
 - `servers` - List of MCP servers
 - `allowedTools` - Optional tool whitelist per server
@@ -630,6 +661,26 @@ sessions:
 - Tests within a session share message history
 - Variables persist across tests in a session
 - Simulates multi-turn conversations
+
+---
+
+### Agent Skills
+
+Agent Skills provide domain-specific knowledge to agents following the [agentskills.io specification](https://agentskills.io/specification). Skills are loaded from a directory containing a `SKILL.md` file, and their content is injected into the agent's system prompt.
+
+```yaml
+agents:
+  - name: skilled-agent
+    provider: azure-openai
+    skill:
+      path: "./skills/my-skill"  # Path to skill directory
+    system_prompt: |
+      Additional instructions here...
+```
+
+If the skill has a `references/` directory, built-in tools (`list_skill_references`, `read_skill_reference`) are automatically added for on-demand access.
+
+For full documentation, see [docs/agent-skills.md](docs/agent-skills.md).
 
 ---
 
