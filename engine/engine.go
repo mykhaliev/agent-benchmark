@@ -768,7 +768,7 @@ func CreateProvider(ctx context.Context, p model.Provider) (llms.Model, error) {
 			"tpm", p.RateLimits.TPM,
 			"rpm", p.RateLimits.RPM,
 			"retry_on_429", p.Retry.RetryOn429)
-		rateLimitedLLM := NewRateLimitedLLM(llmModel, p.RateLimits, p.Retry)
+		rateLimitedLLM := NewRateLimitedLLM(llmModel, p.RateLimits, p.Retry, p.Model)
 
 		// If we created a custom HTTP client for Retry-After header capture, link it
 		if retryAfterClient != nil {
