@@ -113,12 +113,13 @@ type Server struct {
 	ServerDelay  string     `yaml:"server_delay,omitempty"`
 	ProcessDelay string     `yaml:"process_delay,omitempty"`
 	// CLI server type specific fields
-	Shell        string   `yaml:"shell,omitempty"`          // Shell to use (powershell, cmd, bash). Default: powershell on Windows, bash on Unix
-	WorkingDir   string   `yaml:"working_dir,omitempty"`    // Working directory for CLI commands. Default: current directory
-	ToolPrefix   string   `yaml:"tool_prefix,omitempty"`    // Prefix for generated tool names (e.g., "excel" → "excel_sheet_create")
-	ToolsFromCLI bool     `yaml:"tools_from_cli,omitempty"` // If true, discover tools by running CLI with --help or similar
-	HelpCommand  string   `yaml:"help_command,omitempty"`   // DEPRECATED: Use help_commands instead. Single help command.
-	HelpCommands []string `yaml:"help_commands,omitempty"`  // Commands to run at startup to get CLI help (outputs concatenated and injected into tool description)
+	Shell                    string   `yaml:"shell,omitempty"`                       // Shell to use (powershell, cmd, bash). Default: powershell on Windows, bash on Unix
+	WorkingDir               string   `yaml:"working_dir,omitempty"`                 // Working directory for CLI commands. Default: current directory
+	ToolPrefix               string   `yaml:"tool_prefix,omitempty"`                 // Prefix for generated tool names (e.g., "excel" → "excel_sheet_create")
+	ToolsFromCLI             bool     `yaml:"tools_from_cli,omitempty"`              // If true, discover tools by running CLI with --help or similar
+	HelpCommand              string   `yaml:"help_command,omitempty"`                // DEPRECATED: Use help_commands instead. Single help command.
+	HelpCommands             []string `yaml:"help_commands,omitempty"`               // Commands to run at startup to get CLI help (outputs concatenated and injected into tool description)
+	DisableHelpAutoDiscovery bool     `yaml:"disable_help_auto_discovery,omitempty"` // If true, disable automatic help discovery when no help_command is configured
 }
 
 type ServerType string

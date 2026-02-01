@@ -24,7 +24,8 @@ servers:
 | `shell` | Shell to run commands in | `powershell` (Windows), `bash` (Unix) |
 | `working_dir` | Working directory for commands | Current directory |
 | `tool_prefix` | Prefix for generated tool name | `cli` (tool name: `cli_execute`) |
-| `help_commands` | Commands to run at startup for CLI help | - |
+| `help_commands` | Commands to run at startup for CLI help | Auto-discovered |
+| `disable_help_auto_discovery` | Disable automatic help discovery | `false` |
 
 ### Shell Options
 
@@ -36,7 +37,42 @@ Supported shells:
 
 The `help_commands` option provides CLI help content to the LLM, so it knows how to use the CLI tool. This content is included in the tool description sent to the LLM.
 
-### Basic Usage
+### Automatic Help Discovery (Default)
+
+When no `help_commands` are configured, agent-benchmark automatically tries to discover help by running these patterns in order:
+
+1. `{command} --help`
+2. `{command} -h`
+3. `{command} help`
+4. `{command} /?` (Windows only)
+
+The first pattern that returns content is used. After discovering help, it also automatically discovers and fetches subcommand help.
+
+**Example - Zero Configuration:**
+
+```yaml
+servers:
+  - name: git-cli
+    type: cli
+    command: git
+    # No help_commands needed! Auto-discovers "git --help" and subcommands
+```
+
+This is useful for standard CLIs that support common help patterns. The LLM receives full help content without any manual configuration.
+
+**To disable auto-discovery:**
+
+```yaml
+servers:
+  - name: my-cli
+    type: cli
+    command: my-cli
+    disable_help_auto_discovery: true  # Tool description won't include help content
+```
+
+### Explicit Help Commands
+
+For CLIs with non-standard help patterns, use `help_commands`:
 
 ```yaml
 servers:
@@ -90,7 +126,8 @@ servers:
 
 | Limitation | Workaround |
 |------------|------------|
-| Auto-discovery only works for CLIs with a `COMMANDS:` section | Use explicit `help_commands` array |
+| Auto-discovery tries `--help`, `-h`, `help`, `/?` only | Use explicit `help_commands` for CLIs with other patterns |
+| Auto-discovery only parses `COMMANDS:` section for subcommands | Use explicit `help_commands` array for non-standard CLIs |
 | Subcommand discovery assumes `--help` flag | List explicit help commands for CLIs using `-h`, `help`, or `/?` |
 | Help commands that fail are silently ignored | Server starts without help content |
 
@@ -223,7 +260,21 @@ sessions:
 
 ## Best Practices
 
-### 1. Use System Prompts for Sequential Execution
+### 1. Start with Auto-Discovery
+
+For most CLIs, auto-discovery works out of the box. Start simple:
+
+```yaml
+servers:
+  - name: my-cli
+    type: cli
+    command: my-cli
+    # Let auto-discovery handle help content
+```
+
+Only add explicit `help_commands` if auto-discovery doesn't work for your CLI.
+
+### 2. Use System Prompts for Sequential Execution
 
 LLMs may try to parallelize CLI commands. Use a system prompt to enforce sequential execution:
 
@@ -237,9 +288,9 @@ agents:
       Do not try to run multiple commands in parallel.
 ```
 
-### 2. Provide Comprehensive Help Content
+### 3. Provide Comprehensive Help Content (If Needed)
 
-The more help content the LLM has, the better it can construct correct commands:
+If auto-discovery doesn't capture all subcommands, add explicit help commands:
 
 ```yaml
 servers:
@@ -300,9 +351,20 @@ agents:
 **Problem:** Tool description doesn't include CLI help
 
 **Check:**
-1. Help command runs successfully: `my-cli --help`
-2. Help command doesn't require interactive input
-3. Shell is correct for your OS
+1. Auto-discovery working: CLI supports `--help`, `-h`, `help`, or `/?`
+2. If using explicit help commands, verify they run successfully
+3. Help command doesn't require interactive input
+4. Shell is correct for your OS
+
+### Auto-discovery not working
+
+**Problem:** Help not auto-discovered even though CLI supports `--help`
+
+**Check:**
+1. CLI is in PATH or use full path in `command`
+2. Shell is correct (`powershell` on Windows, `bash` on Unix)
+3. Working directory is valid
+4. Try explicit `help_commands` instead
 
 ### Auto-discovery misses subcommands
 

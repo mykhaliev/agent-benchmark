@@ -20,14 +20,15 @@ import (
 // It allows testing CLI-based tools (like excel-cli) using the same
 // agent-benchmark framework used for MCP servers.
 type CLIServer struct {
-	Name         string           `json:"name"`
-	Type         model.ServerType `json:"type"`
-	Command      string           `json:"command"`
-	Shell        string           `json:"shell"`
-	WorkingDir   string           `json:"working_dir"`
-	ToolPrefix   string           `json:"tool_prefix"`
-	HelpCommand  string           `json:"help_command"`  // DEPRECATED: Use help_commands instead
-	HelpCommands []string         `json:"help_commands"` // Commands to run at startup for help content
+	Name                     string           `json:"name"`
+	Type                     model.ServerType `json:"type"`
+	Command                  string           `json:"command"`
+	Shell                    string           `json:"shell"`
+	WorkingDir               string           `json:"working_dir"`
+	ToolPrefix               string           `json:"tool_prefix"`
+	HelpCommand              string           `json:"help_command"`                // DEPRECATED: Use help_commands instead
+	HelpCommands             []string         `json:"help_commands"`               // Commands to run at startup for help content
+	DisableHelpAutoDiscovery bool             `json:"disable_help_auto_discovery"` // If true, don't auto-discover help
 
 	// tools discovered or configured for this CLI
 	tools []mcp.Tool
@@ -70,15 +71,16 @@ func NewCLIServer(ctx context.Context, serverConfig model.Server) (*CLIServer, e
 	}
 
 	s := &CLIServer{
-		Name:         serverConfig.Name,
-		Type:         serverConfig.Type,
-		Command:      serverConfig.Command,
-		Shell:        serverConfig.Shell,
-		WorkingDir:   serverConfig.WorkingDir,
-		ToolPrefix:   serverConfig.ToolPrefix,
-		HelpCommand:  serverConfig.HelpCommand,
-		HelpCommands: serverConfig.HelpCommands,
-		executions:   []CLIExecution{},
+		Name:                     serverConfig.Name,
+		Type:                     serverConfig.Type,
+		Command:                  serverConfig.Command,
+		Shell:                    serverConfig.Shell,
+		WorkingDir:               serverConfig.WorkingDir,
+		ToolPrefix:               serverConfig.ToolPrefix,
+		HelpCommand:              serverConfig.HelpCommand,
+		HelpCommands:             serverConfig.HelpCommands,
+		DisableHelpAutoDiscovery: serverConfig.DisableHelpAutoDiscovery,
+		executions:               []CLIExecution{},
 	}
 
 	// Set default shell based on OS
@@ -118,6 +120,7 @@ func NewCLIServer(ctx context.Context, serverConfig model.Server) (*CLIServer, e
 	}
 
 	if len(helpCommands) > 0 {
+		// Explicit help commands configured - use them
 		s.helpContent = s.runHelpCommands(ctx, helpCommands)
 		if logger.Logger != nil {
 			if s.helpContent != "" {
@@ -132,6 +135,48 @@ func NewCLIServer(ctx context.Context, serverConfig model.Server) (*CLIServer, e
 					"help_commands_count", len(helpCommands),
 				)
 			}
+		}
+	} else {
+		// No explicit help commands - try auto-discovery (unless disabled)
+		if !s.DisableHelpAutoDiscovery {
+			if logger.Logger != nil {
+				logger.Logger.Debug("No help_command configured, attempting auto-discovery",
+					"server_name", serverConfig.Name,
+				)
+			}
+			s.helpContent = s.tryAutoDiscoverHelp(ctx)
+			if s.helpContent != "" {
+				// Auto-discovered content - now try to discover subcommands
+				subcommands := s.parseSubcommands(s.helpContent)
+				if len(subcommands) > 0 {
+					if logger.Logger != nil {
+						logger.Logger.Debug("Auto-discovered subcommands from help output",
+							"server_name", serverConfig.Name,
+							"count", len(subcommands),
+							"subcommands", subcommands,
+						)
+					}
+
+					var allHelp strings.Builder
+					allHelp.WriteString(s.helpContent)
+
+					// Run help for each subcommand
+					for _, subcmd := range subcommands {
+						subHelpCmd := s.Command + " " + subcmd + " --help"
+						subHelp := s.runSingleHelpCommand(ctx, subHelpCmd)
+						if subHelp != "" {
+							allHelp.WriteString("\n\n")
+							allHelp.WriteString("=== " + subcmd + " ===\n")
+							allHelp.WriteString(subHelp)
+						}
+					}
+					s.helpContent = allHelp.String()
+				}
+			}
+		} else if logger.Logger != nil {
+			logger.Logger.Debug("Help auto-discovery disabled",
+				"server_name", serverConfig.Name,
+			)
 		}
 	}
 
@@ -209,6 +254,54 @@ func (s *CLIServer) createDefaultTools() []mcp.Tool {
 	}
 
 	return []mcp.Tool{tool}
+}
+
+// tryAutoDiscoverHelp attempts to discover help content by trying common help patterns
+// Returns the help content from the first successful pattern, or empty string if none work
+func (s *CLIServer) tryAutoDiscoverHelp(ctx context.Context) string {
+	// Common help patterns to try, in order of preference
+	// Most CLIs support at least one of these
+	helpPatterns := []string{
+		"--help",
+		"-h",
+		"help",
+	}
+
+	// Add Windows-specific pattern
+	if runtime.GOOS == "windows" {
+		helpPatterns = append(helpPatterns, "/?")
+	}
+
+	for _, pattern := range helpPatterns {
+		helpCmd := s.Command + " " + pattern
+		if logger.Logger != nil {
+			logger.Logger.Debug("Trying auto-discover help pattern",
+				"server_name", s.Name,
+				"pattern", pattern,
+				"command", helpCmd,
+			)
+		}
+
+		content := s.runSingleHelpCommand(ctx, helpCmd)
+		if content != "" {
+			if logger.Logger != nil {
+				logger.Logger.Info("Auto-discovered help content",
+					"server_name", s.Name,
+					"pattern", pattern,
+					"content_length", len(content),
+				)
+			}
+			return content
+		}
+	}
+
+	if logger.Logger != nil {
+		logger.Logger.Debug("Auto-discovery found no help content",
+			"server_name", s.Name,
+			"patterns_tried", helpPatterns,
+		)
+	}
+	return ""
 }
 
 // runHelpCommands executes help commands and automatically discovers subcommands

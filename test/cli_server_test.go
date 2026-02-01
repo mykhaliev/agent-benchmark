@@ -308,3 +308,66 @@ func TestCLIServerWorkingDirectory(t *testing.T) {
 	assert.Equal(t, tempDir, srv.WorkingDir)
 	defer srv.Close()
 }
+
+// TestCLIServerHelpAutoDiscovery tests the automatic help discovery feature
+func TestCLIServerHelpAutoDiscovery(t *testing.T) {
+	t.Run("Auto-discovers help when no help_command configured", func(t *testing.T) {
+		ctx := context.Background()
+		
+		// Use a command that supports --help (git is commonly available)
+		// Skip if git is not available
+		config := model.Server{
+			Name:    "test-cli-autodiscover",
+			Type:    model.CLI,
+			Command: "git",
+			// No HelpCommand or HelpCommands - should auto-discover
+		}
+
+		srv, err := server.NewCLIServer(ctx, config)
+		if err != nil {
+			t.Skipf("git not available: %v", err)
+		}
+		defer srv.Close()
+
+		// Get tools from the server
+		client := srv.GetClient()
+		tools, err := client.ListTools(ctx, mcp.ListToolsRequest{})
+		require.NoError(t, err)
+		require.Len(t, tools.Tools, 1)
+
+		// Tool description should contain auto-discovered help content
+		// (git --help should return usage information)
+		description := tools.Tools[0].Description
+		assert.Contains(t, description, "command", "Auto-discovered help should contain CLI usage info")
+	})
+
+	t.Run("Respects disable_help_auto_discovery flag", func(t *testing.T) {
+		ctx := context.Background()
+		
+		config := model.Server{
+			Name:                     "test-cli-no-autodiscover",
+			Type:                     model.CLI,
+			Command:                  "git",
+			DisableHelpAutoDiscovery: true, // Explicitly disable
+			// No HelpCommand or HelpCommands - but auto-discovery is disabled
+		}
+
+		srv, err := server.NewCLIServer(ctx, config)
+		if err != nil {
+			t.Skipf("git not available: %v", err)
+		}
+		defer srv.Close()
+
+		// Get tools from the server
+		client := srv.GetClient()
+		tools, err := client.ListTools(ctx, mcp.ListToolsRequest{})
+		require.NoError(t, err)
+		require.Len(t, tools.Tools, 1)
+
+		// Tool description should NOT contain help content (just the basic description)
+		description := tools.Tools[0].Description
+		// Should be simple: "Execute git CLI command with arguments."
+		// Not contain help content like "usage:" or "commands:"
+		assert.Equal(t, "Execute git CLI command with arguments.", description)
+	})
+}
