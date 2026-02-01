@@ -113,10 +113,12 @@ type Server struct {
 	ServerDelay  string     `yaml:"server_delay,omitempty"`
 	ProcessDelay string     `yaml:"process_delay,omitempty"`
 	// CLI server type specific fields
-	Shell        string `yaml:"shell,omitempty"`        // Shell to use (powershell, cmd, bash). Default: powershell on Windows, bash on Unix
-	WorkingDir   string `yaml:"working_dir,omitempty"`  // Working directory for CLI commands. Default: current directory
-	ToolPrefix   string `yaml:"tool_prefix,omitempty"`  // Prefix for generated tool names (e.g., "excel" → "excel_sheet_create")
-	ToolsFromCLI bool   `yaml:"tools_from_cli,omitempty"` // If true, discover tools by running CLI with --help or similar
+	Shell        string   `yaml:"shell,omitempty"`          // Shell to use (powershell, cmd, bash). Default: powershell on Windows, bash on Unix
+	WorkingDir   string   `yaml:"working_dir,omitempty"`    // Working directory for CLI commands. Default: current directory
+	ToolPrefix   string   `yaml:"tool_prefix,omitempty"`    // Prefix for generated tool names (e.g., "excel" → "excel_sheet_create")
+	ToolsFromCLI bool     `yaml:"tools_from_cli,omitempty"` // If true, discover tools by running CLI with --help or similar
+	HelpCommand  string   `yaml:"help_command,omitempty"`   // DEPRECATED: Use help_commands instead. Single help command.
+	HelpCommands []string `yaml:"help_commands,omitempty"`  // Commands to run at startup to get CLI help (outputs concatenated and injected into tool description)
 }
 
 type ServerType string
@@ -1127,9 +1129,9 @@ func (e *AssertionEvaluator) evalCLIStdoutContains(a Assertion) AssertionResult 
 		Passed:  contains,
 		Message: message,
 		Details: map[string]interface{}{
-			"tool":        tc.Name,
-			"expected":    a.Value,
-			"stdout_len":  len(cliResult.Stdout),
+			"tool":           tc.Name,
+			"expected":       a.Value,
+			"stdout_len":     len(cliResult.Stdout),
 			"stdout_preview": truncateString(cliResult.Stdout, 200),
 		},
 	}
@@ -1168,9 +1170,9 @@ func (e *AssertionEvaluator) evalCLIStdoutRegex(a Assertion) AssertionResult {
 		Passed:  matches,
 		Message: message,
 		Details: map[string]interface{}{
-			"tool":          tc.Name,
-			"pattern":       a.Pattern,
-			"stdout_len":    len(cliResult.Stdout),
+			"tool":           tc.Name,
+			"pattern":        a.Pattern,
+			"stdout_len":     len(cliResult.Stdout),
 			"stdout_preview": truncateString(cliResult.Stdout, 200),
 		},
 	}
@@ -1200,9 +1202,9 @@ func (e *AssertionEvaluator) evalCLIStderrContains(a Assertion) AssertionResult 
 		Passed:  contains,
 		Message: message,
 		Details: map[string]interface{}{
-			"tool":          tc.Name,
-			"expected":      a.Value,
-			"stderr_len":    len(cliResult.Stderr),
+			"tool":           tc.Name,
+			"expected":       a.Value,
+			"stderr_len":     len(cliResult.Stderr),
 			"stderr_preview": truncateString(cliResult.Stderr, 200),
 		},
 	}

@@ -804,6 +804,11 @@ func InitServers(ctx context.Context, serverConfigs []model.Server, templateCtx 
 		s.WorkingDir = model.RenderTemplate(s.WorkingDir, templateCtx)
 		s.Shell = model.RenderTemplate(s.Shell, templateCtx)
 		s.ToolPrefix = model.RenderTemplate(s.ToolPrefix, templateCtx)
+		s.HelpCommand = model.RenderTemplate(s.HelpCommand, templateCtx)
+		// Process template variables in HelpCommands array
+		for j := range s.HelpCommands {
+			s.HelpCommands[j] = model.RenderTemplate(s.HelpCommands[j], templateCtx)
+		}
 		if s.Headers != nil {
 			for k := range s.Headers {
 				s.Headers[k] = model.RenderTemplate(s.Headers[k], templateCtx)

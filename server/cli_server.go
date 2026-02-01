@@ -20,17 +20,21 @@ import (
 // It allows testing CLI-based tools (like excel-cli) using the same
 // agent-benchmark framework used for MCP servers.
 type CLIServer struct {
-	Name       string           `json:"name"`
-	Type       model.ServerType `json:"type"`
-	Command    string           `json:"command"`
-	Shell      string           `json:"shell"`
-	WorkingDir string           `json:"working_dir"`
-	ToolPrefix string           `json:"tool_prefix"`
+	Name         string           `json:"name"`
+	Type         model.ServerType `json:"type"`
+	Command      string           `json:"command"`
+	Shell        string           `json:"shell"`
+	WorkingDir   string           `json:"working_dir"`
+	ToolPrefix   string           `json:"tool_prefix"`
+	HelpCommand  string           `json:"help_command"`  // DEPRECATED: Use help_commands instead
+	HelpCommands []string         `json:"help_commands"` // Commands to run at startup for help content
 
 	// tools discovered or configured for this CLI
 	tools []mcp.Tool
 	// Track command executions for assertions
 	executions []CLIExecution
+	// Help content from running help_command(s) at startup
+	helpContent string
 }
 
 // CLIExecution records a CLI command execution for assertion evaluation
@@ -66,13 +70,15 @@ func NewCLIServer(ctx context.Context, serverConfig model.Server) (*CLIServer, e
 	}
 
 	s := &CLIServer{
-		Name:       serverConfig.Name,
-		Type:       serverConfig.Type,
-		Command:    serverConfig.Command,
-		Shell:      serverConfig.Shell,
-		WorkingDir: serverConfig.WorkingDir,
-		ToolPrefix: serverConfig.ToolPrefix,
-		executions: []CLIExecution{},
+		Name:         serverConfig.Name,
+		Type:         serverConfig.Type,
+		Command:      serverConfig.Command,
+		Shell:        serverConfig.Shell,
+		WorkingDir:   serverConfig.WorkingDir,
+		ToolPrefix:   serverConfig.ToolPrefix,
+		HelpCommand:  serverConfig.HelpCommand,
+		HelpCommands: serverConfig.HelpCommands,
+		executions:   []CLIExecution{},
 	}
 
 	// Set default shell based on OS
@@ -102,6 +108,31 @@ func NewCLIServer(ctx context.Context, serverConfig model.Server) (*CLIServer, e
 			)
 		}
 		return nil, fmt.Errorf("invalid CLI server configuration for %s: %w", serverConfig.Name, err)
+	}
+
+	// Run help_command(s) if configured to get CLI help content
+	// Support both single help_command (backwards compat) and help_commands array
+	helpCommands := s.HelpCommands
+	if len(helpCommands) == 0 && s.HelpCommand != "" {
+		helpCommands = []string{s.HelpCommand}
+	}
+
+	if len(helpCommands) > 0 {
+		s.helpContent = s.runHelpCommands(ctx, helpCommands)
+		if logger.Logger != nil {
+			if s.helpContent != "" {
+				logger.Logger.Info("CLI help content loaded",
+					"server_name", serverConfig.Name,
+					"help_commands_count", len(helpCommands),
+					"content_length", len(s.helpContent),
+				)
+			} else {
+				logger.Logger.Warn("CLI help commands returned no content",
+					"server_name", serverConfig.Name,
+					"help_commands_count", len(helpCommands),
+				)
+			}
+		}
 	}
 
 	// Create default tool (the CLI itself as a single tool)
@@ -156,9 +187,15 @@ func (s *CLIServer) createDefaultTools() []mcp.Tool {
 		toolName = s.ToolPrefix + "_execute"
 	}
 
+	// Build tool description, including help content if available
+	description := fmt.Sprintf("Execute %s CLI command with arguments.", s.Command)
+	if s.helpContent != "" {
+		description = fmt.Sprintf("Execute %s CLI command with arguments.\n\nAvailable commands and options:\n%s", s.Command, s.helpContent)
+	}
+
 	tool := mcp.Tool{
 		Name:        toolName,
-		Description: fmt.Sprintf("Execute %s CLI command with arguments", s.Command),
+		Description: description,
 		InputSchema: mcp.ToolInputSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
@@ -172,6 +209,162 @@ func (s *CLIServer) createDefaultTools() []mcp.Tool {
 	}
 
 	return []mcp.Tool{tool}
+}
+
+// runHelpCommands executes help commands and automatically discovers subcommands
+// If help_commands is empty but help_command is set, it will:
+// 1. Run the initial help command
+// 2. Parse the output to find COMMANDS section
+// 3. Automatically run help for each discovered subcommand
+func (s *CLIServer) runHelpCommands(ctx context.Context, helpCommands []string) string {
+	if len(helpCommands) == 0 {
+		return ""
+	}
+
+	// Run the first (main) help command
+	mainHelp := s.runSingleHelpCommand(ctx, helpCommands[0])
+	if mainHelp == "" {
+		return ""
+	}
+
+	var allHelp strings.Builder
+	allHelp.WriteString(mainHelp)
+
+	// If only one help command provided, try to auto-discover subcommands
+	if len(helpCommands) == 1 {
+		subcommands := s.parseSubcommands(mainHelp)
+		if len(subcommands) > 0 {
+			if logger.Logger != nil {
+				logger.Logger.Debug("Auto-discovered subcommands from help output",
+					"count", len(subcommands),
+					"subcommands", subcommands,
+				)
+			}
+
+			// Run help for each subcommand
+			for _, subcmd := range subcommands {
+				// Build subcommand help command (e.g., "excelcli.exe session --help")
+				subHelpCmd := s.Command + " " + subcmd + " --help"
+				subHelp := s.runSingleHelpCommand(ctx, subHelpCmd)
+				if subHelp != "" {
+					allHelp.WriteString("\n\n")
+					allHelp.WriteString("=== " + subcmd + " ===\n")
+					allHelp.WriteString(subHelp)
+				}
+			}
+		}
+	} else {
+		// Multiple help commands explicitly provided - run them all
+		for i := 1; i < len(helpCommands); i++ {
+			output := s.runSingleHelpCommand(ctx, helpCommands[i])
+			if output != "" {
+				allHelp.WriteString("\n\n--- Help Command ")
+				allHelp.WriteString(fmt.Sprintf("%d", i+1))
+				allHelp.WriteString(" ---\n")
+				allHelp.WriteString(output)
+			}
+		}
+	}
+
+	return allHelp.String()
+}
+
+// parseSubcommands extracts subcommand names from CLI help output
+// Looks for patterns like:
+//
+//	COMMANDS:
+//	    session <FILE>    Description
+//	    range <ACTION>    Description
+func (s *CLIServer) parseSubcommands(helpOutput string) []string {
+	var subcommands []string
+	lines := strings.Split(helpOutput, "\n")
+
+	inCommandsSection := false
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+
+		// Detect start of COMMANDS section
+		if strings.HasPrefix(trimmed, "COMMANDS:") || trimmed == "COMMANDS" {
+			inCommandsSection = true
+			continue
+		}
+
+		// Detect end of COMMANDS section (next section header or empty line after commands)
+		if inCommandsSection {
+			// Section headers typically end with ":"
+			if strings.HasSuffix(trimmed, ":") && !strings.HasPrefix(trimmed, "-") {
+				break
+			}
+
+			// Parse command line - typically "    command <args>    Description"
+			if trimmed != "" && !strings.HasPrefix(trimmed, "-") {
+				// Extract first word (the command name)
+				parts := strings.Fields(trimmed)
+				if len(parts) > 0 {
+					cmd := parts[0]
+					// Skip if it looks like a flag or option
+					if !strings.HasPrefix(cmd, "-") && !strings.HasPrefix(cmd, "<") {
+						subcommands = append(subcommands, cmd)
+					}
+				}
+			}
+		}
+	}
+
+	return subcommands
+}
+
+// runSingleHelpCommand executes a single help command and returns its output
+func (s *CLIServer) runSingleHelpCommand(ctx context.Context, helpCmd string) string {
+	if helpCmd == "" {
+		return ""
+	}
+
+	// Create a timeout context for help command (10 seconds max)
+	helpCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	// Build the shell command
+	var cmd *exec.Cmd
+	switch strings.ToLower(s.Shell) {
+	case "powershell", "pwsh":
+		shellExe := "powershell"
+		if s.Shell == "pwsh" {
+			shellExe = "pwsh"
+		}
+		cmd = exec.CommandContext(helpCtx, shellExe, "-NoProfile", "-NonInteractive", "-Command", helpCmd)
+	case "cmd":
+		cmd = exec.CommandContext(helpCtx, "cmd", "/C", helpCmd)
+	case "bash", "sh", "zsh":
+		cmd = exec.CommandContext(helpCtx, s.Shell, "-c", helpCmd)
+	default:
+		if logger.Logger != nil {
+			logger.Logger.Warn("Unsupported shell for help command", "shell", s.Shell)
+		}
+		return ""
+	}
+
+	cmd.Dir = s.WorkingDir
+
+	// Capture stdout
+	var stdout bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = nil // Ignore stderr for help commands
+
+	// Run the command
+	err := cmd.Run()
+	if err != nil {
+		if logger.Logger != nil {
+			logger.Logger.Warn("help command failed",
+				"command", helpCmd,
+				"error", err,
+			)
+		}
+		// Return empty string on error - don't fail server startup
+		return ""
+	}
+
+	return strings.TrimSpace(stdout.String())
 }
 
 // GetClient returns a CLIClient that wraps this server

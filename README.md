@@ -523,7 +523,7 @@ servers:
 
 #### CLI Server
 
-Wrap command-line tools as MCP-like servers. Useful for testing CLI-based tools like `excel-cli`:
+Wrap command-line tools as MCP-like servers. Useful for testing CLI-based tools:
 
 ```yaml
 servers:
@@ -533,9 +533,9 @@ servers:
     shell: powershell      # Shell: powershell, pwsh, cmd, bash, sh, zsh
     working_dir: "{{TEST_DIR}}"  # Working directory for CLI commands
     tool_prefix: excel     # Tool name becomes excel_execute
+    help_commands:         # Help content for LLM context
+      - "excel-cli --help"
 ```
-
-**CLI Server Configuration:**
 
 | Option | Description | Default |
 |--------|-------------|---------|
@@ -543,47 +543,14 @@ servers:
 | `shell` | Shell to run commands in | `powershell` (Windows), `bash` (Unix) |
 | `working_dir` | Working directory for commands | Current directory |
 | `tool_prefix` | Prefix for generated tool name | `cli` (tool name: `cli_execute`) |
+| `help_commands` | Commands to run at startup for CLI help | - |
 
-**Tool Invocation:**
+**Key Features:**
+- **Auto-discovery:** Automatically discovers subcommands from `COMMANDS:` section in help output
+- **Help content injection:** CLI help is included in tool description for LLM context
+- **CLI-specific assertions:** `cli_exit_code_equals`, `cli_stdout_contains`, `cli_stdout_regex`, `cli_stderr_contains`
 
-The CLI server exposes a single tool (`{prefix}_execute`) that accepts `args`:
-
-```yaml
-assertions:
-  - type: tool_called
-    tool: excel_execute
-  - type: tool_param_equals
-    tool: excel_execute
-    params:
-      args: "sheet list --file workbook.xlsx"
-```
-
-**CLI Assertions:**
-
-Special assertions for validating CLI output:
-
-```yaml
-assertions:
-  # Check exit code
-  - type: cli_exit_code_equals
-    tool: excel_execute
-    value: "0"  # Expected exit code
-    
-  # Check stdout contains text
-  - type: cli_stdout_contains
-    tool: excel_execute
-    value: "Sheet1"
-    
-  # Check stdout matches regex
-  - type: cli_stdout_regex
-    tool: excel_execute
-    pattern: "Created.*successfully"
-    
-  # Check stderr contains text
-  - type: cli_stderr_contains
-    tool: excel_execute
-    value: "Warning:"
-```
+📖 **[Full CLI Server Documentation](docs/cli-server.md)** - Complete guide with examples, best practices, and troubleshooting
 
 #### Server Timing Configuration
 
