@@ -1,0 +1,78 @@
+# CLI Server Test Example
+# This example demonstrates how to test CLI-based tools using the CLI server type.
+#
+# The CLI server wraps command-line tools and exposes them as MCP-like tools,
+# allowing you to test CLI applications using the same agent-benchmark framework.
+
+providers:
+  - name: test-provider
+    type: OPENAI
+    token: "{{OPENAI_API_KEY}}"
+    model: gpt-4o-mini
+
+servers:
+  # CLI server wraps a command-line tool
+  - name: echo-cli
+    type: cli
+    command: echo
+    shell: powershell      # Options: powershell, pwsh, cmd, bash, sh, zsh
+    tool_prefix: echo      # Tool name becomes echo_execute
+
+agents:
+  - name: cli-test-agent
+    provider: test-provider
+    system_prompt: |
+      You are a CLI testing agent.
+      When asked to run CLI commands, use the echo_execute tool with the 'args' parameter.
+      The tool executes: echo <args>
+    servers:
+      - name: echo-cli
+
+settings:
+  verbose: true
+  max_iterations: 5
+
+sessions:
+  - name: CLI Tool Tests
+    tests:
+      - name: Run simple echo command
+        prompt: "Run the echo command with args: 'Hello from CLI test'"
+        assertions:
+          # Verify the CLI tool was called
+          - type: tool_called
+            tool: echo_execute
+          
+          # Verify the correct arguments were passed
+          - type: tool_param_equals
+            tool: echo_execute
+            params:
+              args: "Hello from CLI test"
+          
+          # Verify successful exit code
+          - type: cli_exit_code_equals
+            tool: echo_execute
+            value: "0"
+          
+          # Verify output contains expected text
+          - type: cli_stdout_contains
+            tool: echo_execute
+            value: "Hello"
+
+      - name: Run echo with multiple words
+        prompt: "Echo the phrase: The quick brown fox"
+        assertions:
+          - type: tool_called
+            tool: echo_execute
+          - type: cli_stdout_regex
+            tool: echo_execute
+            pattern: "quick.*fox"
+
+  - name: Error Handling Tests
+    tests:
+      - name: Verify no errors in output
+        prompt: "Run echo with message: Success"
+        assertions:
+          - type: no_error_messages
+          - type: cli_exit_code_equals
+            tool: echo_execute
+            value: "0"
