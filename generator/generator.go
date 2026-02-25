@@ -76,6 +76,16 @@ func Run(ctx context.Context, configPath, outputDir string, dryRun bool, seed in
 		os.Exit(1)
 	}
 
+	// Apply tool allowlist from generator settings.
+	if len(cfg.Generator.Tools) > 0 {
+		toolsByAgent = filterToolsByName(toolsByAgent, cfg.Generator.Tools)
+		for agentName, tools := range toolsByAgent {
+			logger.Logger.Info("Effective tools after filtering",
+				"agent", agentName,
+				"tools", len(tools))
+		}
+	}
+
 	// Build the list of known agent names for validation.
 	agentNames := make([]string, 0, len(cfg.Agents))
 	for _, a := range cfg.Agents {
@@ -221,6 +231,39 @@ func generateWithRetry(
 	}
 
 	return "", fmt.Errorf("all %d generation attempts failed; last errors: %v", maxRetries, prevErrors)
+}
+
+// filterToolsByName filters toolsByAgent to only include tools whose names
+// appear in the allowlist. An empty allowlist returns toolsByAgent unchanged.
+// Tools in the allowlist that are not found in any agent are logged as warnings.
+func filterToolsByName(toolsByAgent map[string][]mcp.Tool, allowlist []string) map[string][]mcp.Tool {
+	if len(allowlist) == 0 {
+		return toolsByAgent
+	}
+
+	allowed := make(map[string]bool, len(allowlist))
+	for _, name := range allowlist {
+		allowed[name] = true
+	}
+
+	filtered := make(map[string][]mcp.Tool, len(toolsByAgent))
+	for agentName, tools := range toolsByAgent {
+		var kept []mcp.Tool
+		for _, t := range tools {
+			if allowed[t.Name] {
+				kept = append(kept, t)
+				delete(allowed, t.Name) // mark as found
+			}
+		}
+		filtered[agentName] = kept
+	}
+
+	// Warn about any allowlisted names that were never found.
+	for name := range allowed {
+		logger.Logger.Warn("Tool in generator.tools not found in any server", "tool", name)
+	}
+
+	return filtered
 }
 
 // combineOutput reads the original generator config file, removes the

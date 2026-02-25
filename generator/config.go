@@ -21,11 +21,12 @@ type GeneratorConfig struct {
 
 // GeneratorSettings controls the test generation behaviour.
 type GeneratorSettings struct {
-	Provider         string `yaml:"provider"`           // LLM to use for generation (defaults to first agent's provider)
-	TestCount        int    `yaml:"test_count"`         // Number of tests to generate (default 5)
-	Complexity       string `yaml:"complexity"`         // simple | medium | complex (default "medium")
-	IncludeEdgeCases bool   `yaml:"include_edge_cases"` // Whether to include edge case tests (default false)
-	MaxStepsPerTest  int    `yaml:"max_steps_per_test"` // Max tool-call steps per test (default 5)
+	Provider         string   `yaml:"provider"`           // LLM to use for generation (defaults to first agent's provider)
+	TestCount        int      `yaml:"test_count"`         // Number of tests to generate (default 5)
+	Complexity       string   `yaml:"complexity"`         // simple | medium | complex (default "medium")
+	IncludeEdgeCases bool     `yaml:"include_edge_cases"` // Whether to include edge case tests (default false)
+	MaxStepsPerTest  int      `yaml:"max_steps_per_test"` // Max tool-call steps per test (default 5)
+	Tools            []string `yaml:"tools,omitempty"`    // Allowlist of tool names; empty means all tools
 }
 
 func (s *GeneratorSettings) applyDefaults() {

@@ -41,3 +41,9 @@ generator:
   ## Maximum number of tool-call steps to expect per test.
   ## Keeps prompts appropriately scoped.
   max_steps_per_test: 5
+
+  ## Restrict test generation to a subset of tools (optional).
+  ## When omitted, all tools from all connected servers are used.
+  # tools:
+  #   - read_file
+  #   - list_directory

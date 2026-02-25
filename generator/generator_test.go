@@ -259,6 +259,44 @@ func TestBuildPrompt_IncludesSeed(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// TestFilterToolsByName
+// ---------------------------------------------------------------------------
+
+func TestFilterToolsByName_FiltersCorrectly(t *testing.T) {
+	toolsByAgent := map[string][]mcp.Tool{
+		"agent1": {
+			{Name: "read_file"},
+			{Name: "write_file"},
+			{Name: "list_directory"},
+		},
+	}
+
+	result := filterToolsByName(toolsByAgent, []string{"read_file", "list_directory"})
+
+	require.Len(t, result["agent1"], 2)
+	names := make([]string, 0, 2)
+	for _, t := range result["agent1"] {
+		names = append(names, t.Name)
+	}
+	assert.Contains(t, names, "read_file")
+	assert.Contains(t, names, "list_directory")
+	assert.NotContains(t, names, "write_file")
+}
+
+func TestFilterToolsByName_EmptyAllowlist(t *testing.T) {
+	toolsByAgent := map[string][]mcp.Tool{
+		"agent1": {
+			{Name: "read_file"},
+			{Name: "write_file"},
+		},
+	}
+
+	// An empty allowlist means "include all tools" — the map is returned unchanged.
+	result := filterToolsByName(toolsByAgent, []string{})
+	assert.Len(t, result["agent1"], 2)
+}
+
+// ---------------------------------------------------------------------------
 // helpers
 // ---------------------------------------------------------------------------
 
