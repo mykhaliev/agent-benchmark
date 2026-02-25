@@ -1,0 +1,43 @@
+## Example generator config for agent-benchmark test generation mode.
+## Run with: ./agent-benchmark -g examples/generator-config.yaml --dry-run
+##
+## The generator section controls test generation behaviour.
+## All other sections (providers, servers, agents) are copied verbatim into
+## the generated test file so it is immediately runnable with -f.
+
+providers:
+  - name: gemini
+    type: GOOGLE
+    token: "{{GOOGLE_API_KEY}}"
+    model: gemini-2.0-flash
+
+servers:
+  - name: fs
+    type: stdio
+    command: npx -y @modelcontextprotocol/server-filesystem /tmp
+
+agents:
+  - name: file-agent
+    provider: gemini
+    servers:
+      - name: fs
+
+generator:
+  ## LLM provider used to generate the test YAML (defaults to first agent's provider).
+  provider: gemini
+
+  ## Number of tests to generate across all sessions.
+  test_count: 5
+
+  ## Complexity of the generated tests: simple | medium | complex
+  ##   simple  - single tool call per test
+  ##   medium  - 1-3 tool calls, may chain results
+  ##   complex - multi-step workflows, may use anyOf/allOf combinators
+  complexity: medium
+
+  ## Include tests that exercise edge cases (errors, boundary inputs, etc.)
+  include_edge_cases: false
+
+  ## Maximum number of tool-call steps to expect per test.
+  ## Keeps prompts appropriately scoped.
+  max_steps_per_test: 5

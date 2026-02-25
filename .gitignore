@@ -49,3 +49,5 @@ tmp/
 
 # Generated report JSON files (HTML reports are committed for documentation)
 generated_reports/*.json
+
+CLAUDE.md

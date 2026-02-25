@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/mykhaliev/agent-benchmark/engine"
+	"github.com/mykhaliev/agent-benchmark/generator"
 	"github.com/mykhaliev/agent-benchmark/logger"
 	"github.com/mykhaliev/agent-benchmark/model"
 	"github.com/mykhaliev/agent-benchmark/report"
@@ -30,6 +31,10 @@ func main() {
 	showVersion := flag.Bool("v", false, "Show version and exit")
 	reportTypes := flag.String("reportType", "html", "Report type(s) (comma-separated): html, json, markdown, txt")
 	generateFromJSON := flag.String("generate-report", "", "Generate report from existing JSON results file (use with -f to get AI summary config)")
+	generateConfig := flag.String("g", "", "Path to the generator config file (enables test generation mode)")
+	generateDryRun := flag.Bool("dry-run", false, "Preview generated YAML without saving (requires -g)")
+	generateOutputDir := flag.String("output-dir", "./generated_tests", "Directory for generated test files (requires -g)")
+	generateSeed := flag.Int64("seed", 0, "Random seed for deterministic generation (requires -g)")
 
 	flag.Parse()
 
@@ -51,6 +56,13 @@ func main() {
 
 	logger.SetupLogger(logWriter, *verbose)
 	templates.NewTemplateEngine()
+
+	// Handle test generation mode (-g)
+	if *generateConfig != "" {
+		ctx := context.Background()
+		generator.Run(ctx, *generateConfig, *generateOutputDir, *generateDryRun, *generateSeed)
+		return
+	}
 
 	// Handle report generation from JSON
 	if *generateFromJSON != "" {
