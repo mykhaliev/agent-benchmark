@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/mark3labs/mcp-go/mcp"
+	"github.com/mykhaliev/agent-benchmark/model"
 	"github.com/tmc/langchaingo/llms"
 )
 
@@ -47,6 +48,28 @@ func buildToolInfo(tools []mcp.Tool) []ToolInfo {
 		})
 	}
 	return result
+}
+
+// buildSystemMessage prepends any agent system prompts to the standard generation
+// system prompt. Agents without a system_prompt are skipped.
+func buildSystemMessage(agents []model.Agent) string {
+	var sb strings.Builder
+
+	for _, a := range agents {
+		if strings.TrimSpace(a.SystemPrompt) == "" {
+			continue
+		}
+		if sb.Len() == 0 {
+			sb.WriteString("AGENT CONTEXT\n=============\n")
+		}
+		sb.WriteString(fmt.Sprintf("\nAgent %q system prompt:\n%s\n", a.Name, strings.TrimSpace(a.SystemPrompt)))
+	}
+
+	if sb.Len() > 0 {
+		sb.WriteString("\n")
+	}
+	sb.WriteString(systemPrompt)
+	return sb.String()
 }
 
 // BuildGenerationPrompt builds the system+user message pair for the LLM.
@@ -118,10 +141,12 @@ func BuildGenerationPrompt(
 
 	sb.WriteString("\nNow generate the sessions YAML block:\n")
 
+	sysText := buildSystemMessage(cfg.Agents)
+
 	return []llms.MessageContent{
 		{
 			Role:  llms.ChatMessageTypeSystem,
-			Parts: []llms.ContentPart{llms.TextContent{Text: systemPrompt}},
+			Parts: []llms.ContentPart{llms.TextContent{Text: sysText}},
 		},
 		{
 			Role:  llms.ChatMessageTypeHuman,

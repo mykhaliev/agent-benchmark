@@ -246,6 +246,27 @@ func TestBuildPrompt_IncludesRetryErrors(t *testing.T) {
 	assert.Contains(t, userContent, "unknown agent foo")
 }
 
+func TestBuildPrompt_IncludesAgentSystemPrompt(t *testing.T) {
+	cfg := &GeneratorConfig{
+		Agents: []model.Agent{
+			{Name: "file-agent", Provider: "gpt",
+				SystemPrompt: "You are a filesystem expert."},
+		},
+		Generator: GeneratorSettings{TestCount: 2, Complexity: "simple", MaxStepsPerTest: 3},
+	}
+
+	msgs := BuildGenerationPrompt(cfg, map[string][]mcp.Tool{}, 0, 1, nil)
+
+	require.Len(t, msgs, 2)
+	systemContent := extractText(msgs[0])
+
+	// Agent system prompt must appear before the standard rules.
+	assert.Contains(t, systemContent, "You are a filesystem expert.")
+	agentCtxIdx := strings.Index(systemContent, "You are a filesystem expert.")
+	standardIdx := strings.Index(systemContent, "You are a test generation expert")
+	assert.Greater(t, standardIdx, agentCtxIdx, "agent context should precede standard prompt")
+}
+
 func TestBuildPrompt_IncludesSeed(t *testing.T) {
 	cfg := &GeneratorConfig{
 		Agents:    []model.Agent{{Name: "agent1", Provider: "p"}},
