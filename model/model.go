@@ -75,17 +75,17 @@ type RetryConfig struct {
 type Provider struct {
 	Name            string          `yaml:"name"`
 	Type            ProviderType    `yaml:"type"`
-	Token           string          `yaml:"token"`
-	Secret          string          `yaml:"secret"`
+	Token           string          `yaml:"token,omitempty"`
+	Secret          string          `yaml:"secret,omitempty"`
 	Model           string          `yaml:"model"`
-	BaseURL         string          `yaml:"baseUrl"`          // e.g., gpt-4o-mini
-	Version         string          `yaml:"version"`          // e.g., 2025-01-01-preview
-	ProjectID       string          `yaml:"project_id"`       // e.g., 2025-01-01-preview
-	Location        string          `yaml:"location"`         // e.g., 2025-01-01-preview
-	CredentialsPath string          `yaml:"credentials_path"` // e.g., 2025-01-01-preview
-	AuthType        string          `yaml:"auth_type"`        // For AZURE: "api_key" (default) or "entra_id"
-	RateLimits      RateLimitConfig `yaml:"rate_limits"`      // Optional proactive rate limiting
-	Retry           RetryConfig     `yaml:"retry"`            // Optional reactive error handling (e.g., 429 retries)
+	BaseURL         string          `yaml:"baseUrl,omitempty"`          // e.g., gpt-4o-mini
+	Version         string          `yaml:"version,omitempty"`          // e.g., 2025-01-01-preview
+	ProjectID       string          `yaml:"project_id,omitempty"`       // e.g., 2025-01-01-preview
+	Location        string          `yaml:"location,omitempty"`         // e.g., 2025-01-01-preview
+	CredentialsPath string          `yaml:"credentials_path,omitempty"` // e.g., 2025-01-01-preview
+	AuthType        string          `yaml:"auth_type,omitempty"`        // For AZURE: "api_key" (default) or "entra_id"
+	RateLimits      RateLimitConfig `yaml:"rate_limits,omitempty"`      // Optional proactive rate limiting
+	Retry           RetryConfig     `yaml:"retry,omitempty"`            // Optional reactive error handling (e.g., 429 retries)
 }
 
 type ProviderType string
@@ -220,15 +220,14 @@ type Session struct {
 // ============================================================================
 
 type Test struct {
-	Name         string            `yaml:"name"`
-	Description  string            `yaml:"description,omitempty"`
-	Agent        string            `yaml:"agent"`
-	Prompt       string            `yaml:"prompt"`
-	StartDelay   string            `yaml:"start_delay"`
-	Assertions   []Assertion       `yaml:"assertions"`
-	Extractors   []DataExtractor   `yaml:"extractors"`
-	Variables    map[string]string `yaml:"variables,omitempty"`
-	AllowedTools []string          `yaml:"allowed_tools,omitempty"`
+	Name         string          `yaml:"name"`
+	Description  string          `yaml:"description,omitempty"`
+	Agent        string          `yaml:"agent,omitempty"`
+	Prompt       string          `yaml:"prompt"`
+	StartDelay   string          `yaml:"start_delay,omitempty"`
+	Assertions   []Assertion     `yaml:"assertions"`
+	Extractors   []DataExtractor `yaml:"extractors,omitempty"`
+	AllowedTools []string        `yaml:"allowed_tools,omitempty"`
 }
 
 type Assertion struct {

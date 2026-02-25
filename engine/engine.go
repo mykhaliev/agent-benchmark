@@ -98,7 +98,7 @@ func Run(testPath *string, verbose *bool, suitePath *string, reportFileName *str
 		}
 		defer CleanupServers(mcpServers)
 
-		agents, err := initAgents(ctx, testConfig.Agents, mcpServers, providers)
+		agents, err := InitAgents(ctx, testConfig.Agents, mcpServers, providers)
 		if err != nil {
 			logger.Logger.Error("Failed to initialize agents", "error", err)
 			os.Exit(1)
@@ -119,7 +119,7 @@ func Run(testPath *string, verbose *bool, suitePath *string, reportFileName *str
 
 		// Run tests
 		logger.Logger.Info("Starting test execution")
-		testResults := runTests(ctx, testConfig, agents, providers, maxIterations, toolTimeout, testDelay, sessionDelay, *testPath, "")
+		testResults := RunTests(ctx, testConfig, agents, providers, maxIterations, toolTimeout, testDelay, sessionDelay, *testPath, "")
 		results = append(results, testResults...)
 		if len(testResults) > 0 {
 			criteria = testResults[0].TestCriteria
@@ -175,7 +175,7 @@ func Run(testPath *string, verbose *bool, suitePath *string, reportFileName *str
 		}
 		defer CleanupServers(mcpServers)
 
-		agents, err := initAgents(ctx, testSuiteConfig.Agents, mcpServers, providers)
+		agents, err := InitAgents(ctx, testSuiteConfig.Agents, mcpServers, providers)
 		if err != nil {
 			logger.Logger.Error("Failed to initialize agents", "error", err)
 			os.Exit(1)
@@ -194,7 +194,12 @@ func Run(testPath *string, verbose *bool, suitePath *string, reportFileName *str
 			"session_delay", sessionDelay,
 			"verbose", testSuiteConfig.Settings.Verbose)
 
+		suiteDir := filepath.Dir(*suitePath)
 		for _, testFile := range testSuiteConfig.TestFiles {
+			// Resolve relative paths against the suite file's directory.
+			if !filepath.IsAbs(testFile) {
+				testFile = filepath.Join(suiteDir, testFile)
+			}
 			// Validate input file exists
 			if err := ValidateTestInputFile(testFile); err != nil {
 				logger.Logger.Error("Invalid input file", "error", err)
@@ -244,7 +249,7 @@ func Run(testPath *string, verbose *bool, suitePath *string, reportFileName *str
 				"tests", totalTests)
 			// Run tests
 			logger.Logger.Info("Starting test execution")
-			testResults := runTests(ctx, testConfig, agents, providers, maxIterations, toolTimeout, testDelay, sessionDelay, testFile, testSuiteConfig.Name)
+			testResults := RunTests(ctx, testConfig, agents, providers, maxIterations, toolTimeout, testDelay, sessionDelay, testFile, testSuiteConfig.Name)
 			results = append(results, testResults...)
 		}
 		criteria = testSuiteConfig.TestCriteria
@@ -860,7 +865,7 @@ func InitServers(ctx context.Context, serverConfigs []model.Server, templateCtx 
 	return servers, nil
 }
 
-func initAgents(
+func InitAgents(
 	ctx context.Context,
 	agentConfigs []model.Agent,
 	mcpServers map[string]*server.MCPServer,
@@ -955,7 +960,7 @@ func initAgents(
 	return agents, nil
 }
 
-func runTests(
+func RunTests(
 	ctx context.Context,
 	testConfig *model.TestConfiguration,
 	agents map[string]*agent.MCPAgent,

@@ -1,0 +1,72 @@
+## Example explorer config for agent-benchmark exploratory testing mode.
+## Run with: ./agent-benchmark -e examples/explorer-config.yaml
+##
+## The explorer uses an LLM to autonomously decide what tests to run next,
+## executes each test against the configured agent, observes the result,
+## and plans the next iteration — without predefined test cases.
+## Output: results are fed into the standard report pipeline (HTML/JSON/Markdown).
+
+## Optional: user-defined variables available as {{VAR_NAME}} in goal/server configs.
+# variables:
+#   TARGET_DIR: /tmp/my-app
+
+## LLM providers (same format as TestConfiguration).
+providers:
+  - name: gemini-flash
+    type: GOOGLE
+    model: gemini-2.0-flash
+    token: "{{GOOGLE_API_KEY}}"
+
+## MCP servers available to the target agent during test execution.
+## The explorer decision LLM does NOT have access to these tools;
+## only the target agent uses them.
+servers:
+  - name: fs
+    type: stdio
+    command: npx -y @modelcontextprotocol/server-filesystem /tmp
+
+## Agents (same format as TestConfiguration).
+## The same LLM is used both for exploration decisions (without tools)
+## and as the target agent under test (with the configured MCP tools).
+agents:
+  - name: fs-explorer
+    provider: gemini-flash
+    servers:
+      - name: fs
+
+## Settings passed to the target agent's reasoning loop.
+settings:
+  max_iterations: 10     # Max tool-call steps per individual test execution
+  timeout_seconds: 30    # Per-tool-call timeout
+
+explorer:
+  ## What the explorer is trying to test (required).
+  ## Write this as a clear objective — the LLM uses it to decide what to probe.
+  goal: >
+    Explore the filesystem MCP server capabilities. Test reading and listing files,
+    creating and writing files, handling missing paths, and edge cases such as
+    deeply nested directories and files with special characters in their names.
+
+  ## Maximum number of exploration iterations (test rounds).
+  ## Each iteration = one LLM decision + one agent execution.
+  ## Default: 10
+  max_iterations: 8
+
+  ## Stop early after N consecutive passing tests (0 = run all iterations).
+  ## Useful for capability probing: stop once the agent has demonstrated
+  ## consistent success across several scenarios.
+  ## Default: 0 (disabled)
+  stop_on_pass_count: 3
+
+  ## Maximum LLM retry attempts per iteration if the decision response
+  ## cannot be parsed (e.g., malformed JSON). Default: 3
+  max_retries: 3
+
+  ## Cap total LLM token spend across all exploration iterations (decision
+  ## LLM + target agent tokens combined). When the cumulative count reaches
+  ## this value, the loop stops after the current iteration and results are
+  ## written normally. 0 = unlimited (default).
+  # max_tokens: 100000
+
+  ## Agent name reference — must match a name in the top-level agents section.
+  agent: fs-explorer

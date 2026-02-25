@@ -1,0 +1,68 @@
+## Example generator config for agent-benchmark test generation mode.
+## Run with: ./agent-benchmark -g examples/generator-config.yaml --dry-run
+##
+## The generator section controls test generation behaviour.
+## All other sections (providers, servers, agents) are copied verbatim into
+## the generated suite so it is immediately runnable with -s.
+## Output: generated/<timestamp>/suite.yaml + one YAML file per session.
+
+providers:
+  - name: gemini
+    type: GOOGLE
+    token: "{{GOOGLE_API_KEY}}"
+    model: gemini-2.0-flash
+
+servers:
+  - name: fs
+    type: stdio
+    command: npx -y @modelcontextprotocol/server-filesystem /tmp
+
+agents:
+  - name: file-agent
+    provider: gemini
+    servers:
+      - name: fs
+
+generator:
+  ## Agent whose LLM is used to generate the test YAML (defaults to first agent).
+  agent: file-agent
+
+  ## Number of tests to generate across all sessions.
+  test_count: 5
+
+  ## Complexity of the generated tests: simple | medium | complex
+  ##   simple  - single tool call per test
+  ##   medium  - 1-3 tool calls, may chain results
+  ##   complex - multi-step workflows, may use anyOf/allOf combinators
+  complexity: medium
+
+  ## Include tests that exercise edge cases (errors, boundary inputs, etc.)
+  include_edge_cases: false
+
+  ## Maximum number of tool-call steps to expect per test.
+  ## Keeps prompts appropriately scoped.
+  max_steps_per_test: 5
+
+  ## Maximum number of LLM generation attempts before giving up.
+  ## On each failed attempt the validation errors are fed back to the LLM.
+  ## Default: 3
+  max_retries: 3
+
+  ## Cap total LLM token spend across all generation attempts.
+  ## When cumulative tokens reach this value the run stops after the current
+  ## failed attempt and exits with an error. 0 = unlimited (default).
+  # max_tokens: 50000
+
+  ## Restrict test generation to a subset of tools (optional).
+  ## When omitted, all tools from all connected servers are used.
+  # tools:
+  #   - read_file
+  #   - list_directory
+
+  ## Extra instruction injected into the LLM generation prompt.
+  ## Use this to guide the generator toward specific scenarios or patterns.
+  # goal: "Focus on error handling and invalid input scenarios."
+
+  ## Maximum number of LLM conversation turns per generation call.
+  ## Uses the engine default when not set.
+  # max_iterations: 5

@@ -10,18 +10,20 @@
 2. [Key Features](#key-features)
 3. [Installation](#installation)
 4. [Command Line Reference](#command-line-reference)
-5. [Configuration](#configuration)
-6. [Test/Suite Definition](#testsuite-definition)
-7. [Assertions](#assertions)
-8. [Template System](#template-system)
-9. [Data Extraction](#data-extraction)
-10. [Reports](#reports)
-11. [Usage Examples](#usage-examples)
-12. [Best Practices](#best-practices)
-13. [Troubleshooting](#troubleshooting)
-14. [CI/CD Integration](#cicd-integration)
-15. [Architecture Notes](#architecture-notes)
-16. [Contributing](#contributing)
+5. [Test Generation](#test-generation)
+6. [Exploratory Testing](#exploratory-testing)
+7. [Configuration](#configuration)
+8. [Test/Suite Definition](#testsuite-definition)
+9. [Assertions](#assertions)
+10. [Template System](#template-system)
+11. [Data Extraction](#data-extraction)
+12. [Reports](#reports)
+13. [Usage Examples](#usage-examples)
+14. [Best Practices](#best-practices)
+15. [Troubleshooting](#troubleshooting)
+16. [CI/CD Integration](#cicd-integration)
+17. [Architecture Notes](#architecture-notes)
+18. [Contributing](#contributing)
 
 ---
 
@@ -228,8 +230,18 @@ agent-benchmark [options]
 Required (one of):
   -f <file>         Path to test configuration file (YAML)
   -s <file>         Path to suite configuration file (YAML)
+  -g <file>         Path to generator config file (enables test generation mode)
+  -e <file>         Path to explorer config file (enables exploratory testing mode)
   -generate-report <file>  Generate HTML report from existing JSON results file
                            (reads test_file from JSON to load AI summary config)
+
+Generator options (require -g):
+  --dry-run           Preview generated YAML without saving
+  --output-dir <dir>  Directory for generated test files (default: ./generated_tests)
+  --seed <int>        Random seed for deterministic generation
+
+Explorer options (require -e):
+  (none currently — all settings live in the explorer: YAML block)
 
 Optional:
   -o <file>         Output report path/filename without extension
@@ -268,6 +280,135 @@ Optional:
 # Generate both JSON and HTML reports (for later regeneration)
 ./agent-benchmark -f tests.yaml -o results -reportType json,html
 ```
+
+---
+
+## Test Generation
+
+Use the `-g` flag to automatically generate a ready-to-run test suite from a generator config.
+The generator connects to your MCP servers, discovers tool schemas, and uses an LLM to produce
+test sessions with typed assertions — no test authoring required.
+
+```bash
+# Preview generated YAML without saving anything
+./agent-benchmark -g examples/generator-config.yaml --dry-run
+
+# Generate and save to a timestamped directory under ./generated_tests/
+./agent-benchmark -g examples/generator-config.yaml
+
+# Custom output directory and deterministic seed
+./agent-benchmark -g gen.yaml --output-dir ./tests --seed 42
+```
+
+### How generation works
+
+The generator runs three sequential phases:
+
+**Phase 1 — Plan**
+A focused LLM call produces a compact JSON test plan: session names, test names, expected tools,
+and high-level assertion ideas. The plan is validated against the actual tool list before moving
+on. If validation fails the plan is regenerated (up to `max_retries` times).
+
+**Phase 2 — Intent**
+For each test in the plan, a separate LLM call produces a `TestIntent`: a flat JSON object with
+the prompt, typed assertion checks, and optional JSONPath extractors. The intent is validated
+(correct assertion types, real tool names, no forward variable references). If validation fails,
+one automatic repair attempt is made; if that also fails, the generator retries the full intent
+generation. Hard failure only if all `max_retries` are exhausted.
+
+**Phase 3 — Build**
+The validated intents are assembled deterministically into `model.Session` structs and
+serialized to YAML. No further LLM calls are made in this phase.
+
+### Output structure
+
+Each run writes to a timestamped subdirectory under `--output-dir` (default `./generated_tests`):
+
+```
+generated_tests/
+└── generated_20260301_120000/
+    ├── suite.yaml          ← run this with: agent-benchmark -s
+    ├── file-operations.yaml
+    └── error-handling.yaml
+```
+
+`suite.yaml` references every session file and is pre-populated with the original providers,
+servers, agents, and variables from the generator config — so the output is immediately runnable:
+
+```bash
+./agent-benchmark -s generated_tests/generated_20260301_120000/suite.yaml
+```
+
+### Generator config reference
+
+The `generator:` block controls generation behaviour:
+
+| Field                | Description | Default |
+|----------------------|-------------|---------|
+| `agent`              | Agent whose LLM is used for generation | first agent |
+| `test_count`         | Number of tests to generate across all sessions | `5` |
+| `complexity`         | `simple` \| `medium` \| `complex` (see below) | `medium` |
+| `include_edge_cases` | Include error/boundary condition tests | `false` |
+| `max_steps_per_test` | Max tool-call steps expected per test | `5` |
+| `max_retries`        | Max LLM attempts per phase before giving up | `3` |
+| `max_tokens`         | Stop if cumulative LLM tokens exceed this limit (0 = unlimited) | `0` |
+| `max_iterations`     | Max LLM conversation turns per generation call | engine default |
+| `plan_chunk_size`    | Max tests per plan chunk (0 = use default of 5) | `5` |
+| `plan_chunk_max_tokens` | Max output tokens per plan chunk LLM call (0 = auto) | auto |
+| `tools`              | Allowlist of tool names to test (empty = all tools) | all tools |
+| `goal`               | Extra instruction injected into the generation prompt | — |
+
+**Complexity levels:**
+
+| Level | Behaviour |
+|-------|-----------|
+| `simple` | One tool call per test; straightforward prompts |
+| `medium` | One to three tool calls; may chain tool results |
+| `complex` | Multi-step workflows; may use `anyOf`/`allOf` assertion combinators |
+
+See [`examples/generator-config.yaml`](examples/generator-config.yaml) for a fully annotated example.
+
+---
+
+## Exploratory Testing
+
+Use the `-e` flag to run an autonomous exploration session. The explorer LLM
+iteratively decides what test to run next, executes it against the configured
+agent, observes the result, and plans the next iteration — all without
+predefined test cases.
+
+```bash
+# Run an exploration session with default HTML report
+./agent-benchmark -e examples/explorer-config.yaml
+
+# With verbose logging and custom report path
+./agent-benchmark -e explorer.yaml -o ./reports/explore -reportType html,json -verbose
+```
+
+The `explorer:` block in your config controls the behaviour:
+
+| Field | Description | Default |
+|-------|-------------|---------|
+| `goal` | What the explorer is trying to test (required) | — |
+| `max_iterations` | Maximum number of test iterations | `10` |
+| `stop_on_pass_count` | Stop after N consecutive passes (0 = run all iterations) | `0` |
+| `max_retries` | LLM retry attempts per iteration if parsing fails | `3` |
+| `max_tokens` | Stop the exploration loop if cumulative tokens exceed this limit (0 = unlimited) | `0` |
+| `agent` | Agent name reference — must match a name in the top-level `agents` list. Its provider and servers are used for both exploration decisions and test execution. Defaults to the first agent when omitted. | — |
+
+**How exploration results appear in reports:**
+
+Results are fed into the standard report pipeline — no new report format is needed.
+Exploration metadata is encoded into existing report fields:
+
+| Metadata | Where it renders |
+|----------|-----------------|
+| `Exploration: <goal>` | Suite header |
+| `Exploration Goal: <goal>` | Session group header |
+| `[Iter NN \| prompt-NNN] <test name>` | Test group title |
+| Explorer LLM reasoning + decision prompt | Conversation history (system message) |
+
+See [`examples/explorer-config.yaml`](examples/explorer-config.yaml) for a fully annotated example.
 
 ---
 
