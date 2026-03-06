@@ -65,14 +65,14 @@ body {
 /* Summary Cards */
 .summary-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
     gap: 20px;
     margin-bottom: 30px;
 }
 
 .summary-card {
     background: var(--color-card);
-    padding: 24px;
+    padding: 16px 20px;
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-sm);
     text-align: center;
@@ -95,7 +95,7 @@ body {
 .summary-card.duration { border-top: 4px solid #3498db; }
 
 .summary-value {
-    font-size: 32px;
+    font-size: 26px;
     font-weight: 700;
     margin-bottom: 8px;
 }
@@ -2230,4 +2230,77 @@ body {
     .section { box-shadow: none; border: 1px solid #ddd; }
     .test-item[open] .test-details { display: block; }
     .agent-card-details[open] .agent-details-content { display: block; }
+}
+
+/* Error Overview */
+.error-overview-table td {
+    vertical-align: top;
+}
+
+.error-overview-table .row-warning {
+    background: rgba(245, 158, 11, 0.05);
+}
+
+.error-overview-table .row-warning:hover {
+    background: rgba(245, 158, 11, 0.1);
+}
+
+.badge-warning {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: rgba(245, 158, 11, 0.15);
+    color: #b45309;
+}
+
+.error-overview-name {
+    font-weight: 500;
+    min-width: 160px;
+}
+
+.error-overview-iter {
+    font-size: 0.75rem;
+    color: var(--color-text-light);
+}
+
+.error-detail-list {
+    margin: 0;
+    padding-left: 1.2em;
+    font-size: 0.8rem;
+    color: var(--color-text);
+}
+
+.error-detail-list li {
+    margin-bottom: 2px;
+    word-break: break-word;
+}
+
+.error-more {
+    color: var(--color-text-light);
+    font-style: italic;
+    list-style: none;
+    margin-left: -1.2em;
+}
+
+.test-anchor-link {
+    color: inherit;
+    text-decoration: none;
+    border-bottom: 1px dashed var(--color-border);
+}
+
+.test-anchor-link:hover {
+    border-bottom-color: var(--color-primary);
+    color: var(--color-primary);
+}
+
+.section-subtitle {
+    font-size: 0.85rem;
+    color: var(--color-text-light);
+    margin-left: 8px;
+}
+
+.text-muted {
+    color: var(--color-text-light);
 }

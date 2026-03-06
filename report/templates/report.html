@@ -69,6 +69,11 @@
         </section>
         {{end}}
 
+        <!-- Error Overview (shown when there are failures) -->
+        {{if .HasErrorOverview}}
+        {{template "error-overview" .}}
+        {{end}}
+
         <!-- Test Overview (for single-agent with multiple tests) -->
         {{if .Adaptive.Flags.ShowTestOverview}}
         {{template "test-overview" .}}
@@ -211,7 +216,7 @@
                     {{end}}
                     {{range $test := $sessionGroup.Tests}}
                     <tr class="{{if $test.Passed}}row-passed{{else}}row-failed{{end}} {{if or $.TestOverview.ShowFileGroups $.TestOverview.ShowSessionGroups}}matrix-test-indented{{end}}">
-                        <td>{{$test.TestName}}</td>
+                        <td>{{if $test.AnchorID}}<a href="#{{$test.AnchorID}}" class="test-anchor-link">{{$test.TestName}}</a>{{else}}{{$test.TestName}}{{end}}</td>
                         <td>
                             {{if $test.Passed}}
                             <span class="status-badge status-passed">✓ Passed</span>
@@ -227,6 +232,76 @@
                     {{end}}
                     {{end}}
                     {{end}}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+{{end}}
+
+{{/* ================ Error Overview ================ */}}
+{{define "error-overview"}}
+<section class="section">
+    <div class="section-header">
+        <h2 class="section-title">&#10060; Error Overview</h2>
+        <span class="section-subtitle">{{.ErrorOverview.TotalFailed}} issue{{if gt .ErrorOverview.TotalFailed 1}}s{{end}}</span>
+    </div>
+    <div class="section-body">
+        <div class="matrix-container">
+            <table class="comparison-matrix error-overview-table">
+                <thead>
+                    <tr>
+                        <th>Test</th>
+                        <th>Assertion Failures</th>
+                        <th>Errors</th>
+                        <th>Bug Findings</th>
+                        <th>Duration</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {{range .ErrorOverview.Rows}}
+                <tr class="{{if and .HasBugs (not .FailedAssertions) (not .Errors)}}row-warning{{else}}row-failed{{end}}">
+                    <td class="error-overview-name">
+                        {{if .AnchorID}}<a href="#{{.AnchorID}}" class="test-anchor-link">{{.TestName}}</a>{{else}}{{.TestName}}{{end}}
+                        {{if .Iteration}}<br><span class="error-overview-iter">{{.Iteration}}</span>{{end}}
+                        {{if and .HasBugs (not .FailedAssertions) (not .Errors)}}<br><span class="badge-warning">&#9888; Bugs</span>{{end}}
+                    </td>
+                    <td class="error-overview-assertions">
+                        {{if .FailedAssertions}}
+                        <ul class="error-detail-list">
+                            {{$total := len .FailedAssertions}}
+                            {{range $i, $msg := .FailedAssertions}}
+                            {{if lt $i 3}}<li>{{$msg}}</li>{{end}}
+                            {{end}}
+                            {{if gt $total 3}}<li class="error-more">+{{add $total -3}} more</li>{{end}}
+                        </ul>
+                        {{else}}<span class="text-muted">—</span>{{end}}
+                    </td>
+                    <td class="error-overview-errors">
+                        {{if .Errors}}
+                        <ul class="error-detail-list">
+                            {{$total := len .Errors}}
+                            {{range $i, $msg := .Errors}}
+                            {{if lt $i 3}}<li>{{$msg}}</li>{{end}}
+                            {{end}}
+                            {{if gt $total 3}}<li class="error-more">+{{add $total -3}} more</li>{{end}}
+                        </ul>
+                        {{else}}<span class="text-muted">—</span>{{end}}
+                    </td>
+                    <td class="error-overview-bugs">
+                        {{if .BugFindings}}
+                        <ul class="error-detail-list">
+                            {{$total := len .BugFindings}}
+                            {{range $i, $msg := .BugFindings}}
+                            {{if lt $i 3}}<li>{{$msg}}</li>{{end}}
+                            {{end}}
+                            {{if gt $total 3}}<li class="error-more">+{{add $total -3}} more</li>{{end}}
+                        </ul>
+                        {{else}}<span class="text-muted">—</span>{{end}}
+                    </td>
+                    <td>{{printf "%.1f" (divFloat .DurationMs 1000)}}s</td>
+                </tr>
+                {{end}}
                 </tbody>
             </table>
         </div>
@@ -545,7 +620,7 @@
             {{end}}
             
             {{range $testIdx, $test := $session.Tests}}
-            <div class="test-group-section">
+            <div id="{{$test.AnchorID}}" class="test-group-section">
                 {{template "adaptive-test-group" $test}}
             </div>
             {{end}}

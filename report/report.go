@@ -45,6 +45,9 @@ type ReportData struct {
 	// AI Summary - LLM-generated executive summary (optional)
 	AISummary    string // Markdown content from LLM analysis
 	HasAISummary bool   // Whether AI summary is available
+	// Error Overview - aggregated failure details
+	ErrorOverview    ErrorOverview
+	HasErrorOverview bool
 }
 
 // AdaptiveView is the unified hierarchical structure for all report sections
@@ -110,6 +113,7 @@ type AdaptiveSessionView struct {
 type AdaptiveTestView struct {
 	Name        string
 	UniqueKey   string // For matrix cell lookup
+	AnchorID    string // HTML anchor for navigation
 	SourceFile  string
 	SessionName string
 	Runs        []TestRunView // One per agent that ran this test
@@ -170,12 +174,31 @@ type TestOverviewSessionGroup struct {
 // TestOverviewRow represents a single test in the overview table
 type TestOverviewRow struct {
 	TestName   string
+	AnchorID   string
 	Passed     bool
 	DurationMs float64
 	TokensUsed int
 	ToolCalls  int
 	Assertions int
 	ErrorCount int
+}
+
+// ErrorOverviewRow represents one failed (or bug-bearing) test in the error overview table
+type ErrorOverviewRow struct {
+	TestName         string
+	AnchorID         string
+	FailedAssertions []string
+	Errors           []string
+	BugFindings      []string // "[toolName] bugType: explanation"
+	DurationMs       float64
+	Iteration        string // extracted from "[Iter NN ...]" prefix, or ""
+	HasBugs          bool
+}
+
+// ErrorOverview aggregates all failures for the overview table
+type ErrorOverview struct {
+	Rows        []ErrorOverviewRow
+	TotalFailed int
 }
 
 // MatrixView represents the test × agent comparison matrix
@@ -769,7 +792,10 @@ func buildReportData(results []model.TestRun) ReportData {
 	matrix := buildMatrix(results)
 	fileGroups := buildFileGroups(results)
 	sessionGroups := buildSessionGroups(results)
-	testOverview := buildTestOverview(results)
+	adaptiveView := buildAdaptiveView(results)
+	anchorMap := buildAnchorMap(adaptiveView)
+	testOverview := buildTestOverview(results, anchorMap)
+	errorOverview := buildErrorOverview(results, anchorMap)
 
 	totalTests := passed + failed
 	passRate := 0.0
@@ -796,19 +822,21 @@ func buildReportData(results []model.TestRun) ReportData {
 			MinDuration:     minDuration,
 			MaxDuration:     maxDuration,
 		},
-		AgentStats:    buildAgentStats(results),
-		Matrix:        matrix,
-		IsSuiteRun:    isSuiteRun,
-		SuiteName:     suiteName,
-		FileGroups:    fileGroups,
-		ShowSuiteInfo: showSuiteInfo,
-		SessionGroups: sessionGroups,
-		TestOverview:  testOverview,
-		Adaptive:      buildAdaptiveView(results),
+		AgentStats:       buildAgentStats(results),
+		Matrix:           matrix,
+		IsSuiteRun:       isSuiteRun,
+		SuiteName:        suiteName,
+		FileGroups:       fileGroups,
+		ShowSuiteInfo:    showSuiteInfo,
+		SessionGroups:    sessionGroups,
+		TestOverview:     testOverview,
+		Adaptive:         adaptiveView,
+		ErrorOverview:    errorOverview,
+		HasErrorOverview: errorOverview.TotalFailed > 0,
 	}
 }
 
-func buildTestOverview(results []model.TestRun) TestOverviewView {
+func buildTestOverview(results []model.TestRun, anchorMap map[string]string) TestOverviewView {
 	// Track unique files and sessions, maintaining execution order
 	fileSet := make(map[string]bool)
 	sessionSet := make(map[string]bool)
@@ -849,6 +877,7 @@ func buildTestOverview(results []model.TestRun) TestOverviewView {
 		key := groupKey{file: file, session: session}
 		groupedTests[key] = append(groupedTests[key], TestOverviewRow{
 			TestName:   r.Execution.TestName,
+			AnchorID:   anchorMap[getUniqueTestKey(r)],
 			Passed:     r.Passed,
 			DurationMs: float64(r.Execution.LatencyMs),
 			TokensUsed: r.Execution.TokensUsed,
@@ -1027,6 +1056,9 @@ func buildAdaptiveView(results []model.TestRun) AdaptiveView {
 		return fileOrder[fileNames[i]] < fileOrder[fileNames[j]]
 	})
 
+	// Counter for assigning anchor IDs
+	testCounter := 0
+
 	// Build AdaptiveFileView list
 	files := make([]AdaptiveFileView, 0, len(fileNames))
 	for _, fileName := range fileNames {
@@ -1093,9 +1125,11 @@ func buildAdaptiveView(results []model.TestRun) AdaptiveView {
 					}
 				}
 
+				testCounter++
 				tests = append(tests, AdaptiveTestView{
 					Name:        testName,
 					UniqueKey:   testKey,
+					AnchorID:    fmt.Sprintf("test-%d", testCounter),
 					SourceFile:  fileName,
 					SessionName: sessionName,
 					Runs:        runs,
@@ -1194,6 +1228,69 @@ func buildAdaptiveView(results []model.TestRun) AdaptiveView {
 		Flags: flags,
 		Files: files,
 	}
+}
+
+// buildAnchorMap extracts testKey -> anchorID from the adaptive view
+func buildAnchorMap(av AdaptiveView) map[string]string {
+	m := make(map[string]string)
+	for _, f := range av.Files {
+		for _, s := range f.Sessions {
+			for _, t := range s.Tests {
+				m[t.UniqueKey] = t.AnchorID
+			}
+		}
+	}
+	return m
+}
+
+// buildErrorOverview aggregates all failure and bug information for the error overview table
+func buildErrorOverview(results []model.TestRun, anchorMap map[string]string) ErrorOverview {
+	var rows []ErrorOverviewRow
+	for _, r := range results {
+		hasBugs := r.Execution != nil && len(r.Execution.BugFindings) > 0
+		if r.Passed && !hasBugs {
+			continue
+		}
+		var failedAssertions []string
+		for _, a := range r.Assertions {
+			if !a.Passed {
+				failedAssertions = append(failedAssertions, fmt.Sprintf("[%s] %s", a.Type, a.Message))
+			}
+		}
+		var bugFindings []string
+		if r.Execution != nil {
+			for _, bf := range r.Execution.BugFindings {
+				bugFindings = append(bugFindings,
+					fmt.Sprintf("[%s] %s: %s", bf.ToolName, bf.BugType, bf.Explanation))
+			}
+		}
+		iter := ""
+		if r.Execution != nil && strings.HasPrefix(r.Execution.TestName, "[Iter ") {
+			end := strings.Index(r.Execution.TestName, "]")
+			if end > 0 {
+				iter = r.Execution.TestName[1:end]
+			}
+		}
+		testName := ""
+		var errors []string
+		var latencyMs int64
+		if r.Execution != nil {
+			testName = r.Execution.TestName
+			errors = r.Execution.Errors
+			latencyMs = r.Execution.LatencyMs
+		}
+		rows = append(rows, ErrorOverviewRow{
+			TestName:         testName,
+			AnchorID:         anchorMap[getUniqueTestKey(r)],
+			FailedAssertions: failedAssertions,
+			Errors:           errors,
+			BugFindings:      bugFindings,
+			DurationMs:       float64(latencyMs),
+			Iteration:        iter,
+			HasBugs:          hasBugs,
+		})
+	}
+	return ErrorOverview{Rows: rows, TotalFailed: len(rows)}
 }
 
 // buildTestRunView creates a TestRunView from a TestRun

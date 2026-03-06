@@ -2242,6 +2242,61 @@ body {
     .agent-card-details[open] .agent-details-content { display: block; }
 }
 
+/* Error Overview */
+.error-overview-table td {
+    vertical-align: top;
+}
+
+.error-overview-name {
+    font-weight: 500;
+    min-width: 160px;
+}
+
+.error-overview-iter {
+    font-size: 0.75rem;
+    color: var(--color-text-light);
+}
+
+.error-detail-list {
+    margin: 0;
+    padding-left: 1.2em;
+    font-size: 0.8rem;
+    color: var(--color-text);
+}
+
+.error-detail-list li {
+    margin-bottom: 2px;
+    word-break: break-word;
+}
+
+.error-more {
+    color: var(--color-text-light);
+    font-style: italic;
+    list-style: none;
+    margin-left: -1.2em;
+}
+
+.test-anchor-link {
+    color: inherit;
+    text-decoration: none;
+    border-bottom: 1px dashed var(--color-border);
+}
+
+.test-anchor-link:hover {
+    border-bottom-color: var(--color-primary);
+    color: var(--color-primary);
+}
+
+.section-subtitle {
+    font-size: 0.85rem;
+    color: var(--color-text-light);
+    margin-left: 8px;
+}
+
+.text-muted {
+    color: var(--color-text-light);
+}
+
     </style>
 </head>
 <body>
@@ -2250,7 +2305,7 @@ body {
             <h1>🧪 Agent Benchmark Report</h1>
             <div class="report-meta">
                 <span>📦 Version: 0.0.0-SNAPSHOT</span>
-                <span>📅 Generated: 2026-01-26T13:13:45&#43;01:00</span>
+                <span>📅 Generated: 2026-03-06T11:04:54&#43;01:00</span>
                 
                 
                 <span>📄 Files: 3</span>
@@ -2361,6 +2416,67 @@ claude-agent demonstrated good versatility across different test files with vary
         
 <section class="section">
     <div class="section-header">
+        <h2 class="section-title">&#10060; Error Overview</h2>
+        <span class="section-subtitle">1 failed test</span>
+    </div>
+    <div class="section-body">
+        <div class="matrix-container">
+            <table class="comparison-matrix error-overview-table">
+                <thead>
+                    <tr>
+                        <th>Test</th>
+                        <th>Assertion Failures</th>
+                        <th>Errors</th>
+                        <th>Duration</th>
+                    </tr>
+                </thead>
+                <tbody>
+                
+                <tr class="row-failed">
+                    <td class="error-overview-name">
+                        <a href="#test-6" class="test-anchor-link">Test users endpoint</a>
+                        
+                    </td>
+                    <td class="error-overview-assertions">
+                        
+                        <ul class="error-detail-list">
+                            
+                            
+                            <li>[output_contains] Output should contain &#39;200&#39;</li>
+                            
+                            <li>[no_error_messages] Response timeout after 1000ms</li>
+                            
+                            
+                        </ul>
+                        
+                    </td>
+                    <td class="error-overview-errors">
+                        
+                        <ul class="error-detail-list">
+                            
+                            
+                            <li>Response timeout after 1000ms</li>
+                            
+                            
+                        </ul>
+                        
+                    </td>
+                    <td>1.5s</td>
+                </tr>
+                
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+        
+
+        
+        
+        
+<section class="section">
+    <div class="section-header">
         <h2 class="section-title">📋 Test Overview</h2>
     </div>
     <div class="section-body">
@@ -2397,7 +2513,7 @@ claude-agent demonstrated good versatility across different test files with vary
                     
                     
                     <tr class="row-passed matrix-test-indented">
-                        <td>Create config file</td>
+                        <td><a href="#test-1" class="test-anchor-link">Create config file</a></td>
                         <td>
                             
                             <span class="status-badge status-passed">✓ Passed</span>
@@ -2410,7 +2526,7 @@ claude-agent demonstrated good versatility across different test files with vary
                     </tr>
                     
                     <tr class="row-passed matrix-test-indented">
-                        <td>Validate config syntax</td>
+                        <td><a href="#test-2" class="test-anchor-link">Validate config syntax</a></td>
                         <td>
                             
                             <span class="status-badge status-passed">✓ Passed</span>
@@ -2443,7 +2559,7 @@ claude-agent demonstrated good versatility across different test files with vary
                     
                     
                     <tr class="row-passed matrix-test-indented">
-                        <td>Connect to database</td>
+                        <td><a href="#test-3" class="test-anchor-link">Connect to database</a></td>
                         <td>
                             
                             <span class="status-badge status-passed">✓ Passed</span>
@@ -2456,7 +2572,7 @@ claude-agent demonstrated good versatility across different test files with vary
                     </tr>
                     
                     <tr class="row-passed matrix-test-indented">
-                        <td>Query users table</td>
+                        <td><a href="#test-4" class="test-anchor-link">Query users table</a></td>
                         <td>
                             
                             <span class="status-badge status-passed">✓ Passed</span>
@@ -2489,7 +2605,7 @@ claude-agent demonstrated good versatility across different test files with vary
                     
                     
                     <tr class="row-passed matrix-test-indented">
-                        <td>Test health endpoint</td>
+                        <td><a href="#test-5" class="test-anchor-link">Test health endpoint</a></td>
                         <td>
                             
                             <span class="status-badge status-passed">✓ Passed</span>
@@ -2502,7 +2618,7 @@ claude-agent demonstrated good versatility across different test files with vary
                     </tr>
                     
                     <tr class="row-failed matrix-test-indented">
-                        <td>Test users endpoint</td>
+                        <td><a href="#test-6" class="test-anchor-link">Test users endpoint</a></td>
                         <td>
                             
                             <span class="status-badge status-failed">✗ Failed</span>
@@ -2668,7 +2784,7 @@ claude-agent demonstrated good versatility across different test files with vary
             
             
             
-            <div class="test-group-section">
+            <div id="test-1" class="test-group-section">
                 
 <div class="test-group-header">
     <h3 class="test-group-title">Create config file</h3>
@@ -2833,7 +2949,7 @@ sequenceDiagram
 
             </div>
             
-            <div class="test-group-section">
+            <div id="test-2" class="test-group-section">
                 
 <div class="test-group-header">
     <h3 class="test-group-title">Validate config syntax</h3>
@@ -3072,7 +3188,7 @@ sequenceDiagram
             
             
             
-            <div class="test-group-section">
+            <div id="test-3" class="test-group-section">
                 
 <div class="test-group-header">
     <h3 class="test-group-title">Connect to database</h3>
@@ -3237,7 +3353,7 @@ sequenceDiagram
 
             </div>
             
-            <div class="test-group-section">
+            <div id="test-4" class="test-group-section">
                 
 <div class="test-group-header">
     <h3 class="test-group-title">Query users table</h3>
@@ -3476,7 +3592,7 @@ sequenceDiagram
             
             
             
-            <div class="test-group-section">
+            <div id="test-5" class="test-group-section">
                 
 <div class="test-group-header">
     <h3 class="test-group-title">Test health endpoint</h3>
@@ -3640,7 +3756,7 @@ sequenceDiagram
 
             </div>
             
-            <div class="test-group-section">
+            <div id="test-6" class="test-group-section">
                 
 <div class="test-group-header">
     <h3 class="test-group-title">Test users endpoint</h3>
@@ -3996,6 +4112,9 @@ sequenceDiagram
 
 </body>
 </html>
+
+
+
 
 
 

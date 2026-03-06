@@ -2242,6 +2242,61 @@ body {
     .agent-card-details[open] .agent-details-content { display: block; }
 }
 
+/* Error Overview */
+.error-overview-table td {
+    vertical-align: top;
+}
+
+.error-overview-name {
+    font-weight: 500;
+    min-width: 160px;
+}
+
+.error-overview-iter {
+    font-size: 0.75rem;
+    color: var(--color-text-light);
+}
+
+.error-detail-list {
+    margin: 0;
+    padding-left: 1.2em;
+    font-size: 0.8rem;
+    color: var(--color-text);
+}
+
+.error-detail-list li {
+    margin-bottom: 2px;
+    word-break: break-word;
+}
+
+.error-more {
+    color: var(--color-text-light);
+    font-style: italic;
+    list-style: none;
+    margin-left: -1.2em;
+}
+
+.test-anchor-link {
+    color: inherit;
+    text-decoration: none;
+    border-bottom: 1px dashed var(--color-border);
+}
+
+.test-anchor-link:hover {
+    border-bottom-color: var(--color-primary);
+    color: var(--color-primary);
+}
+
+.section-subtitle {
+    font-size: 0.85rem;
+    color: var(--color-text-light);
+    margin-left: 8px;
+}
+
+.text-muted {
+    color: var(--color-text-light);
+}
+
     </style>
 </head>
 <body>
@@ -2250,7 +2305,7 @@ body {
             <h1>🧪 Agent Benchmark Report</h1>
             <div class="report-meta">
                 <span>📦 Version: 0.0.0-SNAPSHOT</span>
-                <span>📅 Generated: 2026-01-26T13:13:46&#43;01:00</span>
+                <span>📅 Generated: 2026-03-06T11:04:54&#43;01:00</span>
                 
                 
                 <span>📄 Files: 4</span>
@@ -2356,6 +2411,297 @@ phoenix-agent (70%): Inconsistent tool selection. Sometimes chose http_get when 
 - phoenix-agent: Not recommended without retraining</div>
             </div>
         </section>
+        
+
+        
+        
+        
+<section class="section">
+    <div class="section-header">
+        <h2 class="section-title">&#10060; Error Overview</h2>
+        <span class="section-subtitle">9 failed tests</span>
+    </div>
+    <div class="section-body">
+        <div class="matrix-container">
+            <table class="comparison-matrix error-overview-table">
+                <thead>
+                    <tr>
+                        <th>Test</th>
+                        <th>Assertion Failures</th>
+                        <th>Errors</th>
+                        <th>Duration</th>
+                    </tr>
+                </thead>
+                <tbody>
+                
+                <tr class="row-failed">
+                    <td class="error-overview-name">
+                        <a href="#test-2" class="test-anchor-link">Read and verify config</a>
+                        
+                    </td>
+                    <td class="error-overview-assertions">
+                        
+                        <ul class="error-detail-list">
+                            
+                            
+                            <li>[output_contains] Output does not contain port number</li>
+                            
+                            
+                        </ul>
+                        
+                    </td>
+                    <td class="error-overview-errors">
+                        <span class="text-muted">—</span>
+                    </td>
+                    <td>1.2s</td>
+                </tr>
+                
+                <tr class="row-failed">
+                    <td class="error-overview-name">
+                        <a href="#test-1" class="test-anchor-link">Create config file</a>
+                        
+                    </td>
+                    <td class="error-overview-assertions">
+                        
+                        <ul class="error-detail-list">
+                            
+                            
+                            <li>[tool_param_contains] Path parameter is wrong</li>
+                            
+                            
+                        </ul>
+                        
+                    </td>
+                    <td class="error-overview-errors">
+                        
+                        <ul class="error-detail-list">
+                            
+                            
+                            <li>Permission denied</li>
+                            
+                            <li>Invalid path</li>
+                            
+                            
+                        </ul>
+                        
+                    </td>
+                    <td>1.5s</td>
+                </tr>
+                
+                <tr class="row-failed">
+                    <td class="error-overview-name">
+                        <a href="#test-2" class="test-anchor-link">Read and verify config</a>
+                        
+                    </td>
+                    <td class="error-overview-assertions">
+                        
+                        <ul class="error-detail-list">
+                            
+                            
+                            <li>[output_contains] Output does not contain port number</li>
+                            
+                            
+                        </ul>
+                        
+                    </td>
+                    <td class="error-overview-errors">
+                        
+                        <ul class="error-detail-list">
+                            
+                            
+                            <li>File not found</li>
+                            
+                            
+                        </ul>
+                        
+                    </td>
+                    <td>1.2s</td>
+                </tr>
+                
+                <tr class="row-failed">
+                    <td class="error-overview-name">
+                        <a href="#test-3" class="test-anchor-link">Connect to database</a>
+                        
+                    </td>
+                    <td class="error-overview-assertions">
+                        
+                        <ul class="error-detail-list">
+                            
+                            
+                            <li>[no_error_messages] Connection failed with error</li>
+                            
+                            
+                        </ul>
+                        
+                    </td>
+                    <td class="error-overview-errors">
+                        
+                        <ul class="error-detail-list">
+                            
+                            
+                            <li>Connection timeout</li>
+                            
+                            
+                        </ul>
+                        
+                    </td>
+                    <td>2.0s</td>
+                </tr>
+                
+                <tr class="row-failed">
+                    <td class="error-overview-name">
+                        <a href="#test-3" class="test-anchor-link">Connect to database</a>
+                        
+                    </td>
+                    <td class="error-overview-assertions">
+                        
+                        <ul class="error-detail-list">
+                            
+                            
+                            <li>[no_error_messages] Connection failed with error</li>
+                            
+                            
+                        </ul>
+                        
+                    </td>
+                    <td class="error-overview-errors">
+                        
+                        <ul class="error-detail-list">
+                            
+                            
+                            <li>Unknown host</li>
+                            
+                            <li>DNS resolution failed</li>
+                            
+                            
+                        </ul>
+                        
+                    </td>
+                    <td>2.0s</td>
+                </tr>
+                
+                <tr class="row-failed">
+                    <td class="error-overview-name">
+                        <a href="#test-4" class="test-anchor-link">Query users table</a>
+                        
+                    </td>
+                    <td class="error-overview-assertions">
+                        
+                        <ul class="error-detail-list">
+                            
+                            
+                            <li>[output_contains] Output contains SQL error</li>
+                            
+                            
+                        </ul>
+                        
+                    </td>
+                    <td class="error-overview-errors">
+                        
+                        <ul class="error-detail-list">
+                            
+                            
+                            <li>SQL syntax error</li>
+                            
+                            
+                        </ul>
+                        
+                    </td>
+                    <td>1.0s</td>
+                </tr>
+                
+                <tr class="row-failed">
+                    <td class="error-overview-name">
+                        <a href="#test-5" class="test-anchor-link">Health check API</a>
+                        
+                    </td>
+                    <td class="error-overview-assertions">
+                        
+                        <ul class="error-detail-list">
+                            
+                            
+                            <li>[output_contains] Output does not contain &#39;healthy&#39;</li>
+                            
+                            
+                        </ul>
+                        
+                    </td>
+                    <td class="error-overview-errors">
+                        
+                        <ul class="error-detail-list">
+                            
+                            
+                            <li>Connection refused</li>
+                            
+                            
+                        </ul>
+                        
+                    </td>
+                    <td>0.8s</td>
+                </tr>
+                
+                <tr class="row-failed">
+                    <td class="error-overview-name">
+                        <a href="#test-6" class="test-anchor-link">Cleanup temp files</a>
+                        
+                    </td>
+                    <td class="error-overview-assertions">
+                        
+                        <ul class="error-detail-list">
+                            
+                            
+                            <li>[output_not_contains] Output mentions remaining file or error</li>
+                            
+                            
+                        </ul>
+                        
+                    </td>
+                    <td class="error-overview-errors">
+                        <span class="text-muted">—</span>
+                    </td>
+                    <td>1.2s</td>
+                </tr>
+                
+                <tr class="row-failed">
+                    <td class="error-overview-name">
+                        <a href="#test-6" class="test-anchor-link">Cleanup temp files</a>
+                        
+                    </td>
+                    <td class="error-overview-assertions">
+                        
+                        <ul class="error-detail-list">
+                            
+                            
+                            <li>[tool_called] Tool called with wrong path</li>
+                            
+                            <li>[output_not_contains] Output mentions remaining file or error</li>
+                            
+                            
+                        </ul>
+                        
+                    </td>
+                    <td class="error-overview-errors">
+                        
+                        <ul class="error-detail-list">
+                            
+                            
+                            <li>Path not found</li>
+                            
+                            <li>Cleanup failed</li>
+                            
+                            
+                        </ul>
+                        
+                    </td>
+                    <td>1.2s</td>
+                </tr>
+                
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
         
 
         
@@ -3247,7 +3593,7 @@ phoenix-agent (70%): Inconsistent tool selection. Sometimes chose http_get when 
             
             
             
-            <div class="test-group-section">
+            <div id="test-1" class="test-group-section">
                 
 <div class="test-group-header">
     <h3 class="test-group-title">Create config file</h3>
@@ -4143,7 +4489,7 @@ sequenceDiagram
 
             </div>
             
-            <div class="test-group-section">
+            <div id="test-2" class="test-group-section">
                 
 <div class="test-group-header">
     <h3 class="test-group-title">Read and verify config</h3>
@@ -5217,7 +5563,7 @@ sequenceDiagram
             
             
             
-            <div class="test-group-section">
+            <div id="test-3" class="test-group-section">
                 
 <div class="test-group-header">
     <h3 class="test-group-title">Connect to database</h3>
@@ -6130,7 +6476,7 @@ sequenceDiagram
 
             </div>
             
-            <div class="test-group-section">
+            <div id="test-4" class="test-group-section">
                 
 <div class="test-group-header">
     <h3 class="test-group-title">Query users table</h3>
@@ -7162,7 +7508,7 @@ sequenceDiagram
             
             
             
-            <div class="test-group-section">
+            <div id="test-5" class="test-group-section">
                 
 <div class="test-group-header">
     <h3 class="test-group-title">Health check API</h3>
@@ -8198,7 +8544,7 @@ sequenceDiagram
             
             
             
-            <div class="test-group-section">
+            <div id="test-6" class="test-group-section">
                 
 <div class="test-group-header">
     <h3 class="test-group-title">Cleanup temp files</h3>
@@ -9394,6 +9740,9 @@ sequenceDiagram
 
 </body>
 </html>
+
+
+
 
 
 

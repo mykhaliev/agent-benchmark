@@ -325,6 +325,7 @@ type ExecutionResult struct {
 	SessionName        string              `json:"sessionName,omitempty"`        // Session name
 	RateLimitStats     *RateLimitStats     `json:"rateLimitStats,omitempty"`     // Rate limiting and 429 stats
 	ClarificationStats *ClarificationStats `json:"clarificationStats,omitempty"` // Clarification detection stats
+	BugFindings        []BugFinding        `json:"bugFindings,omitempty"`        // MCP server-side bugs detected in tool responses
 }
 
 // ClarificationStats tracks when the LLM asks for clarification instead of acting
@@ -332,6 +333,14 @@ type ClarificationStats struct {
 	Count      int      `json:"count"`      // Number of clarification requests detected
 	Iterations []int    `json:"iterations"` // Which iterations had clarification requests
 	Examples   []string `json:"examples"`   // Sample text from clarification requests (truncated)
+}
+
+// BugFinding records a server-side MCP bug detected in a tool call response
+type BugFinding struct {
+	ToolName    string `json:"toolName"`
+	BugType     string `json:"bugType"`
+	Explanation string `json:"explanation"`
+	ServerName  string `json:"serverName,omitempty"`
 }
 
 // RateLimitStats tracks statistics about rate limiting and 429 handling

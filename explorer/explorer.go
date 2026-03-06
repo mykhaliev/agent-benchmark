@@ -96,11 +96,10 @@ func Run(ctx context.Context, configPath, outputDir, reportFileName string, repo
 	}
 
 	// Run the exploration loop.
+	timestamp := time.Now().Format("20060102_150405")
 	registry := NewPromptRegistry()
 	adapter := &ExplorationTestAdapter{}
 	allResults, testDefs := runExplorationLoop(ctx, cfg, explorerLLM, agents, providers, tools, registry, adapter, cfg.Explorer.Agent, configPath)
-
-	timestamp := time.Now().Format("20060102_150405")
 
 	// Write output folder with YAML exports and reports.
 	if err := os.MkdirAll(outputDir, 0755); err != nil {
@@ -178,18 +177,22 @@ func writeExplorationOutput(
 		}
 	}
 
-	// Count passes and failures.
-	passed, failed := 0, 0
+	// Count passes, failures, and bug findings.
+	passed, failed, bugCount := 0, 0, 0
 	for _, r := range allResults {
 		if r.Passed {
 			passed++
 		} else {
 			failed++
 		}
+		if r.Execution != nil {
+			bugCount += len(r.Execution.BugFindings)
+		}
 	}
 	total := len(allResults)
 
-	headerLine := fmt.Sprintf("Exploration run — %d tests, %d passed, %d failed", total, passed, failed)
+	headerLine := fmt.Sprintf("Exploration run — %d tests, %d passed, %d failed, %d MCP bugs detected",
+		total, passed, failed, bugCount)
 	engine.PrintOutputTree(subdir, headerLine, []string{sessionsFile}, []int{len(testDefs)})
 
 	if len(reportTypes) > 0 {
@@ -356,7 +359,38 @@ func runExplorationLoop(
 			}
 		}
 
-		// 8. Accumulate results and RTDs.
+		// 8. Detect MCP bugs in tool call responses and store on execution results.
+		mcpAgent := agents[agentName]
+		for i := range testResults {
+			if testResults[i].Execution == nil {
+				continue
+			}
+			for _, tc := range testResults[i].Execution.ToolCalls {
+				bugType, msg, isBug, err := AnalyzeToolCallWithLLM(ctx, explorerLLM, tc, &totalTokens)
+				if err != nil {
+					logger.Logger.Warn("LLM bug analysis failed", "tool", tc.Name, "error", err)
+					continue
+				}
+				if !isBug {
+					continue
+				}
+				serverName := ""
+				if mcpAgent != nil {
+					serverName = mcpAgent.ToolToServer[tc.Name]
+				}
+				testResults[i].Execution.BugFindings = append(
+					testResults[i].Execution.BugFindings,
+					model.BugFinding{
+						ToolName:    tc.Name,
+						BugType:     string(bugType),
+						Explanation: msg,
+						ServerName:  serverName,
+					},
+				)
+			}
+		}
+
+		// Accumulate results and RTDs.
 		for _, tr := range testResults {
 			if tr.Execution != nil {
 				totalTokens += tr.Execution.TokensUsed

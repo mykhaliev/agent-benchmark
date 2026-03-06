@@ -705,3 +705,169 @@ func parseExplorerConfigFromBytes(data []byte) (*ExplorerConfig, error) {
 
 // Ensure time import is used.
 var _ = time.Now
+
+// ============================================================================
+// TestAnalyzeToolCallWithLLM
+// ============================================================================
+
+func makeTC(text string) model.ToolCall {
+	return model.ToolCall{
+		Name:      "test_tool",
+		Timestamp: time.Now(),
+		Result: model.Result{
+			Content: []model.ContentItem{{Type: "text", Text: text}},
+		},
+	}
+}
+
+func makeBugAnalysisResponse(isBug bool, bugType, explanation string) *llms.ContentResponse {
+	j := fmt.Sprintf(`{"is_bug": %v, "bug_type": %q, "explanation": %q}`,
+		isBug, bugType, explanation)
+	return &llms.ContentResponse{
+		Choices: []*llms.ContentChoice{{Content: j}},
+	}
+}
+
+func TestAnalyzeToolCallWithLLM_EmptyResponse_PrefligthNoCAll(t *testing.T) {
+	// Empty content → pre-flight catches it without calling the LLM.
+	tc := model.ToolCall{
+		Name:      "test_tool",
+		Timestamp: time.Now(),
+		Result:    model.Result{},
+	}
+	// mock with no responses configured — if called it would error.
+	mock := &mockExplorerLLM{}
+	bugType, msg, isBug, err := AnalyzeToolCallWithLLM(context.Background(), mock, tc, nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !isBug {
+		t.Fatal("expected bug detected")
+	}
+	if bugType != BugTypeEmptyResponse {
+		t.Fatalf("expected EMPTY_RESPONSE, got %s", bugType)
+	}
+	if msg == "" {
+		t.Fatal("expected non-empty message")
+	}
+	if mock.callIdx != 0 {
+		t.Fatal("LLM should not have been called for empty response")
+	}
+}
+
+func TestAnalyzeToolCallWithLLM_LLMDetectsBug(t *testing.T) {
+	tc := makeTC("panic: runtime error: index out of range")
+	mock := &mockExplorerLLM{
+		responses: []*llms.ContentResponse{
+			makeBugAnalysisResponse(true, "STACKTRACE_RETURNED", "Response contains a Go panic stacktrace"),
+		},
+	}
+	bugType, msg, isBug, err := AnalyzeToolCallWithLLM(context.Background(), mock, tc, nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !isBug {
+		t.Fatal("expected bug detected")
+	}
+	if bugType != BugTypeStacktraceReturned {
+		t.Fatalf("expected STACKTRACE_RETURNED, got %s", bugType)
+	}
+	if msg == "" {
+		t.Fatal("expected non-empty explanation")
+	}
+}
+
+func TestAnalyzeToolCallWithLLM_LLMSaysNoBug(t *testing.T) {
+	tc := makeTC("The result is 42")
+	mock := &mockExplorerLLM{
+		responses: []*llms.ContentResponse{
+			makeBugAnalysisResponse(false, "", "Normal successful response"),
+		},
+	}
+	_, _, isBug, err := AnalyzeToolCallWithLLM(context.Background(), mock, tc, nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if isBug {
+		t.Fatal("expected no bug for clean response")
+	}
+}
+
+func TestAnalyzeToolCallWithLLM_LLMCallFails_ReturnsFalse(t *testing.T) {
+	tc := makeTC("some response")
+	// mock has no responses → GenerateContent returns error
+	mock := &mockExplorerLLM{}
+	_, _, isBug, err := AnalyzeToolCallWithLLM(context.Background(), mock, tc, nil)
+	// fallback: no error returned to caller, no bug flagged
+	if err != nil {
+		t.Fatalf("expected nil error (fallback), got: %v", err)
+	}
+	if isBug {
+		t.Fatal("expected no bug on LLM failure (fallback)")
+	}
+}
+
+func TestAnalyzeToolCallWithLLM_MalformedLLMJSON_ReturnsFalse(t *testing.T) {
+	tc := makeTC("some response")
+	mock := &mockExplorerLLM{
+		responses: []*llms.ContentResponse{
+			{Choices: []*llms.ContentChoice{{Content: "not valid json at all"}}},
+		},
+	}
+	_, _, isBug, err := AnalyzeToolCallWithLLM(context.Background(), mock, tc, nil)
+	if err != nil {
+		t.Fatalf("expected nil error (fallback), got: %v", err)
+	}
+	if isBug {
+		t.Fatal("expected no bug when LLM returns malformed JSON (fallback)")
+	}
+}
+
+func TestAnalyzeToolCallWithLLM_TokensAccumulated(t *testing.T) {
+	tc := makeTC("something")
+	mock := &mockExplorerLLM{
+		responses: []*llms.ContentResponse{
+			{
+				Choices: []*llms.ContentChoice{{
+					Content:        `{"is_bug": false, "bug_type": "", "explanation": "fine"}`,
+					GenerationInfo: map[string]any{"TotalTokens": 42},
+				}},
+			},
+		},
+	}
+	var tokens int
+	_, _, _, err := AnalyzeToolCallWithLLM(context.Background(), mock, tc, &tokens)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if tokens != 42 {
+		t.Errorf("expected 42 tokens accumulated, got %d", tokens)
+	}
+}
+
+// ============================================================================
+// TestBugFindings — model.BugFinding stored on ExecutionResult
+// ============================================================================
+
+func TestBugFindings_StoredOnExecutionResult(t *testing.T) {
+	findings := []model.BugFinding{
+		{ToolName: "tool_a", BugType: string(BugTypeEmptyResponse), Explanation: "empty", ServerName: "srv1"},
+		{ToolName: "tool_b", BugType: string(BugTypeTimeout), Explanation: "timeout", ServerName: "srv1"},
+		{ToolName: "tool_a", BugType: string(BugTypeMalformedJSON), Explanation: "bad json", ServerName: "srv2"},
+	}
+
+	result := model.ExecutionResult{BugFindings: findings}
+
+	if len(result.BugFindings) != 3 {
+		t.Fatalf("expected 3 bug findings, got %d", len(result.BugFindings))
+	}
+	if result.BugFindings[0].ToolName != "tool_a" {
+		t.Errorf("unexpected tool name: %s", result.BugFindings[0].ToolName)
+	}
+	if result.BugFindings[1].BugType != string(BugTypeTimeout) {
+		t.Errorf("unexpected bug type: %s", result.BugFindings[1].BugType)
+	}
+	if result.BugFindings[2].ServerName != "srv2" {
+		t.Errorf("unexpected server name: %s", result.BugFindings[2].ServerName)
+	}
+}

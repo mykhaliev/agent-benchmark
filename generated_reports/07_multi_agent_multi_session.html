@@ -2242,6 +2242,61 @@ body {
     .agent-card-details[open] .agent-details-content { display: block; }
 }
 
+/* Error Overview */
+.error-overview-table td {
+    vertical-align: top;
+}
+
+.error-overview-name {
+    font-weight: 500;
+    min-width: 160px;
+}
+
+.error-overview-iter {
+    font-size: 0.75rem;
+    color: var(--color-text-light);
+}
+
+.error-detail-list {
+    margin: 0;
+    padding-left: 1.2em;
+    font-size: 0.8rem;
+    color: var(--color-text);
+}
+
+.error-detail-list li {
+    margin-bottom: 2px;
+    word-break: break-word;
+}
+
+.error-more {
+    color: var(--color-text-light);
+    font-style: italic;
+    list-style: none;
+    margin-left: -1.2em;
+}
+
+.test-anchor-link {
+    color: inherit;
+    text-decoration: none;
+    border-bottom: 1px dashed var(--color-border);
+}
+
+.test-anchor-link:hover {
+    border-bottom-color: var(--color-primary);
+    color: var(--color-primary);
+}
+
+.section-subtitle {
+    font-size: 0.85rem;
+    color: var(--color-text-light);
+    margin-left: 8px;
+}
+
+.text-muted {
+    color: var(--color-text-light);
+}
+
     </style>
 </head>
 <body>
@@ -2250,7 +2305,7 @@ body {
             <h1>🧪 Agent Benchmark Report</h1>
             <div class="report-meta">
                 <span>📦 Version: 0.0.0-SNAPSHOT</span>
-                <span>📅 Generated: 2026-01-26T13:13:46&#43;01:00</span>
+                <span>📅 Generated: 2026-03-06T11:04:54&#43;01:00</span>
                 
                 
             </div>
@@ -2350,6 +2405,107 @@ gpt-agent (67%): One failure in config reading session. Struggled with YAML pars
 - gpt-agent: Avoid for configuration/YAML parsing tasks</div>
             </div>
         </section>
+        
+
+        
+        
+        
+<section class="section">
+    <div class="section-header">
+        <h2 class="section-title">&#10060; Error Overview</h2>
+        <span class="section-subtitle">4 failed tests</span>
+    </div>
+    <div class="section-body">
+        <div class="matrix-container">
+            <table class="comparison-matrix error-overview-table">
+                <thead>
+                    <tr>
+                        <th>Test</th>
+                        <th>Assertion Failures</th>
+                        <th>Errors</th>
+                        <th>Duration</th>
+                    </tr>
+                </thead>
+                <tbody>
+                
+                <tr class="row-failed">
+                    <td class="error-overview-name">
+                        <a href="#test-2" class="test-anchor-link">Initialize config</a>
+                        
+                    </td>
+                    <td class="error-overview-assertions">
+                        <span class="text-muted">—</span>
+                    </td>
+                    <td class="error-overview-errors">
+                        <span class="text-muted">—</span>
+                    </td>
+                    <td>2.0s</td>
+                </tr>
+                
+                <tr class="row-failed">
+                    <td class="error-overview-name">
+                        <a href="#test-6" class="test-anchor-link">Delete temp files</a>
+                        
+                    </td>
+                    <td class="error-overview-assertions">
+                        <span class="text-muted">—</span>
+                    </td>
+                    <td class="error-overview-errors">
+                        <span class="text-muted">—</span>
+                    </td>
+                    <td>1.2s</td>
+                </tr>
+                
+                <tr class="row-failed">
+                    <td class="error-overview-name">
+                        <a href="#test-7" class="test-anchor-link">Close connections</a>
+                        
+                    </td>
+                    <td class="error-overview-assertions">
+                        
+                        <ul class="error-detail-list">
+                            
+                            
+                            <li>[output_contains] Output does not contain &#39;closed&#39;</li>
+                            
+                            
+                        </ul>
+                        
+                    </td>
+                    <td class="error-overview-errors">
+                        <span class="text-muted">—</span>
+                    </td>
+                    <td>1.5s</td>
+                </tr>
+                
+                <tr class="row-failed">
+                    <td class="error-overview-name">
+                        <a href="#test-7" class="test-anchor-link">Close connections</a>
+                        
+                    </td>
+                    <td class="error-overview-assertions">
+                        
+                        <ul class="error-detail-list">
+                            
+                            
+                            <li>[output_contains] Output does not contain &#39;closed&#39;</li>
+                            
+                            
+                        </ul>
+                        
+                    </td>
+                    <td class="error-overview-errors">
+                        <span class="text-muted">—</span>
+                    </td>
+                    <td>1.5s</td>
+                </tr>
+                
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
         
 
         
@@ -3024,7 +3180,7 @@ gpt-agent (67%): One failure in config reading session. Struggled with YAML pars
             
             
             
-            <div class="test-group-section">
+            <div id="test-1" class="test-group-section">
                 
 <div class="test-group-header">
     <h3 class="test-group-title">Create workspace</h3>
@@ -3706,7 +3862,7 @@ sequenceDiagram
 
             </div>
             
-            <div class="test-group-section">
+            <div id="test-2" class="test-group-section">
                 
 <div class="test-group-header">
     <h3 class="test-group-title">Initialize config</h3>
@@ -4592,7 +4748,7 @@ sequenceDiagram
             
             
             
-            <div class="test-group-section">
+            <div id="test-3" class="test-group-section">
                 
 <div class="test-group-header">
     <h3 class="test-group-title">Connect database</h3>
@@ -5274,7 +5430,7 @@ sequenceDiagram
 
             </div>
             
-            <div class="test-group-section">
+            <div id="test-4" class="test-group-section">
                 
 <div class="test-group-header">
     <h3 class="test-group-title">Query data</h3>
@@ -5953,7 +6109,7 @@ sequenceDiagram
 
             </div>
             
-            <div class="test-group-section">
+            <div id="test-5" class="test-group-section">
                 
 <div class="test-group-header">
     <h3 class="test-group-title">Generate report</h3>
@@ -6818,7 +6974,7 @@ sequenceDiagram
             
             
             
-            <div class="test-group-section">
+            <div id="test-6" class="test-group-section">
                 
 <div class="test-group-header">
     <h3 class="test-group-title">Delete temp files</h3>
@@ -7497,7 +7653,7 @@ sequenceDiagram
 
             </div>
             
-            <div class="test-group-section">
+            <div id="test-7" class="test-group-section">
                 
 <div class="test-group-header">
     <h3 class="test-group-title">Close connections</h3>
@@ -8420,6 +8576,9 @@ sequenceDiagram
 
 </body>
 </html>
+
+
+
 
 
 

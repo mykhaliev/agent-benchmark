@@ -2242,6 +2242,61 @@ body {
     .agent-card-details[open] .agent-details-content { display: block; }
 }
 
+/* Error Overview */
+.error-overview-table td {
+    vertical-align: top;
+}
+
+.error-overview-name {
+    font-weight: 500;
+    min-width: 160px;
+}
+
+.error-overview-iter {
+    font-size: 0.75rem;
+    color: var(--color-text-light);
+}
+
+.error-detail-list {
+    margin: 0;
+    padding-left: 1.2em;
+    font-size: 0.8rem;
+    color: var(--color-text);
+}
+
+.error-detail-list li {
+    margin-bottom: 2px;
+    word-break: break-word;
+}
+
+.error-more {
+    color: var(--color-text-light);
+    font-style: italic;
+    list-style: none;
+    margin-left: -1.2em;
+}
+
+.test-anchor-link {
+    color: inherit;
+    text-decoration: none;
+    border-bottom: 1px dashed var(--color-border);
+}
+
+.test-anchor-link:hover {
+    border-bottom-color: var(--color-primary);
+    color: var(--color-primary);
+}
+
+.section-subtitle {
+    font-size: 0.85rem;
+    color: var(--color-text-light);
+    margin-left: 8px;
+}
+
+.text-muted {
+    color: var(--color-text-light);
+}
+
     </style>
 </head>
 <body>
@@ -2250,7 +2305,7 @@ body {
             <h1>🧪 Agent Benchmark Report</h1>
             <div class="report-meta">
                 <span>📦 Version: 0.0.0-SNAPSHOT</span>
-                <span>📅 Generated: 2026-01-26T13:13:45&#43;01:00</span>
+                <span>📅 Generated: 2026-03-06T11:04:54&#43;01:00</span>
                 
                 
             </div>
@@ -2347,6 +2402,133 @@ phoenix-agent consistently chose network APIs for local file operations. This su
 - phoenix-agent: Not recommended for filesystem tasks</div>
             </div>
         </section>
+        
+
+        
+        
+        
+<section class="section">
+    <div class="section-header">
+        <h2 class="section-title">&#10060; Error Overview</h2>
+        <span class="section-subtitle">3 failed tests</span>
+    </div>
+    <div class="section-body">
+        <div class="matrix-container">
+            <table class="comparison-matrix error-overview-table">
+                <thead>
+                    <tr>
+                        <th>Test</th>
+                        <th>Assertion Failures</th>
+                        <th>Errors</th>
+                        <th>Duration</th>
+                    </tr>
+                </thead>
+                <tbody>
+                
+                <tr class="row-failed">
+                    <td class="error-overview-name">
+                        <a href="#test-1" class="test-anchor-link">Create test file</a>
+                        
+                    </td>
+                    <td class="error-overview-assertions">
+                        
+                        <ul class="error-detail-list">
+                            
+                            
+                            <li>[tool_param_equals] Parameter mismatch</li>
+                            
+                            
+                        </ul>
+                        
+                    </td>
+                    <td class="error-overview-errors">
+                        <span class="text-muted">—</span>
+                    </td>
+                    <td>7.0s</td>
+                </tr>
+                
+                <tr class="row-failed">
+                    <td class="error-overview-name">
+                        <a href="#test-1" class="test-anchor-link">Create test file</a>
+                        
+                    </td>
+                    <td class="error-overview-assertions">
+                        
+                        <ul class="error-detail-list">
+                            
+                            
+                            <li>[tool_called] Expected &#39;write_file&#39; but got &#39;API calls&#39;</li>
+                            
+                            <li>[tool_param_equals] Path mismatch</li>
+                            
+                            <li>[no_error_messages] Multiple errors encountered</li>
+                            
+                            
+                        </ul>
+                        
+                    </td>
+                    <td class="error-overview-errors">
+                        
+                        <ul class="error-detail-list">
+                            
+                            
+                            <li>HTTP POST failed: connection refused</li>
+                            
+                            <li>GraphQL error: unknown mutation</li>
+                            
+                            <li>Database error: table not found</li>
+                            
+                            
+                        </ul>
+                        
+                    </td>
+                    <td>15.0s</td>
+                </tr>
+                
+                <tr class="row-failed">
+                    <td class="error-overview-name">
+                        <a href="#test-2" class="test-anchor-link">Read config</a>
+                        
+                    </td>
+                    <td class="error-overview-assertions">
+                        
+                        <ul class="error-detail-list">
+                            
+                            
+                            <li>[tool_called] Expected &#39;read_file&#39; but got &#39;API/database calls&#39;</li>
+                            
+                            <li>[output_contains] Output should contain &#39;port number&#39;</li>
+                            
+                            <li>[no_error_messages] Multiple connection errors encountered</li>
+                            
+                            
+                        </ul>
+                        
+                    </td>
+                    <td class="error-overview-errors">
+                        
+                        <ul class="error-detail-list">
+                            
+                            
+                            <li>HTTP request failed: connection refused</li>
+                            
+                            <li>GraphQL endpoint not available</li>
+                            
+                            <li>Redis connection timeout</li>
+                            
+                            
+                        </ul>
+                        
+                    </td>
+                    <td>15.0s</td>
+                </tr>
+                
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
         
 
         
@@ -2662,7 +2844,7 @@ phoenix-agent consistently chose network APIs for local file operations. This su
             
             
             
-            <div class="test-group-section">
+            <div id="test-1" class="test-group-section">
                 
 <div class="test-group-header">
     <h3 class="test-group-title">Create test file</h3>
@@ -4393,7 +4575,7 @@ Failed to create file. I don&#39;t have the right tools.</div>
 
             </div>
             
-            <div class="test-group-section">
+            <div id="test-2" class="test-group-section">
                 
 <div class="test-group-header">
     <h3 class="test-group-title">Read config</h3>
@@ -6222,6 +6404,9 @@ sequenceDiagram
 
 </body>
 </html>
+
+
+
 
 
 
