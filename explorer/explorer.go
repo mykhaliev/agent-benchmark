@@ -346,6 +346,7 @@ func runExplorationLoop(
 			0, // no session delay
 			configPath,
 			suiteName,
+			nil, // no realtime reporting in explorer mode
 		)
 
 		// 7. Prepend exploration metadata as a system message in each result.

@@ -1610,6 +1610,7 @@ agent-benchmark generates comprehensive reports in multiple formats. You can spe
 - **HTML** - Rich visual dashboard with charts and metrics
 - **JSON** - Structured data for programmatic analysis
 - **Markdown** - Documentation-friendly format
+- **Realtime** - Streaming NDJSON written line-by-line as each test completes
 
 ### Examples
 
@@ -1623,8 +1624,47 @@ agent-benchmark -f test.yaml -o my-report -reportType html
 # Generate multiple formats
 agent-benchmark -f test.yaml -o my-report -reportType html,json,md
 
-# All formats
-agent-benchmark -f test.yaml -o my-report -reportType html,json,md
+# Realtime streaming report (useful for CI/CD pipelines and live dashboards)
+agent-benchmark -f test.yaml -o my-report -reportType realtime
+
+# Combine realtime with other formats
+agent-benchmark -f test.yaml -o my-report -reportType html,json,realtime
+```
+
+### Realtime Report
+
+The `realtime` report type streams results to a `.jsonl` ([JSON Lines](https://jsonlines.org)) file as each test completes — without waiting for the full suite to finish. This enables external tools to consume results incrementally.
+
+**Output file:** `<name>.jsonl` (e.g. `-o my-report` → `my-report.jsonl`)
+
+**Format — one JSON object per line:**
+
+```jsonl
+{"type":"test","data":{...full TestRun...}}
+{"type":"test","data":{...full TestRun...}}
+{"type":"summary","data":{"total_tests":5,"passed":4,"failed":1,"pass_rate":0.8,"total_duration_ms":12340,"generated_at":"2026-04-08T10:00:00Z"}}
+END
+```
+
+**Line types:**
+
+| Line | Description |
+|------|-------------|
+| `{"type":"test",...}` | One line per completed test, written immediately after assertion evaluation. The `data` field contains the full `TestRun`: assertions, timestamps, latency, token counts, tool calls, errors, and more. |
+| `{"type":"summary",...}` | Aggregate stats written once after all tests complete. |
+| `END` | Non-JSON sentinel on the last line. Signals to parsers that the stream is complete. |
+
+**Parser pattern:**
+```python
+with open("my-report.jsonl") as f:
+    for line in follow(f):          # tail -f style
+        if line.strip() == "END":
+            break                   # suite finished
+        row = json.loads(line)
+        if row["type"] == "test":
+            process_test(row["data"])
+        elif row["type"] == "summary":
+            process_summary(row["data"])
 ```
 
 ### Console Report
