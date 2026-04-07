@@ -30,7 +30,7 @@ func main() {
 	logPath := flag.String("l", "", "Path to the log file (if not set, logs to stdout)")
 	verbose := flag.Bool("verbose", false, "Enable verbose logging")
 	showVersion := flag.Bool("v", false, "Show version and exit")
-	reportTypes := flag.String("reportType", "html", "Report type(s) (comma-separated): html, json, markdown, txt")
+	reportTypes := flag.String("reportType", "html", "Report type(s) (comma-separated): html, json, md, realtime")
 	generateFromJSON := flag.String("generate-report", "", "Generate report from existing JSON results file (use with -f to get AI summary config)")
 	generateConfig := flag.String("g", "", "Path to the generator config file (enables test generation mode)")
 	generateDryRun := flag.Bool("dry-run", false, "Preview generated YAML without saving (requires -g)")

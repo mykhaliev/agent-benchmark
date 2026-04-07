@@ -40,6 +40,53 @@ func Run(testPath *string, verbose *bool, suitePath *string, reportFileName *str
 	// Run tests
 	results := make([]model.TestRun, 0)
 
+	// Determine report output path early so the realtime reporter can open its file
+	// before tests begin. This mirrors the logic that previously ran after all tests.
+	if *reportFileName == "" {
+		var testDir string
+		if *testPath != "" {
+			if absPath, err := filepath.Abs(*testPath); err == nil {
+				testDir = filepath.Dir(absPath)
+			}
+		} else if *suitePath != "" {
+			if absPath, err := filepath.Abs(*suitePath); err == nil {
+				testDir = filepath.Dir(absPath)
+			}
+		}
+		if testDir != "" {
+			reportDir := filepath.Join(testDir, "test_results")
+			if err := os.MkdirAll(reportDir, 0755); err != nil {
+				logger.Logger.Error("Failed to create test_results directory", "error", err)
+				os.Exit(1)
+			}
+			*reportFileName = filepath.Join(reportDir, "report")
+		} else {
+			*reportFileName = "report"
+		}
+	}
+
+	// Set up realtime reporter if requested; it writes each test result immediately as NDJSON.
+	// The summary and END sentinel are written after all RunTests calls complete.
+	var realtimeReporter *report.RealtimeReporter
+	var onTestComplete func(model.TestRun)
+	for _, rt := range reportTypes {
+		if rt == "realtime" {
+			realtimeReporter = &report.RealtimeReporter{}
+			realtimePath := *reportFileName + ".jsonl"
+			if err := realtimeReporter.Open(realtimePath); err != nil {
+				logger.Logger.Error("Failed to open realtime report file", "error", err)
+				os.Exit(1)
+			}
+			onTestComplete = func(result model.TestRun) {
+				if err := realtimeReporter.WriteTestResult(result); err != nil {
+					logger.Logger.Warn("Failed to write realtime test result", "error", err)
+				}
+			}
+			logger.Logger.Info("Realtime report enabled", "path", realtimePath)
+			break
+		}
+	}
+
 	var criteria model.Criteria
 	if *testPath != "" {
 		// Create a NEW context for each test file
@@ -119,7 +166,7 @@ func Run(testPath *string, verbose *bool, suitePath *string, reportFileName *str
 
 		// Run tests
 		logger.Logger.Info("Starting test execution")
-		testResults := RunTests(ctx, testConfig, agents, providers, maxIterations, toolTimeout, testDelay, sessionDelay, *testPath, "")
+		testResults := RunTests(ctx, testConfig, agents, providers, maxIterations, toolTimeout, testDelay, sessionDelay, *testPath, "", onTestComplete)
 		results = append(results, testResults...)
 		if len(testResults) > 0 {
 			criteria = testResults[0].TestCriteria
@@ -249,7 +296,7 @@ func Run(testPath *string, verbose *bool, suitePath *string, reportFileName *str
 				"tests", totalTests)
 			// Run tests
 			logger.Logger.Info("Starting test execution")
-			testResults := RunTests(ctx, testConfig, agents, providers, maxIterations, toolTimeout, testDelay, sessionDelay, testFile, testSuiteConfig.Name)
+			testResults := RunTests(ctx, testConfig, agents, providers, maxIterations, toolTimeout, testDelay, sessionDelay, testFile, testSuiteConfig.Name, onTestComplete)
 			results = append(results, testResults...)
 		}
 		criteria = testSuiteConfig.TestCriteria
@@ -347,37 +394,18 @@ func Run(testPath *string, verbose *bool, suitePath *string, reportFileName *str
 		}
 	}
 
-	// Generate and save reports
-	logger.Logger.Info("Generating reports")
-
-	// Determine report output directory
-	// Default to test_results folder in the test file's directory
-	var reportDir string
-	if *reportFileName == "" {
-		var testDir string
-		if *testPath != "" {
-			absPath, err := filepath.Abs(*testPath)
-			if err == nil {
-				testDir = filepath.Dir(absPath)
-			}
-		} else if *suitePath != "" {
-			absPath, err := filepath.Abs(*suitePath)
-			if err == nil {
-				testDir = filepath.Dir(absPath)
-			}
+	// Finalize realtime report: write summary and END sentinel.
+	if realtimeReporter != nil {
+		if err := realtimeReporter.WriteSummary(results); err != nil {
+			logger.Logger.Warn("Failed to write realtime summary", "error", err)
 		}
-		if testDir != "" {
-			reportDir = filepath.Join(testDir, "test_results")
-			// Create the directory if it doesn't exist
-			if err := os.MkdirAll(reportDir, 0755); err != nil {
-				logger.Logger.Error("Failed to create test_results directory", "error", err)
-				os.Exit(1)
-			}
-			*reportFileName = filepath.Join(reportDir, "report")
-		} else {
-			*reportFileName = "report"
+		if err := realtimeReporter.Close(); err != nil {
+			logger.Logger.Warn("Failed to close realtime report", "error", err)
 		}
 	}
+
+	// Generate and save reports
+	logger.Logger.Info("Generating reports")
 
 	for _, rt := range reportTypes {
 		reportFileNameWithExt := *reportFileName + "." + rt
@@ -556,8 +584,8 @@ func ValidateSuiteConfig(config *model.TestSuiteConfiguration) error {
 }
 
 func ValidateReportType(reportType string) error {
-	if reportType != "json" && reportType != "html" && reportType != "md" {
-		return fmt.Errorf("unknown type %s, supported types are: json, html, md", reportType)
+	if reportType != "json" && reportType != "html" && reportType != "md" && reportType != "realtime" {
+		return fmt.Errorf("unknown type %s, supported types are: json, html, md, realtime", reportType)
 	}
 	return nil
 }
@@ -971,6 +999,7 @@ func RunTests(
 	sessionDelay time.Duration,
 	sourceFile string, // Source test file (empty for single file runs)
 	suiteName string, // Suite name (empty for single file runs)
+	onTestComplete func(model.TestRun), // Called immediately after each test completes (nil = no-op)
 ) []model.TestRun {
 	results := make([]model.TestRun, 0)
 
@@ -1252,6 +1281,10 @@ func RunTests(
 
 				results = append(results, testRun)
 
+				if onTestComplete != nil {
+					onTestComplete(testRun)
+				}
+
 				if allPassed {
 					logger.Logger.Info("Test PASSED", "test", test.Name)
 				} else {
@@ -1380,6 +1413,9 @@ func GenerateReports(results []model.TestRun, reportType, outputPath string, aiS
 		reportContent = htmlContent
 	case "md":
 		reportContent = reporter.GenerateMarkdownReport(results)
+	case "realtime":
+		// Written incrementally during test execution; nothing to do here.
+		return nil
 	default:
 		return fmt.Errorf("Unknown report type")
 	}
