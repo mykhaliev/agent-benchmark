@@ -241,7 +241,11 @@ func Run(testPath *string, verbose *bool, suitePath *string, reportFileName *str
 			"session_delay", sessionDelay,
 			"verbose", testSuiteConfig.Settings.Verbose)
 
-		suiteDir := filepath.Dir(*suitePath)
+		absSuite, err := filepath.Abs(*suitePath)
+		if err != nil {
+			absSuite = *suitePath
+		}
+		suiteDir := filepath.Dir(absSuite)
 		for _, testFile := range testSuiteConfig.TestFiles {
 			// Resolve relative paths against the suite file's directory.
 			if !filepath.IsAbs(testFile) {
@@ -609,6 +613,11 @@ func InitProviders(ctx context.Context, providerConfigs []model.Provider, templa
 		p.ProjectID = model.RenderTemplate(p.ProjectID, templateCtx)
 		p.Location = model.RenderTemplate(p.Location, templateCtx)
 		p.CredentialsPath = model.RenderTemplate(p.CredentialsPath, templateCtx)
+		if p.CredentialsPath != "" && !filepath.IsAbs(p.CredentialsPath) {
+			if testDir, ok := templateCtx["TEST_DIR"]; ok && testDir != "" {
+				p.CredentialsPath = filepath.Join(testDir, p.CredentialsPath)
+			}
+		}
 		p.AuthType = model.RenderTemplate(p.AuthType, templateCtx)
 		logger.Logger.Debug("Initializing provider",
 			"index", i+1,
